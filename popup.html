@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<!-- SyntaxMentor - popup.html v1.9.20 -->
+<head>
+    <meta charset="UTF-8">
+    <title>SyntaxMentor - Dicionário</title>
+    <link rel="stylesheet" href="css/popup.css">
+</head>
+<body>
+
+    <!-- Cabeçalho Roxo -->
+    <div class="header">
+        <span class="icon">📖</span> Meu Dicionário
+    </div>
+
+    <div class="content">
+        <!-- Campo de Adicionar -->
+        <div class="input-container">
+            <input type="text" id="word-input" placeholder="Digitar nova palavra...">
+            <button id="add-btn" title="Adicionar ao dicionário">+</button>
+        </div>
+
+        <!-- Lista de Palavras -->
+        <ul id="word-list">
+            <!-- As palavras vão brotar aqui via Javascript -->
+        </ul>
+    </div>
+
+    <!-- O Novo Rodapé com o Link para as Opções -->
+    <div class="popup-footer-hint">
+        💡 Dica: Você pode editar palavras nas <a href="#" id="link-opcoes">Configurações</a>.
+    </div>
+
+    <script src="js/popup.js"></script>
+</body>
+</html>

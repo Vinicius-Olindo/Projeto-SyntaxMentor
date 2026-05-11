@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<!-- SyntaxMentor - options.html v1.9.19 -->
+<head>
+    <meta charset="UTF-8">
+    <title>Configurações - SyntaxMentor</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+    <!-- BARRA LATERAL -->
+    <div class="sidebar">
+        <h2 class="logo">✨ SyntaxMentor <span style="font-size: 10px; color: #aaa;">v1.9.19</span></h2>
+        <ul class="menu">
+            <li class="active">Geral</li>
+            <li>Segurança</li>
+        </ul>
+    </div>
+
+    <!-- CONTEÚDO PRINCIPAL -->
+    <div class="main-content">
+        <div class="header-titles">
+            <h1>Configurações do Mentor</h1>
+            <p>Personalize como a extensão deve se comportar enquanto você escreve.</p>
+        </div>
+
+        <div class="grid-container">
+            <!-- COLUNA 1: ESQUERDA -->
+            <div class="column-left">
+                
+                <div class="config-card">
+                    <h3>Análise Ortográfica</h3>
+                    <div class="config-item">
+                        <div class="info-text">
+                            <label>Idioma Principal</label>
+                            <p class="desc">Idioma que o mentor usará para validar textos.</p>
+                        </div>
+                        <select id="language" class="select-box">
+                            <option value="pt-BR">Português (Brasil)</option>
+                            <option value="en-US">English (US)</option>
+                            <option value="es">Español</option>
+                        </select>
+                    </div>
+                    <div class="config-item">
+                        <div class="info-text">
+                            <label>Nível de Rigor (Picky)</label>
+                            <p class="desc">Ativa correções de estilo e gramática avançada.</p>
+                        </div>
+                        <label class="switch"><input type="checkbox" id="pickyMode"><span class="slider"></span></label>
+                    </div>
+                </div>
+
+                <div class="config-card">
+                    <h3>Aparência</h3>
+                    <div class="config-item">
+                        <div class="info-text">
+                            <label>Modo Escuro (Dark Mode)</label>
+                            <p class="desc">Altera o painel e a bolinha para tons escuros.</p>
+                        </div>
+                        <label class="switch"><input type="checkbox" id="darkMode"><span class="slider"></span></label>
+                    </div>
+                </div>
+
+                <div class="config-card">
+                    <h3>Sites Ignorados</h3>
+                    <p class="desc">Adicione domínios onde o SyntaxMentor deve ficar desativado (ex: github.com).</p>
+                    <div class="input-group">
+                        <input type="text" id="blacklist-input" placeholder="Adicionar site (ex: gmail.com)">
+                        <button id="btn-add-blacklist" class="btn-dark">Bloquear</button>
+                    </div>
+                    <ul id="blacklist-list" class="blacklist-ul"></ul>
+                </div>
+
+            </div>
+
+            <!-- COLUNA 2: CENTRO -->
+            <div class="column-center">
+                
+                <div class="config-card">
+                    <h3>Performance</h3>
+                    <div class="config-item-vertical">
+                        <label style="font-weight: 600; font-size: 14px;" class="speed-title">Velocidade de Resposta</label>
+                        <p class="desc" style="margin-bottom: 12px;">Quanto tempo esperar após você parar de digitar.</p>
+                        <div class="speed-selector">
+                            <label class="speed-option"><input type="radio" name="speed" value="300"><span>Rápido</span></label>
+                            <label class="speed-option"><input type="radio" name="speed" value="500"><span>Equilibrado</span></label>
+                            <label class="speed-option"><input type="radio" name="speed" value="1000"><span>Leve</span></label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="config-card">
+                    <h3>Atalhos de Teclado</h3>
+                    <p class="desc" style="margin-bottom: 20px;">Acione o mentor e navegue pelas sugestões mais rápido.</p>
+
+                    <div class="atalho-row">
+                        <div>
+                            <span class="atalho-title">Abrir / Fechar Painel</span>
+                            <span class="atalho-sub">Clique no botão para alterar</span>
+                        </div>
+                        <button id="btn-gravar-atalho" class="btn-gravar">Alt + S</button>
+                    </div>
+                    
+                    <div class="atalho-row" style="margin-top: 5px;">
+                        <div>
+                            <span class="atalho-title">Ignorar Tudo</span>
+                            <span class="atalho-sub">Limpa todos os erros na tela</span>
+                        </div>
+                        <button id="btn-gravar-ignorar" class="btn-gravar">Alt + I</button>
+                    </div>
+
+                    <hr class="divisor">
+
+                    <div class="atalho-row">
+                        <span class="atalho-label">Próxima Sugestão</span>
+                        <kbd class="tecla-kbd">Seta Baixo ↓</kbd>
+                    </div>
+                    <div class="atalho-row">
+                        <span class="atalho-label">Sugestão Anterior</span>
+                        <kbd class="tecla-kbd">Seta Cima ↑</kbd>
+                    </div>
+                    <div class="atalho-row">
+                        <span class="atalho-label">Aplicar Correção</span>
+                        <kbd class="tecla-kbd">Enter ↵</kbd>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- COLUNA 3: DIREITA -->
+            <div class="column-right">
+                
+                <div class="config-card">
+                    <h3>Meu Dicionário</h3>
+                    <p class="desc">Palavras que o mentor deve ignorar (gírias, nomes próprios, etc).</p>
+                    <div class="input-group">
+                        <input type="text" id="dictionary-input" placeholder="Adicionar palavra (ex: syntaxmentor)">
+                        <button id="btn-add-dictionary" class="btn-dark">Adicionar</button>
+                    </div>
+                    <ul id="dictionary-list" class="blacklist-ul"></ul>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- RODAPÉ MODERNO -->
+        <div class="footer-save">
+            <span id="save-status">✓ Salvo com sucesso!</span>
+            <button id="btn-salvar" class="btn-primary">Salvar Alterações</button>
+            <div class="spacer"></div>
+        </div>
+    </div>
+
+    <script src="js/options.js"></script>
+</body>
+</html>

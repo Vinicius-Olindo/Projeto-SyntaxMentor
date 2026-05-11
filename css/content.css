@@ -1,0 +1,422 @@
+/* =========================================================================
+   SyntaxMentor - content.css (UI Completa - Painel e Bolinha)
+   ========================================================================= */
+
+/* --- 1. BOLINHA FLUTUANTE (BUBBLE) --- */
+#syntax-mentor-bubble {
+    position: fixed;
+    z-index: 2147483646;
+    /* Fica acima de quase tudo no site */
+    width: 45px;
+    height: 45px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: grab;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    transition: transform 0.2s, opacity 0.2s, background-color 0.3s;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    user-select: none;
+}
+
+#syntax-mentor-bubble:active {
+    cursor: grabbing;
+    transform: scale(0.95);
+}
+
+/* Bolinha com Erros (Vermelha/Laranja) */
+#syntax-mentor-bubble.sm-bubble-error {
+    background: linear-gradient(135deg, #ff6b6b 0%, #dc3545 100%);
+    color: white;
+}
+
+/* Bolinha sem Erros (Verde) */
+#syntax-mentor-bubble.sm-bubble-success {
+    background: linear-gradient(135deg, #20c997 0%, #28a745 100%);
+    color: white;
+}
+
+/* Bolinha no Modo Escuro */
+#syntax-mentor-bubble.sm-dark.sm-bubble-error {
+    background: linear-gradient(135deg, #c53030 0%, #9b2c2c 100%);
+}
+
+#syntax-mentor-bubble.sm-dark.sm-bubble-success {
+    background: linear-gradient(135deg, #22543d 0%, #1c4532 100%);
+}
+
+.sm-bubble-icon {
+    font-size: 20px;
+    pointer-events: none;
+}
+
+.sm-bubble-badge {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    background: #111;
+    color: white;
+    font-size: 11px;
+    font-weight: bold;
+    border-radius: 10px;
+    padding: 2px 6px;
+    border: 2px solid white;
+    pointer-events: none;
+}
+
+#syntax-mentor-bubble.sm-dark .sm-bubble-badge {
+    border-color: #333;
+}
+
+/* Animação de Carregamento (Bolinha pulsando) */
+@keyframes sm-pulse {
+    0% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(111, 66, 193, 0.4);
+    }
+
+    70% {
+        transform: scale(1.05);
+        box-shadow: 0 0 0 10px rgba(111, 66, 193, 0);
+    }
+
+    100% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(111, 66, 193, 0);
+    }
+}
+
+
+/* --- 2. PAINEL DE SUGESTÕES --- */
+#syntax-mentor-painel {
+    position: fixed;
+    z-index: 2147483647;
+    width: 340px;
+    max-height: 80vh;
+    background: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+    display: flex;
+    flex-direction: column;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    color: #333;
+    overflow: hidden;
+    border: 1px solid #e5e7eb;
+}
+
+/* Modo Escuro (Painel Base) */
+#syntax-mentor-painel.sm-dark {
+    background: #1a1a1a;
+    border-color: #333;
+    color: #e0e0e0;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+}
+
+/* Cabeçalho do Painel */
+#syntax-mentor-header {
+    background: linear-gradient(135deg, #6f42c1 0%, #8b5cf6 100%);
+    color: white;
+    padding: 12px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: grab;
+    user-select: none;
+}
+
+#syntax-mentor-header:active {
+    cursor: grabbing;
+}
+
+/* Modo Escuro (Cabeçalho) */
+#syntax-mentor-painel.sm-dark #syntax-mentor-header {
+    background: linear-gradient(135deg, #4a2b85 0%, #5b21b6 100%);
+}
+
+#btn-fechar-painel {
+    background: none;
+    border: none;
+    color: white;
+    cursor: pointer;
+    font-size: 16px;
+    opacity: 0.8;
+    transition: 0.2s;
+    padding: 0;
+}
+
+#btn-fechar-painel:hover {
+    opacity: 1;
+    transform: scale(1.1);
+}
+
+/* Conteúdo Rolável do Painel */
+#syntax-mentor-content {
+    padding: 15px;
+    overflow-y: auto;
+    flex-grow: 1;
+}
+
+/* Scrollbar Customizada */
+#syntax-mentor-content::-webkit-scrollbar {
+    width: 6px;
+}
+
+#syntax-mentor-content::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+#syntax-mentor-content::-webkit-scrollbar-thumb {
+    background: #d1d5db;
+    border-radius: 4px;
+}
+
+#syntax-mentor-content::-webkit-scrollbar-thumb:hover {
+    background: #9ca3af;
+}
+
+#syntax-mentor-painel.sm-dark #syntax-mentor-content::-webkit-scrollbar-thumb {
+    background: #555;
+}
+
+
+/* --- 3. CARDS DE ERRO --- */
+.erro-card {
+    background: #f8f9fa;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 12px;
+    transition: 0.2s;
+}
+
+.erro-card:hover {
+    border-color: #d8b4fe;
+    box-shadow: 0 2px 8px rgba(111, 66, 193, 0.05);
+}
+
+/* Modo Escuro (Cards) */
+#syntax-mentor-painel.sm-dark .erro-card {
+    background: #252525;
+    border-color: #333;
+}
+
+#syntax-mentor-painel.sm-dark .erro-card:hover {
+    border-color: #6f42c1;
+}
+
+.erro-msg {
+    margin: 0 0 8px 0;
+    font-size: 12px;
+    color: #6b7280;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+#syntax-mentor-painel.sm-dark .erro-msg {
+    color: #9ca3af;
+}
+
+.info-icon {
+    font-size: 11px;
+    opacity: 0.6;
+    cursor: help;
+}
+
+.sugestao-container {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.palavra-original {
+    font-weight: 600;
+    color: #dc3545;
+    text-decoration: line-through;
+    font-size: 13px;
+}
+
+#syntax-mentor-painel.sm-dark .palavra-original {
+    color: #f87171;
+}
+
+.seta {
+    color: #9ca3af;
+    font-size: 12px;
+}
+
+/* Botões de Ação dentro do Card */
+.botoes-acao {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.btn-fix-mini {
+    background: #e9d8fd;
+    color: #553c9a;
+    border: 1px solid #d8b4fe;
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.btn-fix-mini:hover,
+.btn-fix-mini:focus {
+    background: #6f42c1;
+    color: white;
+    border-color: #6f42c1;
+    outline: none;
+}
+
+#syntax-mentor-painel.sm-dark .btn-fix-mini {
+    background: #3b285e;
+    color: #d8b4fe;
+    border-color: #553c9a;
+}
+
+#syntax-mentor-painel.sm-dark .btn-fix-mini:hover,
+#syntax-mentor-painel.sm-dark .btn-fix-mini:focus {
+    background: #6f42c1;
+    color: white;
+}
+
+.btn-ignorar-sessao {
+    background: #f0fdf4;
+    color: #166534;
+    border: 1px solid #bbf7d0;
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: 13px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.btn-ignorar-sessao:hover {
+    background: #dcfce7;
+    color: #14532d;
+    border-color: #86efac;
+}
+
+#syntax-mentor-painel.sm-dark .btn-ignorar-sessao {
+    background: #1a3a2a;
+    color: #6ee7b7;
+    border-color: #166534;
+}
+
+#syntax-mentor-painel.sm-dark .btn-ignorar-sessao:hover {
+    background: #1f4d33;
+    color: #86efac;
+    border-color: #22c55e;
+}
+
+.btn-ignorar {
+    background: white;
+    color: #6b7280;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: 13px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.btn-ignorar:hover {
+    background: #f3f4f6;
+    color: #374151;
+}
+
+#syntax-mentor-painel.sm-dark .btn-ignorar {
+    background: #2a2a2a;
+    color: #9ca3af;
+    border-color: #444;
+}
+
+#syntax-mentor-painel.sm-dark .btn-ignorar:hover {
+    background: #333;
+    color: #fff;
+}
+
+
+/* --- 4. RODAPÉ DO PAINEL (Botões Globais) --- */
+.footer-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid #f0f0f0;
+}
+
+#syntax-mentor-painel.sm-dark .footer-actions {
+    border-top-color: #333;
+}
+
+#btn-corrigir-tudo {
+    flex: 1;
+    background: linear-gradient(135deg, #6f42c1 0%, #8b5cf6 100%);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 10px;
+    font-weight: 700;
+    font-size: 13px;
+    cursor: pointer;
+    transition: 0.2s;
+    box-shadow: 0 4px 10px rgba(111, 66, 193, 0.2);
+}
+
+#btn-corrigir-tudo:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px rgba(111, 66, 193, 0.4);
+}
+
+#btn-ignorar-tudo {
+    background: white;
+    color: #6b7280;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 10px 16px;
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+#btn-ignorar-tudo:hover {
+    background: #f9fafb;
+    color: #374151;
+    border-color: #d1d5db;
+}
+
+/* Modo Escuro (Botões Rodapé) */
+#syntax-mentor-painel.sm-dark #btn-corrigir-tudo {
+    background: linear-gradient(135deg, #4a2b85 0%, #6f42c1 100%);
+}
+
+#syntax-mentor-painel.sm-dark #btn-ignorar-tudo {
+    background: #2a2a2a;
+    border-color: #444;
+    color: #ccc;
+}
+
+#syntax-mentor-painel.sm-dark #btn-ignorar-tudo:hover {
+    background: #333;
+    color: #fff;
+}
+
+
+/* --- 5. GRIFOS NO TEXTO DA PÁGINA --- */
+mark.sm-highlight {
+    background-color: rgba(255, 107, 107, 0.25);
+    border-bottom: 2px dashed #ff6b6b;
+    color: inherit;
+    padding: 0 2px;
+}
