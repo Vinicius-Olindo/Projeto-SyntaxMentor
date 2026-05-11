@@ -1,9 +1,9 @@
 {
     "manifest_version": 3,
     "name": "SyntaxMentor",
-    "version": "2.1.0",
-    "version_name": "2.1.0",
-    "description": "Extensão de produtividade que atua como um mentor ortográfico.",
+    "version": "2.2.0",
+    "version_name": "2.2.0 Pro",
+    "description": "Mentor ortográfico com badge de notificação e backup de dados.",
     "icons": {
         "16": "icons/icon16.png",
         "32": "icons/icon32.png",
@@ -12,7 +12,8 @@
     },
     "permissions": [
         "storage",
-        "activeTab"
+        "activeTab",
+        "scripting"
     ],
     "host_permissions": [
         "https://api.languagetool.org/*"

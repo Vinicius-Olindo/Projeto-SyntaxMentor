@@ -661,3 +661,60 @@ body.dark-mode .blacklist-ul li:hover {
 body.dark-mode .config-card p.desc {
     color: #888;
 }
+
+/* =========================================================
+   🆕 BOTÕES DE BACKUP (MELHORIA 3)
+   ========================================================= */
+.btn-backup-export {
+    background: linear-gradient(135deg, #6f42c1 0%, #8b5cf6 100%);
+    color: white;
+    border: none;
+    padding: 10px 16px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 8px rgba(111, 66, 193, 0.2);
+}
+
+.btn-backup-export:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(111, 66, 193, 0.3);
+    background: linear-gradient(135deg, #5a32a3 0%, #7c3aed 100%);
+}
+
+.btn-backup-import {
+    background: white;
+    color: #6f42c1;
+    border: 2px solid #6f42c1;
+    padding: 10px 16px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-backup-import:hover {
+    background: #f3e8ff;
+    border-color: #5a32a3;
+    color: #5a32a3;
+}
+
+/* Dark mode */
+body.dark-mode .btn-backup-export {
+    background: linear-gradient(135deg, #4a2b85 0%, #6f42c1 100%);
+}
+
+body.dark-mode .btn-backup-import {
+    background: #2a2a2a;
+    color: #d8b4fe;
+    border-color: #6f42c1;
+}
+
+body.dark-mode .btn-backup-import:hover {
+    background: #3b285e;
+    border-color: #8b5cf6;
+    color: #e9d8fd;
+}

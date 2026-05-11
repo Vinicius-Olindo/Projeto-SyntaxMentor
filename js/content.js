@@ -1,4 +1,4 @@
-// SyntaxMentor - v2.1.1 (Fix: React/Vue State Update)
+// SyntaxMentor - v2.2.0 (Auto-Hide, Badge & Icon Sync)
 let timeoutDigitacao = null;
 let errosGlobais = [];
 let elementoGlobal = null;
@@ -11,6 +11,7 @@ let currentFetchController = null;
 let textoUltimaVerificacao = "";
 let isDraggingBubble = false;
 let estaCarregando = false;
+let usuarioDigitando = false;
 
 let contextoExtensaoValido = true;
 
@@ -25,92 +26,12 @@ let smConfig = {
     apiUrl: '', strictMode: false, disabled: false,
     toggleShortcut: { altKey: true, ctrlKey: false, shiftKey: false, key: 's' },
     ignoreShortcut: { altKey: true, ctrlKey: false, shiftKey: false, key: 'i' },
-    corrigirTudoShortcut: { altKey: true, ctrlKey: false, shiftKey: true, key: 's' }
+    corrigirTudoShortcut: { altKey: true, ctrlKey: false, shiftKey: true, key: 's' },
+    autoHideBubble: false // 🆕 Opção de auto-hide
 };
 
 // =============================================
-// 🆕 UTILITÁRIO: DISPARA EVENTOS NATIVOS PARA REACT/VUE
-// =============================================
-function dispararEventosNativos(elemento) {
-    if (!elemento) return;
-
-    // Evento 'input' - crucial para React
-    elemento.dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
-
-    // Evento 'change' - para formulários e Vue
-    elemento.dispatchEvent(new Event('change', { bubbles: true, cancelable: true }));
-
-    // Evento 'blur' e 'focus' - para forçar save em alguns frameworks
-    elemento.dispatchEvent(new FocusEvent('blur', { bubbles: true }));
-    elemento.dispatchEvent(new FocusEvent('focus', { bubbles: true }));
-
-    // 🆕 Evento personalizado para editores ricos
-    elemento.dispatchEvent(new CustomEvent('textchange', { bubbles: true }));
-
-    // 🆕 Para React 17+: dispara evento no DOM nativo
-    const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
-        window.HTMLInputElement.prototype, 'value'
-    )?.set;
-    const nativeTextAreaValueSetter = Object.getOwnPropertyDescriptor(
-        window.HTMLTextAreaElement.prototype, 'value'
-    )?.set;
-
-    if (elemento.tagName === 'INPUT' && nativeInputValueSetter) {
-        nativeInputValueSetter.call(elemento, elemento.value);
-    } else if (elemento.tagName === 'TEXTAREA' && nativeTextAreaValueSetter) {
-        nativeTextAreaValueSetter.call(elemento, elemento.value);
-    }
-
-    // 🆕 Dispara evento de teclado para editores que escutam keystrokes
-    elemento.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'Process' }));
-    elemento.dispatchEvent(new KeyboardEvent('keyup', { bubbles: true, key: 'Process' }));
-
-    // 🆕 Força um evento de composição (IME) para editores asiáticos
-    elemento.dispatchEvent(new CompositionEvent('compositionstart', { bubbles: true }));
-    elemento.dispatchEvent(new CompositionEvent('compositionend', { bubbles: true, data: elemento.value || elemento.textContent || '' }));
-}
-
-function atualizarElementoComEventos(elemento) {
-    if (!elemento) return;
-
-    // Para contenteditable (React/Vue)
-    if (elemento.isContentEditable || elemento.getAttribute?.('contenteditable') === 'true') {
-        // Foca e desfoca para forçar o framework a reconhecer a mudança
-        elemento.focus();
-
-        // Dispara eventos
-        elemento.dispatchEvent(new Event('input', { bubbles: true }));
-        elemento.dispatchEvent(new Event('change', { bubbles: true }));
-        elemento.dispatchEvent(new InputEvent('beforeinput', { bubbles: true, inputType: 'insertText' }));
-        elemento.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'insertText' }));
-
-        // Pequeno delay e blur/focus para forçar save
-        setTimeout(() => {
-            elemento.blur();
-            elemento.focus();
-        }, 50);
-    }
-
-    // Para inputs e textareas
-    if (elemento.tagName === 'INPUT' || elemento.tagName === 'TEXTAREA') {
-        elemento.dispatchEvent(new Event('input', { bubbles: true }));
-        elemento.dispatchEvent(new Event('change', { bubbles: true }));
-
-        // Trigger React synthetic event
-        const tracker = elemento._valueTracker;
-        if (tracker) {
-            tracker.setValue(elemento.value || '');
-        }
-    }
-
-    // Dispara evento genérico no documento
-    document.dispatchEvent(new CustomEvent('sm:textChanged', {
-        detail: { element: elemento }
-    }));
-}
-
-// =============================================
-// UTILITÁRIOS GERAIS
+// UTILITÁRIOS
 // =============================================
 function isExtensaoAtiva() {
     try { return !!(chrome && chrome.runtime && chrome.runtime.id); } catch (e) { return false; }
@@ -142,6 +63,81 @@ function mostrarFeedback(msg, tipo) {
     setTimeout(() => f.remove(), 2200);
 }
 
+// 🆕 Sincroniza badge com background
+function atualizarBadgeBackground(total) {
+    if (!isExtensaoAtiva()) return;
+    try {
+        chrome.runtime.sendMessage({ action: 'updateBadge', totalErros: total });
+    } catch (e) { }
+}
+
+function resetarBadgeBackground() {
+    if (!isExtensaoAtiva()) return;
+    try {
+        chrome.runtime.sendMessage({ action: 'resetBadge' });
+    } catch (e) { }
+}
+
+// 🆕 MELHORIA 4: Auto-hide da bolinha
+function atualizarVisibilidadeBolha() {
+    const bubble = document.getElementById('syntax-mentor-bubble');
+    if (!bubble) return;
+
+    if (smConfig.autoHideBubble && usuarioDigitando && !painelAberto) {
+        bubble.style.opacity = '0';
+        bubble.style.pointerEvents = 'none';
+        bubble.style.transition = 'opacity 0.3s ease';
+    } else {
+        bubble.style.opacity = estaCarregando ? '0.6' : '1';
+        bubble.style.pointerEvents = 'auto';
+        bubble.style.transition = 'opacity 0.3s ease';
+    }
+}
+
+// =============================================
+// DISPARA EVENTOS NATIVOS PARA REACT/VUE
+// =============================================
+function dispararEventosNativos(elemento) {
+    if (!elemento) return;
+    elemento.dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
+    elemento.dispatchEvent(new Event('change', { bubbles: true, cancelable: true }));
+    elemento.dispatchEvent(new FocusEvent('blur', { bubbles: true }));
+    elemento.dispatchEvent(new FocusEvent('focus', { bubbles: true }));
+    elemento.dispatchEvent(new CustomEvent('textchange', { bubbles: true }));
+
+    const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set;
+    const nativeTextAreaValueSetter = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value')?.set;
+
+    if (elemento.tagName === 'INPUT' && nativeInputValueSetter) {
+        nativeInputValueSetter.call(elemento, elemento.value);
+    } else if (elemento.tagName === 'TEXTAREA' && nativeTextAreaValueSetter) {
+        nativeTextAreaValueSetter.call(elemento, elemento.value);
+    }
+
+    elemento.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'Process' }));
+    elemento.dispatchEvent(new KeyboardEvent('keyup', { bubbles: true, key: 'Process' }));
+    elemento.dispatchEvent(new CompositionEvent('compositionstart', { bubbles: true }));
+    elemento.dispatchEvent(new CompositionEvent('compositionend', { bubbles: true, data: elemento.value || elemento.textContent || '' }));
+}
+
+function atualizarElementoComEventos(elemento) {
+    if (!elemento) return;
+    if (elemento.isContentEditable || elemento.getAttribute?.('contenteditable') === 'true') {
+        elemento.focus();
+        elemento.dispatchEvent(new Event('input', { bubbles: true }));
+        elemento.dispatchEvent(new Event('change', { bubbles: true }));
+        elemento.dispatchEvent(new InputEvent('beforeinput', { bubbles: true, inputType: 'insertText' }));
+        elemento.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'insertText' }));
+        setTimeout(() => { elemento.blur(); elemento.focus(); }, 50);
+    }
+    if (elemento.tagName === 'INPUT' || elemento.tagName === 'TEXTAREA') {
+        elemento.dispatchEvent(new Event('input', { bubbles: true }));
+        elemento.dispatchEvent(new Event('change', { bubbles: true }));
+        const tracker = elemento._valueTracker;
+        if (tracker) tracker.setValue(elemento.value || '');
+    }
+}
+
 // =============================================
 // INICIALIZAÇÃO
 // =============================================
@@ -153,11 +149,13 @@ function iniciar() {
 
     storageGetSeguro([
         'language', 'pickyMode', 'speed', 'darkMode', 'blacklist',
-        'apiUrl', 'strictMode', 'toggleShortcut', 'ignoreShortcut', 'corrigirTudoShortcut'
+        'apiUrl', 'strictMode', 'toggleShortcut', 'ignoreShortcut',
+        'corrigirTudoShortcut', 'autoHideBubble'
     ], (res) => {
         smConfig = { ...smConfig, ...res };
         if (smConfig.blacklist.some(d => window.location.hostname.includes(d))) {
             smConfig.disabled = true;
+            resetarBadgeBackground();
         }
         if (smConfig.darkMode) {
             document.body.classList.add('sm-dark-root');
@@ -175,6 +173,10 @@ function iniciar() {
             if (changes.blacklist) {
                 smConfig.blacklist = changes.blacklist.newValue || [];
                 smConfig.disabled = smConfig.blacklist.some(d => window.location.hostname.includes(d));
+                if (smConfig.disabled) resetarBadgeBackground();
+            }
+            if (changes.autoHideBubble) {
+                smConfig.autoHideBubble = changes.autoHideBubble.newValue;
             }
         });
     } catch (e) { }
@@ -244,7 +246,7 @@ function corrigirTudo() {
 }
 
 // =============================================
-// DETECÇÃO DE DIGITAÇÃO
+// 🆕 DETECÇÃO DE DIGITAÇÃO (COM AUTO-HIDE)
 // =============================================
 document.addEventListener('input', (e) => {
     if (smConfig.disabled) return;
@@ -260,10 +262,18 @@ document.addEventListener('input', (e) => {
     if (!valido) return;
     if (el.tagName === 'INPUT' && smConfig.strictMode) return;
 
+    // 🆕 Auto-hide: usuário começou a digitar
+    usuarioDigitando = true;
+    atualizarVisibilidadeBolha();
+
     clearTimeout(timeoutDigitacao);
     if (currentFetchController) currentFetchController.abort();
 
     timeoutDigitacao = setTimeout(() => {
+        // 🆕 Auto-hide: usuário parou de digitar
+        usuarioDigitando = false;
+        atualizarVisibilidadeBolha();
+
         const texto = (el.value || el.textContent || el.innerText || '').trim();
         if (texto.length > 1) {
             textoUltimaVerificacao = texto;
@@ -280,7 +290,7 @@ document.addEventListener('input', (e) => {
 }, true);
 
 // =============================================
-// VERIFICAÇÃO DE TEXTO (FETCH DIRETO)
+// VERIFICAÇÃO DE TEXTO
 // =============================================
 async function verificarTexto(texto, elemento) {
     if (smConfig.disabled) return;
@@ -361,68 +371,34 @@ function aplicarGrifos(erros, el) {
         const esc = p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
         html = html.replace(new RegExp(`(?<!<[^>]*)${esc}(?![^<]*>)`, 'g'), `<mark class="sm-highlight">$&</mark>`);
     });
-    if (el.innerHTML !== html) {
-        el.innerHTML = html;
-        // 🆕 Não dispara eventos nos grifos - apenas marcação visual
-    }
+    if (el.innerHTML !== html) el.innerHTML = html;
 }
 
-// =============================================
-// 🆕 CORREÇÃO DE TEXTO (COM DISPATCH DE EVENTOS)
-// =============================================
 function aplicarCorrecao(original, sugestao, el) {
     if (!el || !original || !sugestao) return;
     const esc = original.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
     if (el.tagName === 'TEXTAREA' || el.tagName === 'INPUT') {
-        // 🆕 Método seguro para inputs/textarea com React
         const valorAntigo = el.value;
         el.value = el.value.replace(new RegExp(`(?<![\\p{L}])${esc}(?![\\p{L}])`, 'gu'), sugestao);
-
-        // Só dispara eventos se o valor realmente mudou
-        if (el.value !== valorAntigo) {
-            // 🆕 Dispara eventos para React/Vue reconhecer a mudança
-            dispararEventosNativos(el);
-        }
+        if (el.value !== valorAntigo) dispararEventosNativos(el);
     } else if (el.isContentEditable) {
         if (isSiteRestrito) {
-            // Para sites restritos, usa execCommand que é mais compatível
             el.focus();
-            try {
-                // Seleciona o texto a ser substituído
-                const sel = window.getSelection();
-                if (sel && sel.rangeCount > 0) {
-                    document.execCommand('insertText', false, sugestao);
-                }
-            } catch (e) {
-                // Fallback: substitui via textContent
+            try { document.execCommand('insertText', false, sugestao); } catch (e) {
                 const textoAtual = el.textContent || '';
                 const novoTexto = textoAtual.replace(new RegExp(esc, 'gi'), sugestao);
-                if (textoAtual !== novoTexto) {
-                    el.textContent = novoTexto;
-                }
+                if (textoAtual !== novoTexto) el.textContent = novoTexto;
             }
-            // 🆕 Dispara eventos para o framework reconhecer
             atualizarElementoComEventos(el);
         } else {
-            // Para editores normais, substitui o HTML
             let html = el.innerHTML;
             const htmlAntigo = html;
-
-            // Primeiro tenta substituir dentro das tags mark
             html = html.replace(new RegExp(`<mark class="sm-highlight">${esc}</mark>`, 'g'), sugestao);
-
-            // Se não encontrou dentro de mark, procura o texto solto
             if (html === htmlAntigo) {
                 html = html.replace(new RegExp(`(?<!<[^>]*)(?<![\\p{L}])${esc}(?![\\p{L}])(?![^<]*>)`, 'gu'), sugestao);
             }
-
-            // Só aplica se houve mudança
-            if (html !== htmlAntigo) {
-                el.innerHTML = html;
-            }
-
-            // 🆕 Dispara eventos para o framework reconhecer a mudança
+            if (html !== htmlAntigo) el.innerHTML = html;
             atualizarElementoComEventos(el);
         }
     }
@@ -459,6 +435,9 @@ function atualizarInterface() {
     let bubble = document.getElementById('syntax-mentor-bubble');
     const total = errosGlobais.filter(e => e.context.text.substr(e.context.offset, e.context.length).trim()).length;
 
+    // 🆕 Atualiza badge no ícone da extensão
+    atualizarBadgeBackground(total);
+
     if (!bubble) {
         bubble = document.createElement('div');
         bubble.id = 'syntax-mentor-bubble';
@@ -484,12 +463,17 @@ function atualizarInterface() {
         bubble.style.bottom = 'auto';
     }
 
+    // 🆕 Aplica visibilidade (auto-hide)
+    atualizarVisibilidadeBolha();
+
     if (total === 0) {
-        bubble.className = 'sm-bubble-success';
+        bubble.className = bubble.className.replace('sm-bubble-error', 'sm-bubble-success');
+        if (!bubble.className.includes('sm-bubble-success')) bubble.className += ' sm-bubble-success';
         bubble.innerHTML = '<span class="sm-bubble-icon">✓</span>';
         if (painelAberto) fecharPainelComSucesso();
     } else {
-        bubble.className = 'sm-bubble-error';
+        bubble.className = bubble.className.replace('sm-bubble-success', 'sm-bubble-error');
+        if (!bubble.className.includes('sm-bubble-error')) bubble.className += ' sm-bubble-error';
         bubble.innerHTML = `<span class="sm-bubble-icon">✏️</span><span class="sm-bubble-badge">${total}</span>`;
         if (painelAberto) exibirPainel();
     }

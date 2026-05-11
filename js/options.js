@@ -1,10 +1,11 @@
-// SyntaxMentor - options.js v1.9.20 (Blur Fix)
+// SyntaxMentor - options.js v2.2.0 (Backup & Restore)
 document.addEventListener('DOMContentLoaded', () => {
 
     // Elementos da Interface
     const elLanguage = document.getElementById('language');
     const elPickyMode = document.getElementById('pickyMode');
     const elDarkMode = document.getElementById('darkMode');
+    const elAutoHideBubble = document.getElementById('autoHideBubble');
     const elSpeedOptions = document.querySelectorAll('input[name="speed"]');
     const btnSalvar = document.getElementById('btn-salvar');
     const saveStatus = document.getElementById('save-status');
@@ -24,42 +25,66 @@ document.addEventListener('DOMContentLoaded', () => {
     // Atalhos
     const btnGravarToggle = document.getElementById('btn-gravar-atalho');
     const btnGravarIgnore = document.getElementById('btn-gravar-ignorar');
+    const btnGravarCorrigirTudo = document.getElementById('btn-gravar-corrigir-tudo');
     let recordingTarget = null;
     let activeBtn = null;
+
+    // 🆕 Backup
+    const btnExportar = document.getElementById('btn-exportar');
+    const btnImportar = document.getElementById('btn-importar');
+    const inputImportar = document.getElementById('input-importar');
 
     // 1. CARREGAR CONFIGURAÇÕES DO BANCO DE DADOS
     chrome.storage.local.get({
         language: 'pt-BR',
         pickyMode: true,
         darkMode: false,
+        autoHideBubble: false,
         speed: '500',
         blacklist: [],
         dicionario_pessoal: [],
         toggleShortcut: { altKey: true, ctrlKey: false, shiftKey: false, key: 's', display: 'Alt + S' },
-        ignoreShortcut: { altKey: true, ctrlKey: false, shiftKey: false, key: 'i', display: 'Alt + I' }
+        ignoreShortcut: { altKey: true, ctrlKey: false, shiftKey: false, key: 'i', display: 'Alt + I' },
+        corrigirTudoShortcut: { altKey: true, ctrlKey: false, shiftKey: true, key: 's', display: 'Alt + Shift + S' }
     }, (res) => {
         if (elLanguage) elLanguage.value = res.language;
         if (elPickyMode) elPickyMode.checked = res.pickyMode;
-        if (elDarkMode) { elDarkMode.checked = res.darkMode; if (res.darkMode) document.body.classList.add('dark-mode'); }
+        if (elDarkMode) {
+            elDarkMode.checked = res.darkMode;
+            if (res.darkMode) document.body.classList.add('dark-mode');
+        }
+        if (elAutoHideBubble) elAutoHideBubble.checked = res.autoHideBubble || false;
 
         elSpeedOptions.forEach(opt => { if (opt.value === res.speed.toString()) opt.checked = true; });
 
-        currentBlacklist = res.blacklist; renderizarBlacklist();
-        currentDictionary = res.dicionario_pessoal; renderizarDicionario();
+        currentBlacklist = res.blacklist;
+        renderizarBlacklist();
+        currentDictionary = res.dicionario_pessoal;
+        renderizarDicionario();
 
         if (btnGravarToggle) btnGravarToggle.textContent = res.toggleShortcut.display;
         if (btnGravarIgnore) btnGravarIgnore.textContent = res.ignoreShortcut.display;
+        if (btnGravarCorrigirTudo) btnGravarCorrigirTudo.textContent = res.corrigirTudoShortcut.display;
     });
 
     // ✨ ESCUTAR MUDANÇAS EXTERNAS (Live Sync)
     chrome.storage.onChanged.addListener((changes, namespace) => {
         if (namespace === 'local') {
-            if (changes.dicionario_pessoal) { currentDictionary = changes.dicionario_pessoal.newValue || []; renderizarDicionario(); }
-            if (changes.blacklist) { currentBlacklist = changes.blacklist.newValue || []; renderizarBlacklist(); }
+            if (changes.dicionario_pessoal) {
+                currentDictionary = changes.dicionario_pessoal.newValue || [];
+                renderizarDicionario();
+            }
+            if (changes.blacklist) {
+                currentBlacklist = changes.blacklist.newValue || [];
+                renderizarBlacklist();
+            }
             if (changes.darkMode) {
                 if (elDarkMode) elDarkMode.checked = changes.darkMode.newValue;
                 if (changes.darkMode.newValue) document.body.classList.add('dark-mode');
                 else document.body.classList.remove('dark-mode');
+            }
+            if (changes.autoHideBubble) {
+                if (elAutoHideBubble) elAutoHideBubble.checked = changes.autoHideBubble.newValue;
             }
         }
     });
@@ -68,22 +93,33 @@ document.addEventListener('DOMContentLoaded', () => {
     if (elDarkMode) {
         elDarkMode.addEventListener('change', (e) => {
             const isDark = e.target.checked;
-            if (isDark) document.body.classList.add('dark-mode'); else document.body.classList.remove('dark-mode');
+            if (isDark) document.body.classList.add('dark-mode');
+            else document.body.classList.remove('dark-mode');
             chrome.storage.local.set({ darkMode: isDark });
+        });
+    }
+
+    // 🆕 Auto-Hide em Tempo Real
+    if (elAutoHideBubble) {
+        elAutoHideBubble.addEventListener('change', (e) => {
+            chrome.storage.local.set({ autoHideBubble: e.target.checked });
         });
     }
 
     // 2. SALVAR CONFIGURAÇÕES GERAIS
     if (btnSalvar) {
         btnSalvar.addEventListener('click', () => {
-            let selectedSpeed = '500'; elSpeedOptions.forEach(opt => { if (opt.checked) selectedSpeed = opt.value; });
+            let selectedSpeed = '500';
+            elSpeedOptions.forEach(opt => { if (opt.checked) selectedSpeed = opt.value; });
             const novasConfiguracoes = {
                 language: elLanguage ? elLanguage.value : 'pt-BR',
                 pickyMode: elPickyMode ? elPickyMode.checked : true,
-                speed: selectedSpeed
+                speed: selectedSpeed,
+                autoHideBubble: elAutoHideBubble ? elAutoHideBubble.checked : false
             };
             chrome.storage.local.set(novasConfiguracoes, () => {
-                saveStatus.style.opacity = '1'; setTimeout(() => { saveStatus.style.opacity = '0'; }, 2000);
+                saveStatus.style.opacity = '1';
+                setTimeout(() => { saveStatus.style.opacity = '0'; }, 2000);
             });
         });
     }
@@ -174,20 +210,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 const input = li.querySelector('.edit-input');
 
                 if (input.style.display === 'none') {
-                    // Mudar para o modo Edição
                     span.style.display = 'none';
                     input.style.display = 'block';
                     input.focus();
                     e.target.textContent = '✓';
                     e.target.style.color = '#28a745';
                 } else {
-                    // Salvar Edição
                     salvarEdicaoInline(li, arrayAtual, storageKey);
                 }
             });
         });
 
-        // 🆕 Salvar com a tecla ENTER
+        // Salvar com ENTER
         listaUl.querySelectorAll('.edit-input').forEach(input => {
             input.addEventListener('keypress', (e) => {
                 if (e.key === 'Enter') {
@@ -197,10 +231,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
 
-            // 🆕 Salvar ao perder o foco (blur)
+            // Salvar ao perder foco
             input.addEventListener('blur', (e) => {
                 const li = e.target.closest('li');
-                // Pequeno delay para não conflitar com o clique no botão de editar
                 setTimeout(() => {
                     if (li.querySelector('.edit-input').style.display !== 'none') {
                         salvarEdicaoInline(li, arrayAtual, storageKey);
@@ -210,7 +243,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // 🆕 Função auxiliar para salvar edição inline
     function salvarEdicaoInline(li, arrayAtual, storageKey) {
         const span = li.querySelector('.item-text');
         const input = li.querySelector('.edit-input');
@@ -219,7 +251,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const novoValor = input.value.trim().toLowerCase();
 
-        // Volta ao modo visualização
         span.style.display = 'block';
         input.style.display = 'none';
         btnEdit.textContent = '✏️';
@@ -230,35 +261,182 @@ document.addEventListener('DOMContentLoaded', () => {
             span.textContent = novoValor;
             chrome.storage.local.set({ [storageKey]: arrayAtual });
         } else if (!novoValor) {
-            // Não salva valores vazios, restaura o original
             input.value = arrayAtual[idx];
         }
     }
 
+    // ==========================================
     // 5. GRAVAÇÃO DOS ATALHOS
+    // ==========================================
     function iniciarGravacao(botaoElement, configKey) {
         if (activeBtn) cancelarGravacao();
-        recordingTarget = configKey; activeBtn = botaoElement;
-        activeBtn.textContent = "Pressione a tecla..."; activeBtn.classList.add('gravando');
+        recordingTarget = configKey;
+        activeBtn = botaoElement;
+        activeBtn.textContent = "Pressione a tecla...";
+        activeBtn.classList.add('gravando');
     }
+
     function cancelarGravacao() {
         if (!activeBtn) return;
-        const btnLocal = activeBtn; const targetLocal = recordingTarget;
+        const btnLocal = activeBtn;
+        const targetLocal = recordingTarget;
         btnLocal.classList.remove('gravando');
-        chrome.storage.local.get(targetLocal, (res) => { btnLocal.textContent = res[targetLocal].display; });
-        recordingTarget = null; activeBtn = null;
+        chrome.storage.local.get(targetLocal, (res) => {
+            if (res[targetLocal]) btnLocal.textContent = res[targetLocal].display;
+        });
+        recordingTarget = null;
+        activeBtn = null;
     }
-    if (btnGravarToggle) btnGravarToggle.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); iniciarGravacao(btnGravarToggle, 'toggleShortcut'); });
-    if (btnGravarIgnore) btnGravarIgnore.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); iniciarGravacao(btnGravarIgnore, 'ignoreShortcut'); });
+
+    if (btnGravarToggle) btnGravarToggle.addEventListener('click', (e) => {
+        e.preventDefault(); e.stopPropagation();
+        iniciarGravacao(btnGravarToggle, 'toggleShortcut');
+    });
+
+    if (btnGravarIgnore) btnGravarIgnore.addEventListener('click', (e) => {
+        e.preventDefault(); e.stopPropagation();
+        iniciarGravacao(btnGravarIgnore, 'ignoreShortcut');
+    });
+
+    if (btnGravarCorrigirTudo) btnGravarCorrigirTudo.addEventListener('click', (e) => {
+        e.preventDefault(); e.stopPropagation();
+        iniciarGravacao(btnGravarCorrigirTudo, 'corrigirTudoShortcut');
+    });
 
     document.addEventListener('keydown', (e) => {
         if (!recordingTarget) return;
         if (['Control', 'Alt', 'Shift', 'Meta', 'Escape'].includes(e.key)) return;
         e.preventDefault();
-        const shortcut = { altKey: e.altKey, ctrlKey: e.ctrlKey, shiftKey: e.shiftKey, key: e.key.toLowerCase(), display: (e.ctrlKey ? 'Ctrl + ' : '') + (e.altKey ? 'Alt + ' : '') + (e.shiftKey ? 'Shift + ' : '') + e.key.toUpperCase() };
-        if (!e.ctrlKey && !e.altKey && !e.shiftKey) { shortcut.altKey = true; shortcut.display = "Alt + " + e.key.toUpperCase(); }
-        let updateData = {}; updateData[recordingTarget] = shortcut;
-        chrome.storage.local.set(updateData, () => { activeBtn.textContent = shortcut.display; activeBtn.classList.remove('gravando'); recordingTarget = null; activeBtn = null; });
+        const shortcut = {
+            altKey: e.altKey,
+            ctrlKey: e.ctrlKey,
+            shiftKey: e.shiftKey,
+            key: e.key.toLowerCase(),
+            display: (e.ctrlKey ? 'Ctrl + ' : '') + (e.altKey ? 'Alt + ' : '') + (e.shiftKey ? 'Shift + ' : '') + e.key.toUpperCase()
+        };
+        if (!e.ctrlKey && !e.altKey && !e.shiftKey) {
+            shortcut.altKey = true;
+            shortcut.display = "Alt + " + e.key.toUpperCase();
+        }
+        let updateData = {};
+        updateData[recordingTarget] = shortcut;
+        chrome.storage.local.set(updateData, () => {
+            activeBtn.textContent = shortcut.display;
+            activeBtn.classList.remove('gravando');
+            recordingTarget = null;
+            activeBtn = null;
+        });
     });
-    document.addEventListener('click', (e) => { if (recordingTarget && e.target !== activeBtn) cancelarGravacao(); });
+
+    document.addEventListener('click', (e) => {
+        if (recordingTarget && e.target !== activeBtn) cancelarGravacao();
+    });
+
+    // ==========================================
+    // 🆕 6. BACKUP E RESTAURAÇÃO
+    // ==========================================
+
+    // Exportar
+    if (btnExportar) {
+        btnExportar.addEventListener('click', () => {
+            chrome.runtime.sendMessage({ action: 'exportData' }, (response) => {
+                if (response && response.success) {
+                    const jsonStr = JSON.stringify(response.data, null, 2);
+                    const blob = new Blob([jsonStr], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+
+                    const data = new Date().toISOString().split('T')[0];
+                    const nomeArquivo = `syntaxmentor-backup-${data}.json`;
+
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = nomeArquivo;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+
+                    mostrarNotificacao('✅ Backup exportado com sucesso!', 'success');
+                } else {
+                    mostrarNotificacao('❌ Erro ao exportar backup', 'error');
+                }
+            });
+        });
+    }
+
+    // Importar
+    if (btnImportar && inputImportar) {
+        btnImportar.addEventListener('click', () => {
+            inputImportar.click();
+        });
+
+        inputImportar.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+
+            reader.onload = (event) => {
+                try {
+                    const dados = event.target.result;
+
+                    chrome.runtime.sendMessage({
+                        action: 'importData',
+                        data: dados
+                    }, (response) => {
+                        if (response && response.success) {
+                            mostrarNotificacao('✅ Backup restaurado! Recarregue a página.', 'success');
+
+                            // Recarrega os dados na interface
+                            setTimeout(() => {
+                                chrome.storage.local.get({
+                                    dicionario_pessoal: [],
+                                    blacklist: [],
+                                    language: 'pt-BR',
+                                    pickyMode: true,
+                                    speed: '500',
+                                    darkMode: false,
+                                    autoHideBubble: false
+                                }, (res) => {
+                                    currentBlacklist = res.blacklist;
+                                    currentDictionary = res.dicionario_pessoal;
+                                    renderizarBlacklist();
+                                    renderizarDicionario();
+
+                                    if (elLanguage) elLanguage.value = res.language;
+                                    if (elPickyMode) elPickyMode.checked = res.pickyMode;
+                                    if (elDarkMode) {
+                                        elDarkMode.checked = res.darkMode;
+                                        if (res.darkMode) document.body.classList.add('dark-mode');
+                                        else document.body.classList.remove('dark-mode');
+                                    }
+                                    if (elAutoHideBubble) elAutoHideBubble.checked = res.autoHideBubble;
+
+                                    elSpeedOptions.forEach(opt => {
+                                        if (opt.value === res.speed.toString()) opt.checked = true;
+                                    });
+                                });
+                            }, 500);
+                        } else {
+                            mostrarNotificacao('❌ Erro: ' + (response?.error || 'Arquivo inválido'), 'error');
+                        }
+                    });
+                } catch (err) {
+                    mostrarNotificacao('❌ Arquivo JSON inválido', 'error');
+                }
+            };
+
+            reader.readAsText(file);
+        });
+    }
+
+    function mostrarNotificacao(mensagem, tipo) {
+        const status = document.getElementById('save-status');
+        if (status) {
+            status.textContent = mensagem;
+            status.style.opacity = '1';
+            status.style.color = tipo === 'success' ? '#28a745' : '#e53e3e';
+            setTimeout(() => { status.style.opacity = '0'; }, 3000);
+        }
+    }
 });
