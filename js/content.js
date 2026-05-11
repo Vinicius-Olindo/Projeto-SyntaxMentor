@@ -1,4 +1,4 @@
-// SyntaxMentor - v2.0.7 (Background Timeout & Safety)
+// SyntaxMentor - v2.1.0 (Direct Fallback for LinkedIn)
 let timeoutDigitacao = null;
 let errosGlobais = [];
 let elementoGlobal = null;
@@ -12,16 +12,12 @@ let textoUltimaVerificacao = "";
 let isDraggingBubble = false;
 let estaCarregando = false;
 
-// Controlo de contexto
 let contextoExtensaoValido = true;
 let tentativasReconexao = 0;
 const MAX_TENTATIVAS_RECONEXAO = 3;
 
-// Sites sensíveis
 const sitesSensiveis = ['mail.google.com', 'linkedin.com', 'docs.google.com', 'notion.so', 'twitter.com', 'x.com'];
 const isSiteSensivel = sitesSensiveis.some(d => window.location.hostname.includes(d));
-
-// Detecta se está num iframe
 const isInIframe = window !== window.top;
 
 let ignoradosTemporarios = [];
@@ -65,7 +61,6 @@ function isExtensaoContextoValido() {
 function verificarContextoExtensao() {
     if (!isExtensaoContextoValido()) {
         contextoExtensaoValido = false;
-        tentarReconectarExtensao();
         return false;
     }
     contextoExtensaoValido = true;
@@ -73,33 +68,9 @@ function verificarContextoExtensao() {
     return true;
 }
 
-function tentarReconectarExtensao() {
-    if (tentativasReconexao >= MAX_TENTATIVAS_RECONEXAO) {
-        smConfig.disabled = true;
-        desativarGraciosamente();
-        return;
-    }
-    tentativasReconexao++;
-    setTimeout(() => {
-        if (isExtensaoContextoValido()) {
-            contextoExtensaoValido = true;
-            tentativasReconexao = 0;
-            iniciarConfiguracoes();
-            if (elementoGlobal && textoUltimaVerificacao) chamarAPI(textoUltimaVerificacao, elementoGlobal);
-        } else {
-            tentarReconectarExtensao();
-        }
-    }, 2000 * tentativasReconexao);
-}
-
 function desativarGraciosamente() {
+    smConfig.disabled = true;
     removerElementosInterface();
-    const bubble = document.getElementById('syntax-mentor-bubble');
-    if (bubble) {
-        bubble.style.opacity = '0.3';
-        bubble.title = 'Extensão desativada. Recarregue a página.';
-        bubble.style.cursor = 'not-allowed';
-    }
 }
 
 function removerElementosInterface() {
@@ -119,16 +90,12 @@ function storageGetSegurado(keys, callback) {
     try {
         chrome.storage.local.get(keys, (res) => {
             if (chrome.runtime.lastError) {
-                contextoExtensaoValido = false;
-                tentarReconectarExtensao();
                 if (callback) callback({});
                 return;
             }
             if (callback) callback(res);
         });
     } catch (e) {
-        contextoExtensaoValido = false;
-        tentarReconectarExtensao();
         if (callback) callback({});
     }
 }
@@ -137,15 +104,10 @@ function storageSetSegurado(data, callback) {
     if (!verificarContextoExtensao()) return;
     try {
         chrome.storage.local.set(data, () => {
-            if (chrome.runtime.lastError) {
-                contextoExtensaoValido = false;
-                tentarReconectarExtensao();
-            }
             if (callback) callback();
         });
     } catch (e) {
-        contextoExtensaoValido = false;
-        tentarReconectarExtensao();
+        if (callback) callback();
     }
 }
 
@@ -158,19 +120,6 @@ function iniciarConfiguracoes() {
         smConfig = { ...smConfig, ...res };
         verificarBlacklist();
     });
-
-    try {
-        chrome.storage.onChanged.addListener((changes, namespace) => {
-            if (namespace !== 'local') return;
-            if (changes.toggleShortcut) smConfig.toggleShortcut = changes.toggleShortcut.newValue;
-            if (changes.ignoreShortcut) smConfig.ignoreShortcut = changes.ignoreShortcut.newValue;
-            if (changes.corrigirTudoShortcut) smConfig.corrigirTudoShortcut = changes.corrigirTudoShortcut.newValue;
-            if (changes.blacklist) { smConfig.blacklist = changes.blacklist.newValue || []; verificarBlacklist(); }
-            if (changes.darkMode) { smConfig.darkMode = changes.darkMode.newValue; atualizarInterface(); }
-        });
-    } catch (e) {
-        console.warn('SyntaxMentor: Erro ao registar listener:', e.message);
-    }
 }
 
 // =============================================
@@ -235,10 +184,9 @@ function mostrarFeedback(mensagem, tipo) {
     const doc = getDocumentoPrincipal();
     doc.querySelectorAll('.sm-feedback-flutuante').forEach(el => el.remove());
     const feedback = doc.createElement('div');
-    feedback.textContent = mensagem;
-    feedback.className = 'sm-feedback-flutuante';
+    feedback.textContent = mensagem; feedback.className = 'sm-feedback-flutuante';
     const cor = tipo === 'success' ? '#28a745' : tipo === 'error' ? '#e53e3e' : '#6b7280';
-    feedback.style.cssText = `position: fixed; top: 20px; right: 20px; z-index: 2147483647; background: ${cor}; color: white; padding: 10px 20px; border-radius: 8px; font-family: 'Segoe UI', system-ui, sans-serif; font-size: 14px; font-weight: 600; box-shadow: 0 4px 15px rgba(0,0,0,0.3); animation: sm-feedback-in 0.3s ease, sm-feedback-out 0.3s ease 1.7s forwards; pointer-events: none;`;
+    feedback.style.cssText = `position: fixed; top: 20px; right: 20px; z-index: 2147483647; background: ${cor}; color: white; padding: 10px 20px; border-radius: 8px; font-family: 'Segoe UI', system-ui, sans-serif; font-size: 14px; font-weight: 600; box-shadow: 0 4px 15px rgba(0,0,0,0.3); pointer-events: none;`;
     doc.body.appendChild(feedback);
     setTimeout(() => { if (feedback.parentNode) feedback.remove(); }, 2200);
 }
@@ -265,26 +213,17 @@ function restaurarPosicaoCursor(containerEl, savedSel) {
     let charIndex = 0;
     const doc = containerEl.ownerDocument || document;
     const range = doc.createRange();
-    range.setStart(containerEl, 0);
-    range.collapse(true);
-    const nodeStack = [containerEl];
-    let node, foundStart = false, stop = false;
+    range.setStart(containerEl, 0); range.collapse(true);
+    const nodeStack = [containerEl]; let node, foundStart = false, stop = false;
 
     while (!stop && (node = nodeStack.pop())) {
         if (node.nodeType === 3) {
             const nextCharIndex = charIndex + node.length;
-            if (!foundStart && savedSel.start >= charIndex && savedSel.start <= nextCharIndex) {
-                range.setStart(node, savedSel.start - charIndex);
-                foundStart = true;
-            }
-            if (foundStart && savedSel.end >= charIndex && savedSel.end <= nextCharIndex) {
-                range.setEnd(node, savedSel.end - charIndex);
-                stop = true;
-            }
+            if (!foundStart && savedSel.start >= charIndex && savedSel.start <= nextCharIndex) { range.setStart(node, savedSel.start - charIndex); foundStart = true; }
+            if (foundStart && savedSel.end >= charIndex && savedSel.end <= nextCharIndex) { range.setEnd(node, savedSel.end - charIndex); stop = true; }
             charIndex = nextCharIndex;
         } else {
-            let i = node.childNodes.length;
-            while (i--) { nodeStack.push(node.childNodes[i]); }
+            let i = node.childNodes.length; while (i--) { nodeStack.push(node.childNodes[i]); }
         }
     }
     const sel = doc.getSelection();
@@ -325,8 +264,7 @@ document.addEventListener('input', (e) => {
             textoUltimaVerificacao = texto.trim();
             chamarAPI(textoUltimaVerificacao, el);
         } else {
-            errosGlobais = [];
-            atualizarInterface();
+            errosGlobais = []; atualizarInterface();
             if (!isSiteSensivel && el.isContentEditable) {
                 el.innerHTML = el.innerHTML.replace(/<mark class="sm-highlight">(.*?)<\/mark>/gi, '$1');
             }
@@ -336,17 +274,10 @@ document.addEventListener('input', (e) => {
 
 
 // =============================================
-// 🛡️ COMUNICAÇÃO COM BACKGROUND (COM TIMEOUT)
+// 🛡️ CHAMADA À API (VIA BACKGROUND OU DIRETA)
 // =============================================
 async function chamarAPI(textoContexto, elemento) {
-    if (smConfig.disabled || contextoExtensaoValido === false) return;
-
-    if (!chrome.runtime || !chrome.runtime.id) {
-        console.warn('SyntaxMentor: Extensão não disponível.');
-        contextoExtensaoValido = false;
-        desativarGraciosamente();
-        return;
-    }
+    if (smConfig.disabled) return;
 
     if (currentFetchController) { currentFetchController.abort(); }
     currentFetchController = new AbortController();
@@ -354,106 +285,150 @@ async function chamarAPI(textoContexto, elemento) {
     estaCarregando = true;
     atualizarEstadoCarregamento(true);
 
-    // 🆕 Timeout de 12 segundos para o background responder
-    let respostaRecebida = false;
-    const timeoutBackground = setTimeout(() => {
-        if (!respostaRecebida) {
-            console.warn('SyntaxMentor: Timeout do background. Cancelando...');
-            currentFetchController.abort();
+    const fetchUrl = smConfig.apiUrl && smConfig.apiUrl.trim() !== ''
+        ? smConfig.apiUrl
+        : 'https://api.languagetool.org/v2/check';
+
+    const params = {
+        'text': textoContexto,
+        'language': smConfig.language
+    };
+    if (smConfig.pickyMode) params['level'] = 'picky';
+
+    let data = null;
+
+    // 🆕 Tenta via background primeiro, se falhar vai direto
+    try {
+        data = await chamarViaBackground(fetchUrl, params);
+    } catch (bgError) {
+        console.warn('SyntaxMentor: Background falhou, tentando direto:', bgError.message);
+        try {
+            data = await chamarDireto(fetchUrl, params);
+        } catch (directError) {
+            console.error('SyntaxMentor: Falha total:', directError.message);
             estaCarregando = false;
             atualizarEstadoCarregamento(false);
-            mostrarFeedback('⚠️ Tempo esgotado', 'error');
+            mostrarFeedback('⚠️ Erro de conexão', 'error');
+            return;
         }
-    }, 12000);
+    }
 
-    try {
+    if (!data || currentFetchController.signal.aborted) {
+        estaCarregando = false;
+        atualizarEstadoCarregamento(false);
+        return;
+    }
+
+    // Verifica se o texto ainda é o mesmo
+    let textoAtual;
+    if (isSiteSensivel && elemento.isContentEditable) {
+        textoAtual = (elemento.textContent || elemento.innerText || '').trim();
+    } else {
+        textoAtual = (elemento.value || elemento.innerText || elemento.textContent || '').trim();
+    }
+
+    if (textoAtual !== textoContexto) {
+        estaCarregando = false;
+        atualizarEstadoCarregamento(false);
+        return;
+    }
+
+    // Carrega dicionário
+    let dicionarioLower = [];
+    if (verificarContextoExtensao()) {
+        try {
+            const dic = await new Promise(resolve => {
+                chrome.storage.local.get(['dicionario_pessoal'], (res) => {
+                    if (chrome.runtime.lastError) { resolve([]); return; }
+                    resolve(res.dicionario_pessoal || []);
+                });
+            });
+            dicionarioLower = dic.map(w => w.toLowerCase());
+        } catch (e) { dicionarioLower = []; }
+    }
+
+    // Filtra erros
+    errosGlobais = (data.matches || []).filter(m => {
+        if (!m.replacements || m.replacements.length === 0) return false;
+        const original = m.context.text.substr(m.context.offset, m.context.length);
+        const palavraLower = original.toLowerCase();
+        if (dicionarioLower.includes(palavraLower) || ignoradosTemporarios.includes(palavraLower)) return false;
+        return true;
+    });
+
+    elementoGlobal = elemento;
+
+    if (!isSiteSensivel && elemento.isContentEditable && elemento.tagName !== 'TEXTAREA' && elemento.tagName !== 'INPUT') {
+        aplicarGrifosNoTexto(errosGlobais, elemento);
+    }
+
+    atualizarInterface();
+    estaCarregando = false;
+    atualizarEstadoCarregamento(false);
+}
+
+// 🆕 Tenta via background
+function chamarViaBackground(fetchUrl, params) {
+    return new Promise((resolve, reject) => {
+        if (!chrome.runtime || !chrome.runtime.id) {
+            reject(new Error('Contexto inválido'));
+            return;
+        }
+
+        const timeout = setTimeout(() => {
+            reject(new Error('Timeout do background'));
+        }, 8000);
+
         chrome.runtime.sendMessage({
             action: 'checkGrammar',
-            text: textoContexto,
-            language: smConfig.language,
-            pickyMode: smConfig.pickyMode,
-            apiUrl: smConfig.apiUrl
-        }, async (response) => {
-            respostaRecebida = true;
-            clearTimeout(timeoutBackground);
+            text: params.text,
+            language: params.language,
+            pickyMode: params.pickyMode || false,
+            apiUrl: fetchUrl !== 'https://api.languagetool.org/v2/check' ? fetchUrl : ''
+        }, (response) => {
+            clearTimeout(timeout);
 
             if (chrome.runtime.lastError) {
-                console.warn('SyntaxMentor: Erro de comunicação:', chrome.runtime.lastError.message);
-                contextoExtensaoValido = false;
-                desativarGraciosamente();
-                estaCarregando = false;
-                atualizarEstadoCarregamento(false);
-                return;
-            }
-
-            if (currentFetchController.signal.aborted) {
-                estaCarregando = false;
-                atualizarEstadoCarregamento(false);
+                reject(new Error(chrome.runtime.lastError.message));
                 return;
             }
 
             if (!response || !response.success) {
-                const erroMsg = response ? response.error : 'Erro desconhecido';
-                console.warn('SyntaxMentor: Resposta inválida:', erroMsg);
-                mostrarFeedback('⚠️ ' + erroMsg, 'error');
-                estaCarregando = false;
-                atualizarEstadoCarregamento(false);
+                reject(new Error(response ? response.error : 'Resposta inválida'));
                 return;
             }
 
-            const data = response.data;
+            resolve(response.data);
+        });
+    });
+}
 
-            let textoAtual;
-            if (isSiteSensivel && elemento.isContentEditable) {
-                textoAtual = (elemento.textContent || elemento.innerText || '').trim();
-            } else {
-                textoAtual = (elemento.value || elemento.innerText || elemento.textContent || '').trim();
-            }
+// 🆕 Fallback: requisição direta
+async function chamarDireto(fetchUrl, params) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10000);
 
-            if (textoAtual !== textoContexto) {
-                estaCarregando = false;
-                atualizarEstadoCarregamento(false);
-                return;
-            }
-
-            let dicionarioLower = [];
-            if (verificarContextoExtensao()) {
-                try {
-                    const dic = await new Promise(resolve => {
-                        chrome.storage.local.get(['dicionario_pessoal'], (res) => {
-                            if (chrome.runtime.lastError) { resolve([]); return; }
-                            resolve(res.dicionario_pessoal || []);
-                        });
-                    });
-                    dicionarioLower = dic.map(w => w.toLowerCase());
-                } catch (e) { dicionarioLower = []; }
-            }
-
-            errosGlobais = (data.matches || []).filter(m => {
-                if (!m.replacements || m.replacements.length === 0) return false;
-                const original = m.context.text.substr(m.context.offset, m.context.length);
-                const palavraLower = original.toLowerCase();
-                if (dicionarioLower.includes(palavraLower) || ignoradosTemporarios.includes(palavraLower)) return false;
-                return true;
-            });
-
-            elementoGlobal = elemento;
-
-            if (!isSiteSensivel && elemento.isContentEditable && elemento.tagName !== 'TEXTAREA' && elemento.tagName !== 'INPUT') {
-                aplicarGrifosNoTexto(errosGlobais, elemento);
-            }
-
-            atualizarInterface();
-            estaCarregando = false;
-            atualizarEstadoCarregamento(false);
+    try {
+        const response = await fetch(fetchUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'Accept': 'application/json'
+            },
+            body: new URLSearchParams(params),
+            signal: controller.signal
         });
 
-    } catch (err) {
-        clearTimeout(timeoutBackground);
-        console.warn('SyntaxMentor: Exceção:', err.message);
-        estaCarregando = false;
-        atualizarEstadoCarregamento(false);
-        mostrarFeedback('⚠️ Erro interno', 'error');
+        clearTimeout(timeout);
+
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+
+        const data = await response.json();
+        return data;
+    } finally {
+        clearTimeout(timeout);
     }
 }
 
@@ -462,14 +437,9 @@ function atualizarEstadoCarregamento(carregando) {
     const bubble = doc.getElementById('syntax-mentor-bubble');
     if (!bubble) return;
     if (carregando) {
-        bubble.style.opacity = '0.6';
-        bubble.style.cursor = 'wait';
-        bubble.style.animation = 'sm-pulse 1.5s infinite';
+        bubble.style.opacity = '0.6'; bubble.style.cursor = 'wait'; bubble.style.animation = 'sm-pulse 1.5s infinite';
     } else {
-        bubble.style.opacity = '1';
-        bubble.style.cursor = 'grab';
-        bubble.style.animation = '';
-        bubble.title = 'SyntaxMentor';
+        bubble.style.opacity = '1'; bubble.style.cursor = 'grab'; bubble.style.animation = ''; bubble.title = 'SyntaxMentor';
     }
 }
 
@@ -484,8 +454,7 @@ function ignorarTemporariamente(palavra) {
         elementoGlobal.innerHTML = elementoGlobal.innerHTML.replace(markRegex, palavra);
         restaurarPosicaoCursor(elementoGlobal, cursorSalvo);
     }
-    removerErroGlobal(palavra);
-    mostrarFeedback(`"${palavra}" ignorada nesta sessão`, 'info');
+    removerErroGlobal(palavra); mostrarFeedback(`"${palavra}" ignorada nesta sessão`, 'info');
 }
 
 function aplicarGrifosNoTexto(erros, elemento) {
@@ -507,8 +476,7 @@ function aplicarGrifosNoTexto(erros, elemento) {
     });
 
     if (elemento.innerHTML !== html) {
-        elemento.innerHTML = html;
-        restaurarPosicaoCursor(elemento, cursorSalvo);
+        elemento.innerHTML = html; restaurarPosicaoCursor(elemento, cursorSalvo);
     }
 }
 
@@ -526,7 +494,6 @@ function aplicarCorrecao(original, sugestao, el) {
             try {
                 doc.execCommand('insertText', false, sugestao);
             } catch (e) {
-                // Fallback
                 const texto = el.textContent || '';
                 const novoTexto = texto.replace(new RegExp(originalEscapado, 'gi'), sugestao);
                 if (texto !== novoTexto) el.textContent = novoTexto;
@@ -534,9 +501,8 @@ function aplicarCorrecao(original, sugestao, el) {
         } else {
             const markRegex = new RegExp(`<mark class="sm-highlight">${originalEscapado}</mark>`, 'g');
             let html = el.innerHTML;
-            if (markRegex.test(html)) {
-                html = html.replace(markRegex, sugestao);
-            } else {
+            if (markRegex.test(html)) { html = html.replace(markRegex, sugestao); }
+            else {
                 const safeRegex = new RegExp(`(?<!<[^>]*)(?<![\\p{L}])${originalEscapado}(?![\\p{L}])(?![^<]*>)`, 'gu');
                 html = html.replace(safeRegex, sugestao);
             }
@@ -550,9 +516,7 @@ function aplicarCorrecao(original, sugestao, el) {
 
 function incrementarStats(qtd) {
     if (!verificarContextoExtensao()) return;
-    storageGetSegurado({ totalCorrigidas: 0 }, (res) => {
-        storageSetSegurado({ totalCorrigidas: (res.totalCorrigidas || 0) + qtd });
-    });
+    storageGetSegurado({ totalCorrigidas: 0 }, (res) => { storageSetSegurado({ totalCorrigidas: (res.totalCorrigidas || 0) + qtd }); });
 }
 
 function removerErroGlobal(original) {
@@ -596,32 +560,26 @@ function atualizarInterface() {
         });
     }
 
-    if (smConfig.darkMode) bubble.classList.add('sm-dark');
-    else bubble.classList.remove('sm-dark');
+    if (smConfig.darkMode) bubble.classList.add('sm-dark'); else bubble.classList.remove('sm-dark');
 
     if (bubblePosX !== null && bubblePosY !== null) {
-        bubble.style.left = bubblePosX;
-        bubble.style.top = bubblePosY;
-        bubble.style.right = 'auto';
-        bubble.style.bottom = 'auto';
+        bubble.style.left = bubblePosX; bubble.style.top = bubblePosY;
+        bubble.style.right = 'auto'; bubble.style.bottom = 'auto';
     }
 
     if (totalOcorrencias === 0) {
-        bubble.classList.add('sm-bubble-success');
-        bubble.classList.remove('sm-bubble-error');
+        bubble.classList.add('sm-bubble-success'); bubble.classList.remove('sm-bubble-error');
         bubble.innerHTML = `<span class="sm-bubble-icon">✓</span>`;
         if (painelAberto) fecharPainelComSucesso();
     } else {
-        bubble.classList.add('sm-bubble-error');
-        bubble.classList.remove('sm-bubble-success');
+        bubble.classList.add('sm-bubble-error'); bubble.classList.remove('sm-bubble-success');
         bubble.innerHTML = `<span class="sm-bubble-icon">✏️</span><span class="sm-bubble-badge">${totalOcorrencias}</span>`;
         if (painelAberto) exibirPainel();
     }
 }
 
 function exibirPainel() {
-    painelAberto = true;
-    indexSugestao = -1;
+    painelAberto = true; indexSugestao = -1;
 
     const doc = getDocumentoPrincipal();
     const body = getBodyPrincipal();
@@ -636,18 +594,15 @@ function exibirPainel() {
         body.appendChild(painel);
     }
 
-    if (smConfig.darkMode) painel.classList.add('sm-dark');
-    else painel.classList.remove('sm-dark');
+    if (smConfig.darkMode) painel.classList.add('sm-dark'); else painel.classList.remove('sm-dark');
 
-    const mapaErros = {};
-    let totalOcorrencias = 0;
+    const mapaErros = {}; let totalOcorrencias = 0;
     errosGlobais.forEach(err => {
         const original = err.context.text.substr(err.context.offset, err.context.length);
         const sugestao = err.replacements[0]?.value || "";
         if (original.trim() !== "") {
             if (!mapaErros[original]) mapaErros[original] = { sugestao, contagem: 0, msg: err.message };
-            mapaErros[original].contagem++;
-            totalOcorrencias++;
+            mapaErros[original].contagem++; totalOcorrencias++;
         }
     });
 
@@ -685,29 +640,16 @@ function exibirPainel() {
         };
     });
 
-    painel.querySelectorAll('.btn-ignorar-sessao').forEach(btn => {
-        btn.onclick = (e) => { e.stopPropagation(); ignorarTemporariamente(btn.dataset.original); };
-    });
+    painel.querySelectorAll('.btn-ignorar-sessao').forEach(btn => { btn.onclick = (e) => { e.stopPropagation(); ignorarTemporariamente(btn.dataset.original); }; });
 
     painel.querySelectorAll('.btn-ignorar').forEach(btn => {
         btn.onclick = async (e) => {
-            e.stopPropagation();
-            const original = btn.dataset.original;
+            e.stopPropagation(); const original = btn.dataset.original;
             if (verificarContextoExtensao()) {
                 try {
-                    const dic = await new Promise(r => {
-                        chrome.storage.local.get(['dicionario_pessoal'], res => {
-                            if (chrome.runtime.lastError) { r([]); return; }
-                            r(res.dicionario_pessoal || []);
-                        });
-                    });
-                    if (!dic.includes(original)) {
-                        dic.push(original);
-                        storageSetSegurado({ 'dicionario_pessoal': dic });
-                    }
-                } catch (err) {
-                    console.warn('SyntaxMentor: Erro ao guardar dicionário:', err);
-                }
+                    const dic = await new Promise(r => { chrome.storage.local.get(['dicionario_pessoal'], res => { if (chrome.runtime.lastError) { r([]); return; } r(res.dicionario_pessoal || []); }); });
+                    if (!dic.includes(original)) { dic.push(original); storageSetSegurado({ 'dicionario_pessoal': dic }); }
+                } catch (err) { console.warn('SyntaxMentor: Erro ao guardar dicionário:', err); }
             }
             if (!isSiteSensivel && elementoGlobal && elementoGlobal.isContentEditable && elementoGlobal.tagName !== 'TEXTAREA' && elementoGlobal.tagName !== 'INPUT') {
                 const originalEscapado = original.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -716,20 +658,12 @@ function exibirPainel() {
                 elementoGlobal.innerHTML = elementoGlobal.innerHTML.replace(markRegex, original);
                 restaurarPosicaoCursor(elementoGlobal, cursorSalvo);
             }
-            removerErroGlobal(original);
-            mostrarFeedback(`"${original}" → dicionário`, 'success');
+            removerErroGlobal(original); mostrarFeedback(`"${original}" → dicionário`, 'success');
         };
     });
 
     const btnCorrigirTudo = doc.getElementById('btn-corrigir-tudo');
-    if (btnCorrigirTudo) btnCorrigirTudo.onclick = () => {
-        painel.querySelectorAll('.btn-fix-mini').forEach(b => {
-            if (elementoGlobal) aplicarCorrecao(b.dataset.original, b.dataset.sugestao, elementoGlobal);
-        });
-        errosGlobais = [];
-        atualizarInterface();
-        mostrarFeedback('✓ Tudo corrigido!', 'success');
-    };
+    if (btnCorrigirTudo) btnCorrigirTudo.onclick = () => { painel.querySelectorAll('.btn-fix-mini').forEach(b => { if (elementoGlobal) aplicarCorrecao(b.dataset.original, b.dataset.sugestao, elementoGlobal); }); errosGlobais = []; atualizarInterface(); mostrarFeedback('✓ Tudo corrigido!', 'success'); };
 
     const btnIgnorarTudo = doc.getElementById('btn-ignorar-tudo');
     if (btnIgnorarTudo) btnIgnorarTudo.onclick = () => { limparTodosErros(); };
@@ -739,8 +673,7 @@ function fecharPainel() {
     const doc = getDocumentoPrincipal();
     const painel = doc.getElementById('syntax-mentor-painel');
     if (painel) painel.remove();
-    painelAberto = false;
-    indexSugestao = -1;
+    painelAberto = false; indexSugestao = -1;
 }
 
 function fecharPainelComSucesso() {
@@ -817,4 +750,4 @@ function tornarArrastavel(painel, handle) {
     }
 }
 
-if (isExtensaoContextoValido()) iniciarConfiguracoes(); else tentarReconectarExtensao();
+if (isExtensaoContextoValido()) iniciarConfiguracoes();
