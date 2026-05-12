@@ -517,7 +517,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // =============================================
-    // 10. IMPORTAR BACKUP (VERSÃO CORRIGIDA)
+    // 10. IMPORTAR BACKUP (VERSÃO LOCAL - SEM BACKGROUND)
     // =============================================
     if (btnImportar && inputImportar) {
         btnImportar.addEventListener('click', () => {
@@ -549,9 +549,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 'Isso irá SUBSTITUIR:\n' +
                 '• Seu dicionário pessoal\n' +
                 '• Sites bloqueados (blacklist)\n' +
-                '• Sites em modo leitura\n' +
                 '• Configurações de idioma e velocidade\n\n' +
-                'Sua API Key NÃO será alterada.\n\n' +
                 'Deseja continuar?'
             );
 
@@ -571,107 +569,163 @@ document.addEventListener('DOMContentLoaded', () => {
             };
 
             reader.onload = (event) => {
-                const dadosBrutos = event.target.result;
-                
-                // Validação rápida antes de enviar
                 try {
-                    const json = JSON.parse(dadosBrutos);
-                    if (!json.dados && !json.dicionario_pessoal && !json.blacklist) {
-                        mostrarNotificacao('❌ O arquivo não parece ser um backup do SyntaxMentor', 'error');
+                    const dadosBrutos = event.target.result;
+                    const nomeArquivo = file.name.toLowerCase();
+                    
+                    let palavrasImportadas = [];
+                    let blacklistImportada = [];
+                    let idiomaImportado = 'pt-BR';
+                    
+                    // =============================================
+                    // 🆕 DETECTA O FORMATO DO ARQUIVO
+                    // =============================================
+                    
+                    if (nomeArquivo.endsWith('.txt')) {
+                        // =============================================
+                        // FORMATO TXT: Uma palavra por linha
+                        // =============================================
+                        const linhas = dadosBrutos.split(/\r?\n/);
+                        palavrasImportadas = linhas
+                            .map(linha => linha.trim())
+                            .filter(linha => linha.length > 0 && !linha.startsWith('#') && !linha.startsWith('//'));
+                        
+                        console.log('📄 TXT detectado:', palavrasImportadas.length, 'palavras');
+                    } 
+                    else if (nomeArquivo.endsWith('.json')) {
+                        // =============================================
+                        // FORMATO JSON: Backup completo
+                        // =============================================
+                        let backup;
+                        try {
+                            backup = JSON.parse(dadosBrutos);
+                        } catch (parseError) {
+                            mostrarNotificacao('❌ JSON inválido. Tente usar um arquivo .txt', 'error');
+                            inputImportar.value = '';
+                            return;
+                        }
+                        
+                        const dadosFonte = (backup.dados && typeof backup.dados === 'object') ? backup.dados : backup;
+                        
+                        // Extrai palavras do dicionário
+                        if (Array.isArray(dadosFonte.dicionario_pessoal)) {
+                            palavrasImportadas = dadosFonte.dicionario_pessoal
+                                .filter(item => typeof item === 'string' && item.trim().length > 0)
+                                .map(item => item.trim());
+                        }
+                        
+                        // Extrai blacklist
+                        if (Array.isArray(dadosFonte.blacklist)) {
+                            blacklistImportada = dadosFonte.blacklist
+                                .filter(item => typeof item === 'string' && item.trim().length > 0)
+                                .map(item => item.trim().toLowerCase());
+                        }
+                        
+                        // Extrai idioma
+                        if (dadosFonte.language) {
+                            idiomaImportado = dadosFonte.language;
+                        }
+                        
+                        console.log('📄 JSON detectado:', palavrasImportadas.length, 'palavras');
+                    }
+                    else {
+                        mostrarNotificacao('❌ Formato não suportado. Use .txt ou .json', 'error');
                         inputImportar.value = '';
                         return;
                     }
-                } catch (err) {
-                    mostrarNotificacao('❌ Arquivo JSON inválido ou corrompido', 'error');
-                    inputImportar.value = '';
-                    return;
-                }
-
-                mostrarNotificacao('⏳ Processando e salvando dados...', 'info');
-
-                chrome.runtime.sendMessage({
-                    action: 'importData',
-                    data: dadosBrutos
-                }, (response) => {
-                    // Verifica erro de comunicação
-                    if (chrome.runtime.lastError) {
-                        mostrarNotificacao('❌ Erro de comunicação: ' + chrome.runtime.lastError.message, 'error');
+                    
+                    // =============================================
+                    // VALIDAÇÃO
+                    // =============================================
+                    if (palavrasImportadas.length === 0) {
+                        mostrarNotificacao('❌ Nenhuma palavra encontrada no arquivo', 'error');
                         inputImportar.value = '';
                         return;
                     }
-
-                    if (response && response.success) {
-                        const r = response.resumo;
-
-                        // 🆕 ATUALIZA A INTERFACE IMEDIATAMENTE
-                        // Recarrega os dados do storage para garantir sincronia
-                        chrome.storage.local.get({
-                            dicionario_pessoal: [],
-                            blacklist: [],
-                            language: 'pt-BR',
-                            speed: '500',
-                            pickyMode: true,
-                            darkMode: false,
-                            autoHideBubble: false
-                        }, (res) => {
-                            // Atualiza as variáveis locais
-                            currentDictionary = res.dicionario_pessoal || [];
-                            currentBlacklist = res.blacklist || [];
-
-                            // 🆕 RECONSTRÓI as listas na interface
+                    
+                    // =============================================
+                    // MESCLA com dicionário existente
+                    // =============================================
+                    // Pega o dicionário atual
+                    chrome.storage.local.get(['dicionario_pessoal', 'blacklist', 'language'], (res) => {
+                        const dicAtual = res.dicionario_pessoal || [];
+                        const blacklistAtual = res.blacklist || [];
+                        
+                        // 🆕 MESCLA: adiciona palavras novas sem remover as existentes
+                        const dicionarioFinal = [...dicAtual];
+                        let novasAdicionadas = 0;
+                        let duplicadas = 0;
+                        
+                        palavrasImportadas.forEach(palavra => {
+                            if (!dicionarioFinal.includes(palavra)) {
+                                dicionarioFinal.push(palavra);
+                                novasAdicionadas++;
+                            } else {
+                                duplicadas++;
+                            }
+                        });
+                        
+                        // Mescla blacklist também
+                        const blacklistFinal = [...blacklistAtual];
+                        blacklistImportada.forEach(site => {
+                            if (!blacklistFinal.includes(site)) {
+                                blacklistFinal.push(site);
+                            }
+                        });
+                        
+                        // =============================================
+                        // SALVA NO STORAGE
+                        // =============================================
+                        const dadosParaSalvar = {
+                            dicionario_pessoal: dicionarioFinal,
+                            blacklist: blacklistFinal
+                        };
+                        
+                        // Mantém o idioma se foi importado
+                        if (idiomaImportado) {
+                            dadosParaSalvar.language = idiomaImportado;
+                        }
+                        
+                        mostrarNotificacao('⏳ Salvando ' + novasAdicionadas + ' novas palavras...', 'info');
+                        
+                        chrome.storage.local.set(dadosParaSalvar, () => {
+                            if (chrome.runtime.lastError) {
+                                mostrarNotificacao('❌ Erro ao salvar: ' + chrome.runtime.lastError.message, 'error');
+                                inputImportar.value = '';
+                                return;
+                            }
+                            
+                            // =============================================
+                            // ATUALIZA INTERFACE
+                            // =============================================
+                            currentDictionary = dicionarioFinal;
+                            currentBlacklist = blacklistFinal;
+                            
                             renderizarDicionario();
                             renderizarBlacklist();
-
-                            // Atualiza os campos de configuração
-                            if (elLanguage) elLanguage.value = res.language;
-                            if (elPickyMode) elPickyMode.checked = res.pickyMode;
-                            if (elDarkMode) {
-                                elDarkMode.checked = res.darkMode;
-                                if (res.darkMode) {
-                                    document.body.classList.add('dark-mode');
-                                } else {
-                                    document.body.classList.remove('dark-mode');
-                                }
+                            
+                            // Feedback
+                            let msg = '✅ ' + novasAdicionadas + ' palavras adicionadas!';
+                            if (duplicadas > 0) {
+                                msg += ' (' + duplicadas + ' já existiam)';
                             }
-                            if (elAutoHideBubble) elAutoHideBubble.checked = res.autoHideBubble || false;
-
-                            elSpeedOptions.forEach(opt => {
-                                if (opt.value === res.speed.toString()) opt.checked = true;
-                            });
-
-                            // Feedback detalhado
-                            mostrarNotificacao(
-                                `✅ Importado: ${r.palavrasDicionario} palavras no dicionário, ${r.sitesBlacklist} sites bloqueados`,
-                                'success'
-                            );
-
-                            // Alerta com resumo completo
-                            setTimeout(() => {
-                                const partes = [];
-                                partes.push('✅ Backup importado com sucesso!');
-                                partes.push('');
-                                if (r.palavrasDicionario > 0) partes.push(`📖 ${r.palavrasDicionario} palavras no dicionário`);
-                                else partes.push('📖 Nenhuma palavra no dicionário');
-                                if (r.sitesBlacklist > 0) partes.push(`🚫 ${r.sitesBlacklist} sites bloqueados`);
-                                if (r.sitesLeitura > 0) partes.push(`📖 ${r.sitesLeitura} sites em modo leitura`);
-                                if (r.sitesWhitelist > 0) partes.push(`✅ ${r.sitesWhitelist} sites na whitelist`);
-                                partes.push(`🌐 Idioma: ${r.idioma}`);
-                                if (r.versaoBackup) partes.push(`📦 Versão do backup: ${r.versaoBackup}`);
-                                
-                                alert(partes.join('\n'));
-                            }, 500);
-
-                            // Limpa o input
+                            mostrarNotificacao(msg, 'success');
+                            
+                            // Log
+                            console.log('📊 Importação concluída:');
+                            console.log('  ✅ Novas:', novasAdicionadas);
+                            console.log('  📋 Duplicadas:', duplicadas);
+                            console.log('  📖 Total no dicionário:', dicionarioFinal.length);
+                            
                             inputImportar.value = '';
                         });
-
-                    } else {
-                        const erro = response?.error || 'Erro desconhecido ao processar o arquivo';
-                        mostrarNotificacao('❌ ' + erro, 'error');
-                        console.error('SyntaxMentor Import Error:', erro);
-                        inputImportar.value = '';
-                    }
-                });
+                    });
+                    
+                } catch (err) {
+                    console.error('❌ Erro na importação:', err);
+                    mostrarNotificacao('❌ Erro: ' + err.message, 'error');
+                    inputImportar.value = '';
+                }
             };
 
             reader.readAsText(file);
