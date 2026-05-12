@@ -1,4 +1,4 @@
-// SyntaxMentor - options.js v2.5.0 (Importação Robusta + Validações)
+// SyntaxMentor - options.js v2.6.0 (Clear All Integration)
 document.addEventListener('DOMContentLoaded', () => {
 
     // =============================================
@@ -15,11 +15,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const blacklistInput = document.getElementById('blacklist-input');
     const btnAddBlacklist = document.getElementById('btn-add-blacklist');
     const blacklistUl = document.getElementById('blacklist-list');
+    const btnClearBlacklist = document.getElementById('btn-clear-blacklist');
     let currentBlacklist = [];
 
     const dictionaryInput = document.getElementById('dictionary-input');
     const btnAddDictionary = document.getElementById('btn-add-dictionary');
     const dictionaryUl = document.getElementById('dictionary-list');
+    const btnClearDictionary = document.getElementById('btn-clear-dictionary');
     let currentDictionary = [];
 
     const btnGravarToggle = document.getElementById('btn-gravar-atalho');
@@ -139,18 +141,13 @@ document.addEventListener('DOMContentLoaded', () => {
             };
 
             chrome.storage.local.set(config, () => {
-                saveStatus.style.opacity = '1';
-                saveStatus.style.color = '#28a745';
-                saveStatus.textContent = '✓ Salvo com sucesso!';
-                setTimeout(() => {
-                    saveStatus.style.opacity = '0';
-                }, 2000);
+                mostrarNotificacao('✓ Guardado com sucesso!', 'success');
             });
         });
     }
 
     // =============================================
-    // 5. BLACKLIST
+    // 5. BLACKLIST E LIMPEZA
     // =============================================
     if (btnAddBlacklist) {
         btnAddBlacklist.addEventListener('click', () => {
@@ -167,11 +164,27 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        // Adicionar com Enter
         blacklistInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
                 e.preventDefault();
                 btnAddBlacklist.click();
+            }
+        });
+    }
+
+    // Limpar toda a Blacklist
+    if (btnClearBlacklist) {
+        btnClearBlacklist.addEventListener('click', () => {
+            if (currentBlacklist.length === 0) {
+                mostrarNotificacao('A lista de sites já está vazia.', 'info');
+                return;
+            }
+            if (confirm(`⚠️ ATENÇÃO!\n\nTem a certeza que deseja APAGAR TODOS os ${currentBlacklist.length} sites bloqueados?\n\nEsta ação não pode ser desfeita.`)) {
+                currentBlacklist = [];
+                chrome.storage.local.set({ blacklist: [] }, () => {
+                    renderizarBlacklist();
+                    mostrarNotificacao('🗑️ Lista de sites limpa com sucesso!', 'success');
+                });
             }
         });
     }
@@ -202,7 +215,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // =============================================
-    // 6. DICIONÁRIO
+    // 6. DICIONÁRIO E LIMPEZA
     // =============================================
     if (btnAddDictionary) {
         btnAddDictionary.addEventListener('click', () => {
@@ -221,11 +234,27 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        // Adicionar com Enter
         dictionaryInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
                 e.preventDefault();
                 btnAddDictionary.click();
+            }
+        });
+    }
+
+    // Limpar todo o Dicionário
+    if (btnClearDictionary) {
+        btnClearDictionary.addEventListener('click', () => {
+            if (currentDictionary.length === 0) {
+                mostrarNotificacao('O dicionário já está vazio.', 'info');
+                return;
+            }
+            if (confirm(`⚠️ ATENÇÃO!\n\nTem a certeza que deseja APAGAR TODAS as ${currentDictionary.length} palavras do seu dicionário?\n\nEsta ação não pode ser desfeita.`)) {
+                currentDictionary = [];
+                chrome.storage.local.set({ dicionario_pessoal: [] }, () => {
+                    renderizarDicionario();
+                    mostrarNotificacao('🗑️ Dicionário limpo com sucesso!', 'success');
+                });
             }
         });
     }
@@ -259,7 +288,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // 7. FUNÇÃO COMPARTILHADA DE OUVINTES
     // =============================================
     function adicionarOuvintesLista(listaUl, arrayAtual, storageKey) {
-        // Remover
         listaUl.querySelectorAll('.btn-remove').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 e.stopPropagation();
@@ -274,7 +302,6 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
 
-        // Editar
         listaUl.querySelectorAll('.btn-edit').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 e.stopPropagation();
@@ -286,7 +313,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (!input || !span) return;
 
                 if (input.style.display === 'none') {
-                    // Entrar no modo edição
                     span.style.display = 'none';
                     input.style.display = 'block';
                     input.focus();
@@ -294,13 +320,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     e.target.textContent = '✓';
                     e.target.style.color = '#28a745';
                 } else {
-                    // Salvar edição
                     salvarEdicaoInline(li, idx, arrayAtual, storageKey);
                 }
             });
         });
 
-        // Salvar com Enter
         listaUl.querySelectorAll('.edit-input').forEach(input => {
             input.addEventListener('keypress', (e) => {
                 if (e.key === 'Enter') {
@@ -312,7 +336,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
 
-            // Salvar ao perder foco
             input.addEventListener('blur', () => {
                 const li = input.closest('li');
                 if (!li) return;
@@ -326,7 +349,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 }, 150);
             });
 
-            // Cancelar com Escape
             input.addEventListener('keydown', (e) => {
                 if (e.key === 'Escape') {
                     const li = e.target.closest('li');
@@ -349,19 +371,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (!span || !input || !btnEdit) return;
 
-        const novoValor = storageKey === 'blacklist'
-            ? input.value.trim().toLowerCase()
-            : input.value.trim().toLowerCase();
+        const novoValor = input.value.trim().toLowerCase();
 
-        // Voltar ao modo visualização
         span.style.display = 'block';
         input.style.display = 'none';
         btnEdit.textContent = '✏️';
         btnEdit.style.color = '#6f42c1';
 
-        // Valida e salva
         if (novoValor && novoValor !== arrayAtual[idx]) {
-            // Verifica duplicata
             const duplicata = arrayAtual.some((item, i) => i !== idx && item === novoValor);
             if (duplicata) {
                 mostrarNotificacao('⚠️ Este item já existe na lista', 'info');
@@ -373,10 +390,9 @@ document.addEventListener('DOMContentLoaded', () => {
             arrayAtual[idx] = novoValor;
             span.textContent = novoValor;
             chrome.storage.local.set({ [storageKey]: arrayAtual }, () => {
-                mostrarNotificacao(`✅ "${antigo}" → "${novoValor}" atualizado`, 'success');
+                mostrarNotificacao(`✅ Atualizado com sucesso`, 'success');
             });
         } else if (!novoValor) {
-            // Não permite valor vazio, restaura original
             input.value = arrayAtual[idx];
             mostrarNotificacao('⚠️ O valor não pode estar vazio', 'info');
         }
@@ -409,36 +425,30 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (btnGravarToggle) {
         btnGravarToggle.addEventListener('click', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
+            e.preventDefault(); e.stopPropagation();
             iniciarGravacao(btnGravarToggle, 'toggleShortcut');
         });
     }
 
     if (btnGravarIgnore) {
         btnGravarIgnore.addEventListener('click', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
+            e.preventDefault(); e.stopPropagation();
             iniciarGravacao(btnGravarIgnore, 'ignoreShortcut');
         });
     }
 
     if (btnGravarCorrigirTudo) {
         btnGravarCorrigirTudo.addEventListener('click', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
+            e.preventDefault(); e.stopPropagation();
             iniciarGravacao(btnGravarCorrigirTudo, 'corrigirTudoShortcut');
         });
     }
 
     document.addEventListener('keydown', (e) => {
         if (!recordingTarget) return;
-
-        // Ignora teclas modificadoras isoladas
         if (['Control', 'Alt', 'Shift', 'Meta', 'Escape'].includes(e.key)) return;
 
-        e.preventDefault();
-        e.stopPropagation();
+        e.preventDefault(); e.stopPropagation();
 
         const partes = [];
         if (e.ctrlKey) partes.push('Ctrl');
@@ -447,14 +457,10 @@ document.addEventListener('DOMContentLoaded', () => {
         partes.push(e.key.toUpperCase());
 
         const shortcut = {
-            altKey: e.altKey,
-            ctrlKey: e.ctrlKey,
-            shiftKey: e.shiftKey,
-            key: e.key.toLowerCase(),
-            display: partes.join(' + ')
+            altKey: e.altKey, ctrlKey: e.ctrlKey, shiftKey: e.shiftKey,
+            key: e.key.toLowerCase(), display: partes.join(' + ')
         };
 
-        // Se não tiver nenhuma tecla modificadora, adiciona Alt por padrão
         if (!e.ctrlKey && !e.altKey && !e.shiftKey) {
             shortcut.altKey = true;
             shortcut.display = "Alt + " + e.key.toUpperCase();
@@ -469,12 +475,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 activeBtn.classList.remove('gravando');
             }
             mostrarNotificacao(`✅ Atalho gravado: ${shortcut.display}`, 'success');
-            recordingTarget = null;
-            activeBtn = null;
+            recordingTarget = null; activeBtn = null;
         });
     });
 
-    // Cancela gravação se clicar fora
     document.addEventListener('click', (e) => {
         if (recordingTarget && activeBtn && e.target !== activeBtn) {
             cancelarGravacao();
@@ -486,38 +490,27 @@ document.addEventListener('DOMContentLoaded', () => {
     // =============================================
     if (btnExportar) {
         btnExportar.addEventListener('click', () => {
-            mostrarNotificacao('⏳ Gerando backup...', 'info');
+            mostrarNotificacao('⏳ A gerar backup...', 'info');
 
-            chrome.runtime.sendMessage({ action: 'exportData' }, (response) => {
-                if (response && response.success) {
-                    const jsonStr = JSON.stringify(response.data, null, 2);
-                    const blob = new Blob([jsonStr], { type: 'application/json' });
-                    const url = URL.createObjectURL(blob);
+            chrome.storage.local.get(null, (dados) => {
+                const jsonStr = JSON.stringify({ dados: dados }, null, 2);
+                const blob = new Blob([jsonStr], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const data = new Date().toISOString().split('T')[0];
+                const nomeArquivo = `syntaxmentor-backup-${data}.json`;
 
-                    const data = new Date().toISOString().split('T')[0];
-                    const nomeArquivo = `syntaxmentor-backup-${data}.json`;
+                const a = document.createElement('a');
+                a.href = url; a.download = nomeArquivo;
+                document.body.appendChild(a); a.click();
+                document.body.removeChild(a); URL.revokeObjectURL(url);
 
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = nomeArquivo;
-                    document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
-                    URL.revokeObjectURL(url);
-
-                    const palavras = response.data.dados?.dicionario_pessoal?.length || 0;
-                    const sites = response.data.dados?.blacklist?.length || 0;
-                    mostrarNotificacao(`✅ Backup exportado! 📖 ${palavras} palavras, 🚫 ${sites} sites`, 'success');
-                } else {
-                    mostrarNotificacao('❌ Erro ao exportar backup', 'error');
-                    console.error('SyntaxMentor Export:', response?.error || 'Erro desconhecido');
-                }
+                mostrarNotificacao('✅ Backup exportado com sucesso!', 'success');
             });
         });
     }
 
     // =============================================
-    // 10. IMPORTAR BACKUP (VERSÃO LOCAL - SEM BACKGROUND)
+    // 10. IMPORTAR BACKUP (COM CONFIRMAÇÃO VISUAL)
     // =============================================
     if (btnImportar && inputImportar) {
         btnImportar.addEventListener('click', () => {
@@ -528,206 +521,140 @@ document.addEventListener('DOMContentLoaded', () => {
             const file = e.target.files[0];
             if (!file) return;
 
-            // Valida tipo de arquivo
-            if (!file.name.endsWith('.json')) {
-                mostrarNotificacao('❌ O arquivo deve ser .json', 'error');
+            const ext = file.name.split('.').pop().toLowerCase();
+            if (ext !== 'json' && ext !== 'txt') {
+                mostrarNotificacao('❌ Formato inválido. Use .txt ou .json', 'error');
                 inputImportar.value = '';
                 return;
             }
 
-            // Valida tamanho máximo (10MB)
             const maxSize = 10 * 1024 * 1024;
             if (file.size > maxSize) {
-                mostrarNotificacao('❌ Arquivo muito grande. Máximo: 10MB', 'error');
+                mostrarNotificacao('❌ Ficheiro muito grande. Máximo: 10MB', 'error');
                 inputImportar.value = '';
                 return;
             }
 
-            // Confirmação antes de importar
-            const confirmar = confirm(
-                '⚠️ Tem certeza que deseja importar este backup?\n\n' +
-                'Isso irá SUBSTITUIR:\n' +
-                '• Seu dicionário pessoal\n' +
-                '• Sites bloqueados (blacklist)\n' +
-                '• Configurações de idioma e velocidade\n\n' +
-                'Deseja continuar?'
-            );
-
-            if (!confirmar) {
-                inputImportar.value = '';
-                mostrarNotificacao('❌ Importação cancelada', 'info');
-                return;
-            }
-
-            mostrarNotificacao('⏳ Lendo arquivo...', 'info');
-
+            mostrarNotificacao('⏳ A preparar importação...', 'info');
             const reader = new FileReader();
 
             reader.onerror = () => {
-                mostrarNotificacao('❌ Erro ao ler o arquivo', 'error');
+                mostrarNotificacao('❌ Erro ao ler o ficheiro', 'error');
                 inputImportar.value = '';
             };
 
             reader.onload = (event) => {
                 try {
-                    const dadosBrutos = event.target.result;
-                    const nomeArquivo = file.name.toLowerCase();
-                    
+                    const conteudo = event.target.result;
                     let palavrasImportadas = [];
                     let blacklistImportada = [];
-                    let idiomaImportado = 'pt-BR';
-                    
-                    // =============================================
-                    // 🆕 DETECTA O FORMATO DO ARQUIVO
-                    // =============================================
-                    
-                    if (nomeArquivo.endsWith('.txt')) {
-                        // =============================================
-                        // FORMATO TXT: Uma palavra por linha
-                        // =============================================
-                        const linhas = dadosBrutos.split(/\r?\n/);
-                        palavrasImportadas = linhas
-                            .map(linha => linha.trim())
-                            .filter(linha => linha.length > 0 && !linha.startsWith('#') && !linha.startsWith('//'));
-                        
-                        console.log('📄 TXT detectado:', palavrasImportadas.length, 'palavras');
-                    } 
-                    else if (nomeArquivo.endsWith('.json')) {
-                        // =============================================
-                        // FORMATO JSON: Backup completo
-                        // =============================================
+                    let idiomaImportado = null;
+
+                    if (ext === 'txt') {
+                        palavrasImportadas = conteudo.split(/\r?\n/)
+                            .map(l => l.trim().toLowerCase())
+                            .filter(l => l.length > 0 && !l.startsWith('#') && !l.startsWith('//'));
+                    } else {
                         let backup;
                         try {
-                            backup = JSON.parse(dadosBrutos);
-                        } catch (parseError) {
-                            mostrarNotificacao('❌ JSON inválido. Tente usar um arquivo .txt', 'error');
+                            backup = JSON.parse(conteudo);
+                        } catch (err) {
+                            mostrarNotificacao('❌ JSON inválido. Tente usar um ficheiro .txt', 'error');
                             inputImportar.value = '';
                             return;
                         }
-                        
-                        const dadosFonte = (backup.dados && typeof backup.dados === 'object') ? backup.dados : backup;
-                        
-                        // Extrai palavras do dicionário
-                        if (Array.isArray(dadosFonte.dicionario_pessoal)) {
-                            palavrasImportadas = dadosFonte.dicionario_pessoal
-                                .filter(item => typeof item === 'string' && item.trim().length > 0)
-                                .map(item => item.trim());
-                        }
-                        
-                        // Extrai blacklist
-                        if (Array.isArray(dadosFonte.blacklist)) {
-                            blacklistImportada = dadosFonte.blacklist
-                                .filter(item => typeof item === 'string' && item.trim().length > 0)
-                                .map(item => item.trim().toLowerCase());
-                        }
-                        
-                        // Extrai idioma
-                        if (dadosFonte.language) {
-                            idiomaImportado = dadosFonte.language;
-                        }
-                        
-                        console.log('📄 JSON detectado:', palavrasImportadas.length, 'palavras');
+                        const fonte = backup.dados || backup;
+                        palavrasImportadas = Array.isArray(fonte.dicionario_pessoal) ? fonte.dicionario_pessoal : [];
+                        blacklistImportada = Array.isArray(fonte.blacklist) ? fonte.blacklist : [];
+                        if (fonte.language) idiomaImportado = fonte.language;
                     }
-                    else {
-                        mostrarNotificacao('❌ Formato não suportado. Use .txt ou .json', 'error');
-                        inputImportar.value = '';
-                        return;
-                    }
-                    
-                    // =============================================
-                    // VALIDAÇÃO
-                    // =============================================
-                    if (palavrasImportadas.length === 0) {
-                        mostrarNotificacao('❌ Nenhuma palavra encontrada no arquivo', 'error');
-                        inputImportar.value = '';
-                        return;
-                    }
-                    
-                    // =============================================
-                    // MESCLA com dicionário existente
-                    // =============================================
-                    // Pega o dicionário atual
+
                     chrome.storage.local.get(['dicionario_pessoal', 'blacklist', 'language'], (res) => {
-                        const dicAtual = res.dicionario_pessoal || [];
-                        const blacklistAtual = res.blacklist || [];
+                        const dicFinal = [...(res.dicionario_pessoal || [])];
+                        const blackFinal = [...(res.blacklist || [])];
                         
-                        // 🆕 MESCLA: adiciona palavras novas sem remover as existentes
-                        const dicionarioFinal = [...dicAtual];
-                        let novasAdicionadas = 0;
-                        let duplicadas = 0;
-                        
-                        palavrasImportadas.forEach(palavra => {
-                            if (!dicionarioFinal.includes(palavra)) {
-                                dicionarioFinal.push(palavra);
-                                novasAdicionadas++;
-                            } else {
-                                duplicadas++;
-                            }
+                        let novasPalavras = 0;
+                        let duplicadasPalavras = 0;
+                        let novosSites = 0;
+                        let duplicadosSites = 0;
+
+                        palavrasImportadas.forEach(p => {
+                            if (!dicFinal.includes(p)) { dicFinal.push(p); novasPalavras++; }
+                            else { duplicadasPalavras++; }
                         });
                         
-                        // Mescla blacklist também
-                        const blacklistFinal = [...blacklistAtual];
-                        blacklistImportada.forEach(site => {
-                            if (!blacklistFinal.includes(site)) {
-                                blacklistFinal.push(site);
-                            }
+                        blacklistImportada.forEach(s => {
+                            if (!blackFinal.includes(s)) { blackFinal.push(s); novosSites++; }
+                            else { duplicadosSites++; }
                         });
-                        
-                        // =============================================
-                        // SALVA NO STORAGE
-                        // =============================================
-                        const dadosParaSalvar = {
-                            dicionario_pessoal: dicionarioFinal,
-                            blacklist: blacklistFinal
-                        };
-                        
-                        // Mantém o idioma se foi importado
-                        if (idiomaImportado) {
-                            dadosParaSalvar.language = idiomaImportado;
+
+                        let msgConfirmacao = "📊 Resumo da Importação:\n\n";
+                        let temAlgoNovo = false;
+
+                        if (novasPalavras > 0 || duplicadasPalavras > 0) {
+                            msgConfirmacao += `📖 Dicionário Pessoal:\n`;
+                            msgConfirmacao += `   ➕ ${novasPalavras} novas palavras a adicionar.\n`;
+                            if (duplicadasPalavras > 0) msgConfirmacao += `   ⏭️ ${duplicadasPalavras} palavras ignoradas (já existem).\n\n`;
+                            if (novasPalavras > 0) temAlgoNovo = true;
                         }
-                        
-                        mostrarNotificacao('⏳ Salvando ' + novasAdicionadas + ' novas palavras...', 'info');
-                        
+
+                        if (novosSites > 0 || duplicadosSites > 0) {
+                            msgConfirmacao += `🚫 Sites Ignorados:\n`;
+                            msgConfirmacao += `   ➕ ${novosSites} novos sites a adicionar.\n`;
+                            if (duplicadosSites > 0) msgConfirmacao += `   ⏭️ ${duplicadosSites} sites ignorados (já existem).\n\n`;
+                            if (novosSites > 0) temAlgoNovo = true;
+                        }
+
+                        if (idiomaImportado && idiomaImportado !== res.language) {
+                            msgConfirmacao += `🌐 Idioma: Será alterado para '${idiomaImportado}'.\n\n`;
+                            temAlgoNovo = true;
+                        }
+
+                        if (!temAlgoNovo && (!idiomaImportado || idiomaImportado === res.language)) {
+                            mostrarNotificacao('⚠️ O ficheiro não contém itens novos.', 'info');
+                            inputImportar.value = '';
+                            return;
+                        }
+
+                        msgConfirmacao += "Deseja confirmar e guardar estas alterações?";
+
+                        const confirmar = window.confirm(msgConfirmacao);
+
+                        if (!confirmar) {
+                            mostrarNotificacao('❌ Importação cancelada', 'info');
+                            inputImportar.value = '';
+                            return;
+                        }
+
+                        const dadosParaSalvar = {
+                            dicionario_pessoal: dicFinal,
+                            blacklist: blackFinal
+                        };
+                        if (idiomaImportado) dadosParaSalvar.language = idiomaImportado;
+
                         chrome.storage.local.set(dadosParaSalvar, () => {
                             if (chrome.runtime.lastError) {
-                                mostrarNotificacao('❌ Erro ao salvar: ' + chrome.runtime.lastError.message, 'error');
-                                inputImportar.value = '';
+                                mostrarNotificacao('❌ Erro ao guardar: ' + chrome.runtime.lastError.message, 'error');
                                 return;
                             }
+                            mostrarNotificacao(`✅ Alterações aplicadas com sucesso!`, 'success');
                             
-                            // =============================================
-                            // ATUALIZA INTERFACE
-                            // =============================================
-                            currentDictionary = dicionarioFinal;
-                            currentBlacklist = blacklistFinal;
-                            
+                            currentDictionary = dicFinal;
+                            currentBlacklist = blackFinal;
                             renderizarDicionario();
                             renderizarBlacklist();
-                            
-                            // Feedback
-                            let msg = '✅ ' + novasAdicionadas + ' palavras adicionadas!';
-                            if (duplicadas > 0) {
-                                msg += ' (' + duplicadas + ' já existiam)';
-                            }
-                            mostrarNotificacao(msg, 'success');
-                            
-                            // Log
-                            console.log('📊 Importação concluída:');
-                            console.log('  ✅ Novas:', novasAdicionadas);
-                            console.log('  📋 Duplicadas:', duplicadas);
-                            console.log('  📖 Total no dicionário:', dicionarioFinal.length);
+                            if (idiomaImportado && elLanguage) elLanguage.value = idiomaImportado;
                             
                             inputImportar.value = '';
                         });
                     });
-                    
+
                 } catch (err) {
-                    console.error('❌ Erro na importação:', err);
-                    mostrarNotificacao('❌ Erro: ' + err.message, 'error');
+                    mostrarNotificacao('❌ Erro ao processar ficheiro.', 'error');
+                    console.error(err);
                     inputImportar.value = '';
                 }
             };
-
             reader.readAsText(file);
         });
     }
@@ -755,7 +682,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 saveStatus.style.color = '#333';
         }
 
-        // Timer para ocultar (mais longo para mensagens importantes)
         const duracao = tipo === 'error' ? 4000 : tipo === 'success' ? 3000 : 2000;
 
         clearTimeout(saveStatus._timeout);
