@@ -3,11 +3,15 @@
 <!-- SyntaxMentor - options-seguranca.html v2.4.0 -->
 <head>
     <meta charset="UTF-8">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>Segurança - SyntaxMentor Elite</title>
     <link rel="stylesheet" href="css/style-seguranca.css">
 </head>
 <body>
 
+    <!-- BARRA LATERAL -->
     <div class="sidebar">
         <h2 class="logo">✨ SyntaxMentor <span style="font-size: 10px; color: #aaa;">v2.4.0 Elite</span></h2>
         <ul class="menu">
@@ -17,15 +21,16 @@
         </ul>
     </div>
 
+    <!-- CONTEÚDO PRINCIPAL -->
     <div class="main-content">
         <div class="header-titles">
             <h1>Segurança &amp; Privacidade</h1>
-            <p>Configure a API, modo de correção, whitelist e permissões.</p>
+            <p>Configure a API, modo de correção, whitelist e sincronização.</p>
         </div>
 
         <div class="grid-container" style="grid-template-columns: 1fr 1fr;">
             
-            <!-- API KEY -->
+            <!-- 🔑 API KEY -->
             <div class="config-card full-width-seguranca">
                 <h3>🔑 Chave de API Personalizada</h3>
                 <p class="desc">Use sua própria chave da API LanguageTool Cloud ou um servidor self-hosted.</p>
@@ -42,6 +47,9 @@
                             <input type="password" id="api-key" class="full-input" placeholder="Cole sua API Key aqui" style="flex: 1;">
                             <button id="btn-toggle-visibilidade" class="btn-seguranca-outline" style="white-space: nowrap;">👁️ Mostrar</button>
                         </div>
+                        <p style="font-size: 10px; color: #9ca3af; margin-top: 4px;">
+                            Sua chave é armazenada localmente e nunca é compartilhada.
+                        </p>
                     </div>
                     
                     <div style="display: flex; gap: 10px; align-items: center;">
@@ -53,10 +61,19 @@
                         <p style="font-size: 12px; color: #166534; margin: 0;">✅ <strong>Conexão bem-sucedida!</strong></p>
                         <p id="api-info" style="font-size: 11px; color: #166534; margin: 4px 0 0 0;"></p>
                     </div>
+                    
+                    <div style="margin-top: 5px;">
+                        <p style="font-size: 11px; color: #6b7280;">
+                            💡 <strong>Como obter uma API Key:</strong><br>
+                            1. Acesse <a href="https://languagetool.org/cloud" target="_blank" style="color: #6f42c1;">languagetool.org/cloud</a><br>
+                            2. Crie uma conta gratuita (até 1000 requisições/mês)<br>
+                            3. Copie sua API Key do painel
+                        </p>
+                    </div>
                 </div>
             </div>
 
-            <!-- MODO DE CORREÇÃO -->
+            <!-- 🔐 MODO DE CORREÇÃO -->
             <div class="config-card full-width-seguranca">
                 <h3>🔐 Modo de Correção</h3>
                 <p class="desc">Controle como as correções são aplicadas ao texto.</p>
@@ -92,7 +109,7 @@
                 </div>
             </div>
 
-            <!-- 🆕 MODO WHITELIST -->
+            <!-- ✅ MODO WHITELIST -->
             <div class="config-card full-width-seguranca">
                 <h3>✅ Modo Whitelist (Apenas Nesses Sites)</h3>
                 <p class="desc">Inverta a lógica: a extensão fica desligada em todos os sites, exceto nos listados abaixo.</p>
@@ -117,7 +134,7 @@
                 </div>
             </div>
 
-            <!-- 🆕 CLOUD SYNC -->
+            <!-- ☁️ CLOUD SYNC -->
             <div class="config-card full-width-seguranca">
                 <h3>☁️ Sincronização em Nuvem</h3>
                 <p class="desc">Seus dados (dicionário, blacklist, configurações) sincronizam entre dispositivos via sua conta Google.</p>
@@ -136,25 +153,7 @@
             </div>
         </div>
 
-        <!-- ESTATÍSTICAS -->
-        <div class="config-card" style="margin-top: 20px;">
-            <h3>📊 Estatísticas de Correção</h3>
-            <div style="display: flex; gap: 40px; flex-wrap: wrap;">
-                <div style="text-align: center;">
-                    <div style="font-size: 32px; font-weight: 700; color: #6f42c1;" id="stat-total-corrigidas">0</div>
-                    <p style="font-size: 12px; color: #6b7280; margin: 0;">Total de Correções</p>
-                </div>
-                <div style="text-align: center;">
-                    <div style="font-size: 32px; font-weight: 700; color: #28a745;" id="stat-taxa-aceitacao">100%</div>
-                    <p style="font-size: 12px; color: #6b7280; margin: 0;">Taxa de Aceitação</p>
-                </div>
-                <div style="text-align: center;">
-                    <div style="font-size: 32px; font-weight: 700; color: #f59e0b;" id="stat-dicionario">0</div>
-                    <p style="font-size: 12px; color: #6b7280; margin: 0;">Palavras no Dicionário</p>
-                </div>
-            </div>
-        </div>
-
+        <!-- RODAPÉ -->
         <div class="footer-save">
             <span id="save-status">✓ Salvo com sucesso!</span>
             <button id="btn-salvar" class="btn-primary">Salvar Alterações</button>

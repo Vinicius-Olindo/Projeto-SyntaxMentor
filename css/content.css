@@ -420,3 +420,42 @@ mark.sm-highlight {
     color: inherit;
     padding: 0 2px;
 }
+
+/* ============================================
+   🆕 ANIMAÇÕES DE CONQUISTA
+   ============================================ */
+@keyframes sm-conquista-in {
+    from {
+        opacity: 0;
+        transform: translateX(-50%) translateY(-30px) scale(0.8);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0) scale(1);
+    }
+}
+
+@keyframes sm-conquista-out {
+    from {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0) scale(1);
+    }
+
+    to {
+        opacity: 0;
+        transform: translateX(-50%) translateY(-30px) scale(0.8);
+    }
+}
+
+@keyframes sm-confete-fall {
+    from {
+        transform: translateY(-10px) rotate(0deg);
+        opacity: 1;
+    }
+
+    to {
+        transform: translateY(100vh) rotate(720deg);
+        opacity: 0;
+    }
+}
