@@ -1,4 +1,4 @@
-// SyntaxMentor - v2.2.0 (Auto-Hide, Badge & Icon Sync)
+// SyntaxMentor - v2.3.0 (API Key + Modo Leitura + Confirmação)
 let timeoutDigitacao = null;
 let errosGlobais = [];
 let elementoGlobal = null;
@@ -23,12 +23,22 @@ let historicoCorrecoes = [];
 
 let smConfig = {
     language: 'pt-BR', pickyMode: true, speed: 500, darkMode: false, blacklist: [],
-    apiUrl: '', strictMode: false, disabled: false,
+    apiUrl: '', apiKey: '', strictMode: false, disabled: false,
     toggleShortcut: { altKey: true, ctrlKey: false, shiftKey: false, key: 's' },
     ignoreShortcut: { altKey: true, ctrlKey: false, shiftKey: false, key: 'i' },
     corrigirTudoShortcut: { altKey: true, ctrlKey: false, shiftKey: true, key: 's' },
-    autoHideBubble: false // 🆕 Opção de auto-hide
+    autoHideBubble: false,
+    modoConfirmacao: false,
+    modoLeituraGlobal: false,
+    modoLeituraSites: []
 };
+
+// 🆕 Verifica se o site atual está em modo leitura
+function isModoLeitura() {
+    if (smConfig.modoLeituraGlobal) return true;
+    const host = window.location.hostname;
+    return (smConfig.modoLeituraSites || []).some(d => host.includes(d));
+}
 
 // =============================================
 // UTILITÁRIOS
@@ -57,28 +67,99 @@ function mostrarFeedback(msg, tipo) {
     const f = document.createElement('div');
     f.textContent = msg;
     f.className = 'sm-feedback-flutuante';
-    const cor = tipo === 'success' ? '#28a745' : tipo === 'error' ? '#e53e3e' : '#6b7280';
+    const cor = tipo === 'success' ? '#28a745' : tipo === 'error' ? '#e53e3e' : tipo === 'info' ? '#6b7280' : '#f59e0b';
     f.style.cssText = `position:fixed;top:20px;right:20px;z-index:2147483647;background:${cor};color:#fff;padding:10px 20px;border-radius:8px;font:600 14px 'Segoe UI',sans-serif;box-shadow:0 4px 15px rgba(0,0,0,0.3);pointer-events:none;`;
     document.body.appendChild(f);
     setTimeout(() => f.remove(), 2200);
 }
 
-// 🆕 Sincroniza badge com background
+// 🆕 Confirmação antes de corrigir
+function confirmarCorrecao(original, sugestao, callback) {
+    if (!smConfig.modoConfirmacao && !isModoLeitura()) {
+        // Modo normal - aplica direto
+        callback(true);
+        return;
+    }
+
+    // Modo confirmação - mostra popup
+    const overlay = document.createElement('div');
+    overlay.className = 'sm-confirm-overlay';
+    overlay.style.cssText = `
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0,0,0,0.5); z-index: 2147483646;
+        display: flex; align-items: center; justify-content: center;
+        font-family: 'Segoe UI', system-ui, sans-serif;
+    `;
+
+    const dialog = document.createElement('div');
+    dialog.style.cssText = `
+        background: white; border-radius: 12px; padding: 24px;
+        max-width: 420px; width: 90%; box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        animation: sm-slideUp 0.2s ease;
+    `;
+
+    if (smConfig.darkMode) {
+        dialog.style.background = '#1a1a1a';
+        dialog.style.color = '#e0e0e0';
+    }
+
+    dialog.innerHTML = `
+        <h3 style="margin:0 0 12px 0; font-size:16px;">Confirmar Correção</h3>
+        <p style="margin:0 0 16px 0; font-size:14px; line-height:1.5;">
+            Corrigir <strong style="color:#e53e3e;text-decoration:line-through;">${original}</strong> 
+            para <strong style="color:#28a745;">${sugestao}</strong>?
+        </p>
+        <div style="display:flex; gap:8px; justify-content:flex-end;">
+            <button class="sm-btn-cancelar" style="
+                background:#f3f4f6; border:1px solid #d1d5db; color:#374151;
+                padding:8px 16px; border-radius:6px; cursor:pointer; font-weight:600;
+            ">Não</button>
+            <button class="sm-btn-confirmar" style="
+                background:linear-gradient(135deg,#6f42c1,#8b5cf6); border:none; color:white;
+                padding:8px 16px; border-radius:6px; cursor:pointer; font-weight:600;
+            ">Sim, corrigir</button>
+        </div>
+    `;
+
+    overlay.appendChild(dialog);
+    document.body.appendChild(overlay);
+
+    dialog.querySelector('.sm-btn-confirmar').onclick = () => {
+        overlay.remove();
+        callback(true);
+        // Incrementa aceitas
+        storageGetSeguro({ totalAceitas: 0 }, (res) => {
+            storageSetSeguro({ totalAceitas: (res.totalAceitas || 0) + 1 });
+        });
+    };
+
+    dialog.querySelector('.sm-btn-cancelar').onclick = () => {
+        overlay.remove();
+        callback(false);
+        // Incrementa recusadas
+        storageGetSeguro({ totalRecusadas: 0 }, (res) => {
+            storageSetSeguro({ totalRecusadas: (res.totalRecusadas || 0) + 1 });
+        });
+    };
+
+    overlay.onclick = (e) => {
+        if (e.target === overlay) {
+            overlay.remove();
+            callback(false);
+        }
+    };
+}
+
 function atualizarBadgeBackground(total) {
     if (!isExtensaoAtiva()) return;
-    try {
-        chrome.runtime.sendMessage({ action: 'updateBadge', totalErros: total });
-    } catch (e) { }
+    try { chrome.runtime.sendMessage({ action: 'updateBadge', totalErros: total }); } catch (e) { }
 }
 
 function resetarBadgeBackground() {
     if (!isExtensaoAtiva()) return;
-    try {
-        chrome.runtime.sendMessage({ action: 'resetBadge' });
-    } catch (e) { }
+    try { chrome.runtime.sendMessage({ action: 'resetBadge' }); } catch (e) { }
 }
 
-// 🆕 MELHORIA 4: Auto-hide da bolinha
 function atualizarVisibilidadeBolha() {
     const bubble = document.getElementById('syntax-mentor-bubble');
     if (!bubble) return;
@@ -86,16 +167,15 @@ function atualizarVisibilidadeBolha() {
     if (smConfig.autoHideBubble && usuarioDigitando && !painelAberto) {
         bubble.style.opacity = '0';
         bubble.style.pointerEvents = 'none';
-        bubble.style.transition = 'opacity 0.3s ease';
     } else {
         bubble.style.opacity = estaCarregando ? '0.6' : '1';
         bubble.style.pointerEvents = 'auto';
-        bubble.style.transition = 'opacity 0.3s ease';
     }
+    bubble.style.transition = 'opacity 0.3s ease';
 }
 
 // =============================================
-// DISPARA EVENTOS NATIVOS PARA REACT/VUE
+// DISPARA EVENTOS NATIVOS
 // =============================================
 function dispararEventosNativos(elemento) {
     if (!elemento) return;
@@ -103,7 +183,6 @@ function dispararEventosNativos(elemento) {
     elemento.dispatchEvent(new Event('change', { bubbles: true, cancelable: true }));
     elemento.dispatchEvent(new FocusEvent('blur', { bubbles: true }));
     elemento.dispatchEvent(new FocusEvent('focus', { bubbles: true }));
-    elemento.dispatchEvent(new CustomEvent('textchange', { bubbles: true }));
 
     const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set;
     const nativeTextAreaValueSetter = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value')?.set;
@@ -126,8 +205,6 @@ function atualizarElementoComEventos(elemento) {
         elemento.focus();
         elemento.dispatchEvent(new Event('input', { bubbles: true }));
         elemento.dispatchEvent(new Event('change', { bubbles: true }));
-        elemento.dispatchEvent(new InputEvent('beforeinput', { bubbles: true, inputType: 'insertText' }));
-        elemento.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'insertText' }));
         setTimeout(() => { elemento.blur(); elemento.focus(); }, 50);
     }
     if (elemento.tagName === 'INPUT' || elemento.tagName === 'TEXTAREA') {
@@ -149,8 +226,9 @@ function iniciar() {
 
     storageGetSeguro([
         'language', 'pickyMode', 'speed', 'darkMode', 'blacklist',
-        'apiUrl', 'strictMode', 'toggleShortcut', 'ignoreShortcut',
-        'corrigirTudoShortcut', 'autoHideBubble'
+        'apiUrl', 'apiKey', 'strictMode', 'toggleShortcut', 'ignoreShortcut',
+        'corrigirTudoShortcut', 'autoHideBubble', 'modoConfirmacao',
+        'modoLeituraGlobal', 'modoLeituraSites'
     ], (res) => {
         smConfig = { ...smConfig, ...res };
         if (smConfig.blacklist.some(d => window.location.hostname.includes(d))) {
@@ -175,9 +253,12 @@ function iniciar() {
                 smConfig.disabled = smConfig.blacklist.some(d => window.location.hostname.includes(d));
                 if (smConfig.disabled) resetarBadgeBackground();
             }
-            if (changes.autoHideBubble) {
-                smConfig.autoHideBubble = changes.autoHideBubble.newValue;
-            }
+            if (changes.autoHideBubble) smConfig.autoHideBubble = changes.autoHideBubble.newValue;
+            if (changes.modoConfirmacao) smConfig.modoConfirmacao = changes.modoConfirmacao.newValue;
+            if (changes.modoLeituraGlobal) smConfig.modoLeituraGlobal = changes.modoLeituraGlobal.newValue;
+            if (changes.modoLeituraSites) smConfig.modoLeituraSites = changes.modoLeituraSites.newValue || [];
+            if (changes.apiKey) smConfig.apiKey = changes.apiKey.newValue || '';
+            if (changes.apiUrl) smConfig.apiUrl = changes.apiUrl.newValue || '';
         });
     } catch (e) { }
 }
@@ -239,14 +320,79 @@ function corrigirTudo() {
         const s = err.replacements[0]?.value || "";
         if (o.trim() && s && !unicos[o]) unicos[o] = s;
     });
-    Object.entries(unicos).forEach(([o, s]) => aplicarCorrecao(o, s, elementoGlobal));
-    errosGlobais = [];
-    atualizarInterface();
-    mostrarFeedback('✓ Tudo corrigido!', 'success');
+
+    const correcoes = Object.entries(unicos);
+    if (correcoes.length === 0) return;
+
+    if (smConfig.modoConfirmacao || isModoLeitura()) {
+        // Mostra confirmação única para todas as correções
+        confirmarCorrecaoEmLote(correcoes);
+    } else {
+        correcoes.forEach(([o, s]) => aplicarCorrecao(o, s, elementoGlobal));
+        errosGlobais = [];
+        atualizarInterface();
+        mostrarFeedback('✓ Tudo corrigido!', 'success');
+    }
+}
+
+// 🆕 Confirmação em lote
+function confirmarCorrecaoEmLote(correcoes) {
+    const overlay = document.createElement('div');
+    overlay.className = 'sm-confirm-overlay';
+    overlay.style.cssText = `
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0,0,0,0.5); z-index: 2147483646;
+        display: flex; align-items: center; justify-content: center;
+        font-family: 'Segoe UI', system-ui, sans-serif;
+    `;
+
+    let listaCorrecoes = correcoes.map(([o, s]) => `
+        <div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #e5e7eb;">
+            <span style="color:#e53e3e;text-decoration:line-through;flex:1;">${o}</span>
+            <span>→</span>
+            <span style="color:#28a745;flex:1;">${s}</span>
+        </div>
+    `).join('');
+
+    const dialog = document.createElement('div');
+    dialog.style.cssText = `
+        background: white; border-radius: 12px; padding: 24px;
+        max-width: 500px; width: 90%; max-height: 70vh; overflow-y: auto;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    `;
+
+    if (smConfig.darkMode) {
+        dialog.style.background = '#1a1a1a';
+        dialog.style.color = '#e0e0e0';
+    }
+
+    dialog.innerHTML = `
+        <h3 style="margin:0 0 4px 0;">Confirmar Correções</h3>
+        <p style="margin:0 0 12px 0;font-size:12px;color:#888;">${correcoes.length} correção(ões) pendente(s)</p>
+        <div style="margin-bottom:16px;">${listaCorrecoes}</div>
+        <div style="display:flex;gap:8px;justify-content:flex-end;">
+            <button class="sm-btn-cancelar" style="background:#f3f4f6;border:1px solid #d1d5db;color:#374151;padding:8px 16px;border-radius:6px;cursor:pointer;font-weight:600;">Cancelar</button>
+            <button class="sm-btn-confirmar" style="background:linear-gradient(135deg,#6f42c1,#8b5cf6);border:none;color:white;padding:8px 16px;border-radius:6px;cursor:pointer;font-weight:600;">Aplicar Todas</button>
+        </div>
+    `;
+
+    overlay.appendChild(dialog);
+    document.body.appendChild(overlay);
+
+    dialog.querySelector('.sm-btn-confirmar').onclick = () => {
+        overlay.remove();
+        correcoes.forEach(([o, s]) => aplicarCorrecao(o, s, elementoGlobal));
+        errosGlobais = [];
+        atualizarInterface();
+        mostrarFeedback('✓ Tudo corrigido!', 'success');
+    };
+
+    dialog.querySelector('.sm-btn-cancelar').onclick = () => overlay.remove();
+    overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
 }
 
 // =============================================
-// 🆕 DETECÇÃO DE DIGITAÇÃO (COM AUTO-HIDE)
+// DETECÇÃO DE DIGITAÇÃO
 // =============================================
 document.addEventListener('input', (e) => {
     if (smConfig.disabled) return;
@@ -262,7 +408,6 @@ document.addEventListener('input', (e) => {
     if (!valido) return;
     if (el.tagName === 'INPUT' && smConfig.strictMode) return;
 
-    // 🆕 Auto-hide: usuário começou a digitar
     usuarioDigitando = true;
     atualizarVisibilidadeBolha();
 
@@ -270,7 +415,6 @@ document.addEventListener('input', (e) => {
     if (currentFetchController) currentFetchController.abort();
 
     timeoutDigitacao = setTimeout(() => {
-        // 🆕 Auto-hide: usuário parou de digitar
         usuarioDigitando = false;
         atualizarVisibilidadeBolha();
 
@@ -303,10 +447,15 @@ async function verificarTexto(texto, elemento) {
     const params = new URLSearchParams({ text: texto, language: smConfig.language });
     if (smConfig.pickyMode) params.set('level', 'picky');
 
+    const headers = { 'Content-Type': 'application/x-www-form-urlencoded' };
+    if (smConfig.apiKey && smConfig.apiKey.trim() !== '') {
+        headers['Authorization'] = `Bearer ${smConfig.apiKey.trim()}`;
+    }
+
     try {
         const resp = await fetch(url, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            headers: headers,
             body: params,
             signal: currentFetchController.signal
         });
@@ -374,41 +523,55 @@ function aplicarGrifos(erros, el) {
     if (el.innerHTML !== html) el.innerHTML = html;
 }
 
-function aplicarCorrecao(original, sugestao, el) {
+// =============================================
+// 🆕 APLICAÇÃO DE CORREÇÕES (COM CONFIRMAÇÃO)
+// =============================================
+function aplicarCorrecao(original, sugestao, el, pularConfirmacao = false) {
     if (!el || !original || !sugestao) return;
-    const esc = original.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
-    if (el.tagName === 'TEXTAREA' || el.tagName === 'INPUT') {
-        const valorAntigo = el.value;
-        el.value = el.value.replace(new RegExp(`(?<![\\p{L}])${esc}(?![\\p{L}])`, 'gu'), sugestao);
-        if (el.value !== valorAntigo) dispararEventosNativos(el);
-    } else if (el.isContentEditable) {
-        if (isSiteRestrito) {
-            el.focus();
-            try { document.execCommand('insertText', false, sugestao); } catch (e) {
-                const textoAtual = el.textContent || '';
-                const novoTexto = textoAtual.replace(new RegExp(esc, 'gi'), sugestao);
-                if (textoAtual !== novoTexto) el.textContent = novoTexto;
+    const executarCorrecao = () => {
+        const esc = original.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+        if (el.tagName === 'TEXTAREA' || el.tagName === 'INPUT') {
+            const valorAntigo = el.value;
+            el.value = el.value.replace(new RegExp(`(?<![\\p{L}])${esc}(?![\\p{L}])`, 'gu'), sugestao);
+            if (el.value !== valorAntigo) dispararEventosNativos(el);
+        } else if (el.isContentEditable) {
+            if (isSiteRestrito) {
+                el.focus();
+                try { document.execCommand('insertText', false, sugestao); } catch (e) {
+                    const textoAtual = el.textContent || '';
+                    const novoTexto = textoAtual.replace(new RegExp(esc, 'gi'), sugestao);
+                    if (textoAtual !== novoTexto) el.textContent = novoTexto;
+                }
+                atualizarElementoComEventos(el);
+            } else {
+                let html = el.innerHTML;
+                const htmlAntigo = html;
+                html = html.replace(new RegExp(`<mark class="sm-highlight">${esc}</mark>`, 'g'), sugestao);
+                if (html === htmlAntigo) {
+                    html = html.replace(new RegExp(`(?<!<[^>]*)(?<![\\p{L}])${esc}(?![\\p{L}])(?![^<]*>)`, 'gu'), sugestao);
+                }
+                if (html !== htmlAntigo) el.innerHTML = html;
+                atualizarElementoComEventos(el);
             }
-            atualizarElementoComEventos(el);
-        } else {
-            let html = el.innerHTML;
-            const htmlAntigo = html;
-            html = html.replace(new RegExp(`<mark class="sm-highlight">${esc}</mark>`, 'g'), sugestao);
-            if (html === htmlAntigo) {
-                html = html.replace(new RegExp(`(?<!<[^>]*)(?<![\\p{L}])${esc}(?![\\p{L}])(?![^<]*>)`, 'gu'), sugestao);
-            }
-            if (html !== htmlAntigo) el.innerHTML = html;
-            atualizarElementoComEventos(el);
         }
+
+        historicoCorrecoes.push({ el, original, sugestao });
+        if (historicoCorrecoes.length > 50) historicoCorrecoes.shift();
+
+        storageGetSeguro({ totalCorrigidas: 0 }, (res) => {
+            storageSetSeguro({ totalCorrigidas: (res.totalCorrigidas || 0) + 1 });
+        });
+    };
+
+    if (pularConfirmacao) {
+        executarCorrecao();
+    } else {
+        confirmarCorrecao(original, sugestao, (confirmado) => {
+            if (confirmado) executarCorrecao();
+        });
     }
-
-    historicoCorrecoes.push({ el, original, sugestao });
-    if (historicoCorrecoes.length > 50) historicoCorrecoes.shift();
-
-    storageGetSeguro({ totalCorrigidas: 0 }, (res) => {
-        storageSetSeguro({ totalCorrigidas: (res.totalCorrigidas || 0) + 1 });
-    });
 }
 
 function ignorarTemporariamente(palavra) {
@@ -435,7 +598,6 @@ function atualizarInterface() {
     let bubble = document.getElementById('syntax-mentor-bubble');
     const total = errosGlobais.filter(e => e.context.text.substr(e.context.offset, e.context.length).trim()).length;
 
-    // 🆕 Atualiza badge no ícone da extensão
     atualizarBadgeBackground(total);
 
     if (!bubble) {
@@ -463,18 +625,17 @@ function atualizarInterface() {
         bubble.style.bottom = 'auto';
     }
 
-    // 🆕 Aplica visibilidade (auto-hide)
     atualizarVisibilidadeBolha();
 
     if (total === 0) {
-        bubble.className = bubble.className.replace('sm-bubble-error', 'sm-bubble-success');
-        if (!bubble.className.includes('sm-bubble-success')) bubble.className += ' sm-bubble-success';
+        bubble.className = 'sm-bubble-success';
         bubble.innerHTML = '<span class="sm-bubble-icon">✓</span>';
         if (painelAberto) fecharPainelComSucesso();
     } else {
-        bubble.className = bubble.className.replace('sm-bubble-success', 'sm-bubble-error');
-        if (!bubble.className.includes('sm-bubble-error')) bubble.className += ' sm-bubble-error';
-        bubble.innerHTML = `<span class="sm-bubble-icon">✏️</span><span class="sm-bubble-badge">${total}</span>`;
+        bubble.className = 'sm-bubble-error';
+        // 🆕 Badge diferente para modo leitura
+        const icon = isModoLeitura() ? '👁️' : '✏️';
+        bubble.innerHTML = `<span class="sm-bubble-icon">${icon}</span><span class="sm-bubble-badge">${total}</span>`;
         if (painelAberto) exibirPainel();
     }
 }
@@ -503,7 +664,10 @@ function exibirPainel() {
         total++;
     });
 
-    let html = `<div id="syntax-mentor-header"><span>📝 Sugestões</span><button id="btn-fechar-painel">✕</button></div><div id="syntax-mentor-content"><div class="body-cards">`;
+    const modoLeitura = isModoLeitura();
+    const titulo = modoLeitura ? '👁️ Revisão (Modo Leitura)' : '📝 Sugestões';
+
+    let html = `<div id="syntax-mentor-header"><span>${titulo}</span><button id="btn-fechar-painel">✕</button></div><div id="syntax-mentor-content"><div class="body-cards">`;
 
     if (Object.keys(mapa).length === 0) {
         html += '<div style="text-align:center;padding:20px;color:#888;">✓ Nenhum erro</div>';
@@ -529,6 +693,7 @@ function exibirPainel() {
         <button id="btn-ignorar-tudo">Ignorar Tudo</button>
     </div>
     ${ignoradosTemporarios.length ? `<div style="text-align:center;font-size:10px;color:#9ca3af;">📋 ${ignoradosTemporarios.length} ignorada(s) na sessão</div>` : ''}
+    ${modoLeitura ? `<div style="text-align:center;font-size:10px;color:#f59e0b;">⚠️ Modo Leitura ativo - correções pedem confirmação</div>` : ''}
     <div style="text-align:center;font-size:10px;color:#9ca3af;">Alt+Shift+S = corrigir sem abrir</div></div>`;
 
     painel.innerHTML = html;

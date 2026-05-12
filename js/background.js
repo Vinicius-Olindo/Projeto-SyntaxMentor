@@ -1,4 +1,7 @@
-// SyntaxMentor - background.js v2.2.0 (Badge, Icon & Backup)
+// SyntaxMentor - background.js v2.3.0 (API Key + Modo Leitura)
+let ultimaRequisicao = null;
+let ultimoTimeout = null;
+
 let iconesPadrao = {
     "16": "icons/icon16.png",
     "32": "icons/icon32.png",
@@ -6,18 +9,11 @@ let iconesPadrao = {
     "128": "icons/icon128.png"
 };
 
-let iconesDesativado = {
-    "16": "icons/icon16-off.png",
-    "32": "icons/icon32-off.png",
-    "48": "icons/icon48-off.png",
-    "128": "icons/icon128-off.png"
-};
-
 // =============================================
 // INICIALIZAÇÃO
 // =============================================
 chrome.runtime.onInstalled.addListener(() => {
-    console.log("✅ SyntaxMentor Pro instalado!");
+    console.log("✅ SyntaxMentor Pro v2.3.0 instalado!");
     resetarBadgeETooltip();
     verificarIconeGlobal();
 });
@@ -28,7 +24,7 @@ chrome.runtime.onStartup.addListener(() => {
 });
 
 // =============================================
-// 🆕 MELHORIA 1: BADGE DE NOTIFICAÇÃO
+// BADGE DE NOTIFICAÇÃO
 // =============================================
 function atualizarBadge(totalErros, tabId) {
     if (!tabId) return;
@@ -47,29 +43,23 @@ function atualizarBadge(totalErros, tabId) {
             tabId: tabId
         });
     } else {
-        chrome.action.setBadgeText({
-            text: '',
-            tabId: tabId
-        });
-        chrome.action.setTitle({
-            title: 'SyntaxMentor: Nenhum erro',
-            tabId: tabId
-        });
+        chrome.action.setBadgeText({ text: '', tabId: tabId });
+        chrome.action.setTitle({ title: 'SyntaxMentor: Nenhum erro', tabId: tabId });
     }
 }
 
 function resetarBadgeETooltip(tabId) {
     if (tabId) {
         chrome.action.setBadgeText({ text: '', tabId: tabId });
-        chrome.action.setTitle({ title: 'SyntaxMentor', tabId: tabId });
+        chrome.action.setTitle({ title: 'SyntaxMentor Pro', tabId: tabId });
     } else {
         chrome.action.setBadgeText({ text: '' });
-        chrome.action.setTitle({ title: 'SyntaxMentor' });
+        chrome.action.setTitle({ title: 'SyntaxMentor Pro' });
     }
 }
 
 // =============================================
-// 🆕 MELHORIA 2: ÍCONE MODO DESATIVADO
+// ÍCONE MODO DESATIVADO
 // =============================================
 function verificarIconeGlobal() {
     chrome.storage.local.get(['disabled', 'blacklist'], (res) => {
@@ -77,15 +67,18 @@ function verificarIconeGlobal() {
         const desativado = res.disabled || false;
 
         if (desativado || blacklist.length > 0) {
-            // Verifica se a aba atual está na blacklist
             chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-                if (tabs[0]) {
-                    const host = new URL(tabs[0].url).hostname;
-                    const bloqueado = blacklist.some(d => host.includes(d));
+                if (tabs[0] && tabs[0].url) {
+                    try {
+                        const host = new URL(tabs[0].url).hostname;
+                        const bloqueado = blacklist.some(d => host.includes(d));
 
-                    if (bloqueado || desativado) {
-                        setIconeDesativado(tabs[0].id);
-                    } else {
+                        if (bloqueado || desativado) {
+                            setIconeDesativado(tabs[0].id);
+                        } else {
+                            setIconePadrao(tabs[0].id);
+                        }
+                    } catch (e) {
                         setIconePadrao(tabs[0].id);
                     }
                 }
@@ -105,21 +98,14 @@ function setIconePadrao(tabId) {
 }
 
 function setIconeDesativado(tabId) {
-    // Tenta usar ícones cinza, se não existirem, usa os padrões com opacidade
     if (tabId) {
         chrome.action.setIcon({ path: iconesPadrao, tabId: tabId });
-        // Fallback: se não tem ícones cinza, usa badge para indicar
         chrome.action.setBadgeText({ text: 'OFF', tabId: tabId });
         chrome.action.setBadgeBackgroundColor({ color: '#6b7280', tabId: tabId });
         chrome.action.setTitle({ title: 'SyntaxMentor: Desativado neste site', tabId: tabId });
-    } else {
-        chrome.action.setIcon({ path: iconesPadrao });
-        chrome.action.setBadgeText({ text: 'OFF' });
-        chrome.action.setBadgeBackgroundColor({ color: '#6b7280' });
     }
 }
 
-// Atualiza ícone quando muda de aba
 chrome.tabs.onActivated.addListener((activeInfo) => {
     verificarIconeParaTab(activeInfo.tabId);
 });
@@ -139,40 +125,51 @@ function verificarIconeParaTab(tabId) {
         }
 
         chrome.storage.local.get(['blacklist', 'disabled'], (res) => {
-            const blacklist = res.blacklist || [];
-            const desativado = res.disabled || false;
-            const host = new URL(tab.url).hostname;
-            const bloqueado = blacklist.some(d => host.includes(d));
+            try {
+                const blacklist = res.blacklist || [];
+                const desativado = res.disabled || false;
+                const host = new URL(tab.url).hostname;
+                const bloqueado = blacklist.some(d => host.includes(d));
 
-            if (bloqueado || desativado) {
-                setIconeDesativado(tabId);
-            } else {
+                if (bloqueado || desativado) {
+                    setIconeDesativado(tabId);
+                } else {
+                    setIconePadrao(tabId);
+                    resetarBadgeETooltip(tabId);
+                }
+            } catch (e) {
                 setIconePadrao(tabId);
-                resetarBadgeETooltip(tabId);
             }
         });
     });
 }
 
 // =============================================
-// 🆕 MELHORIA 3: BACKUP DE DADOS
+// EXPORTAR DADOS
 // =============================================
 function exportarDados() {
     return new Promise((resolve) => {
         chrome.storage.local.get({
             dicionario_pessoal: [],
             blacklist: [],
+            modoLeituraSites: [],
             language: 'pt-BR',
             pickyMode: true,
             speed: 500,
             darkMode: false,
             strictMode: false,
+            modoConfirmacao: false,
+            modoLeituraGlobal: false,
+            autoHideBubble: false,
             toggleShortcut: { altKey: true, ctrlKey: false, shiftKey: false, key: 's' },
             ignoreShortcut: { altKey: true, ctrlKey: false, shiftKey: false, key: 'i' },
             corrigirTudoShortcut: { altKey: true, ctrlKey: false, shiftKey: true, key: 's' }
         }, (res) => {
+            // NÃO exporta a API Key por segurança
+            delete res.apiKey;
+
             const backup = {
-                versao: '2.2.0',
+                versao: '2.3.0',
                 data: new Date().toISOString(),
                 dados: res
             };
@@ -194,19 +191,28 @@ function importarDados(dados) {
             const dadosParaRestaurar = {
                 dicionario_pessoal: backup.dados.dicionario_pessoal || [],
                 blacklist: backup.dados.blacklist || [],
+                modoLeituraSites: backup.dados.modoLeituraSites || [],
                 language: backup.dados.language || 'pt-BR',
                 pickyMode: backup.dados.pickyMode ?? true,
                 speed: backup.dados.speed || 500,
                 darkMode: backup.dados.darkMode || false,
-                strictMode: backup.dados.strictMode || false
+                strictMode: backup.dados.strictMode || false,
+                modoConfirmacao: backup.dados.modoConfirmacao || false,
+                modoLeituraGlobal: backup.dados.modoLeituraGlobal || false,
+                autoHideBubble: backup.dados.autoHideBubble || false
             };
 
-            chrome.storage.local.set(dadosParaRestaurar, () => {
-                if (chrome.runtime.lastError) {
-                    reject(new Error(chrome.runtime.lastError.message));
-                } else {
-                    resolve({ sucesso: true, total: Object.keys(dadosParaRestaurar).length });
-                }
+            // Preserva a API Key atual
+            chrome.storage.local.get(['apiKey'], (res) => {
+                if (res.apiKey) dadosParaRestaurar.apiKey = res.apiKey;
+
+                chrome.storage.local.set(dadosParaRestaurar, () => {
+                    if (chrome.runtime.lastError) {
+                        reject(new Error(chrome.runtime.lastError.message));
+                    } else {
+                        resolve({ sucesso: true, total: Object.keys(dadosParaRestaurar).length });
+                    }
+                });
             });
         } catch (e) {
             reject(new Error('Arquivo JSON inválido'));
@@ -215,25 +221,25 @@ function importarDados(dados) {
 }
 
 // =============================================
-// COMUNICAÇÃO COM CONTENT.JS E OPTIONS
+// COMUNICAÇÃO
 // =============================================
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
-    // 🆕 Atualizar badge
+    // Atualizar badge
     if (request.action === 'updateBadge') {
         atualizarBadge(request.totalErros, sender.tab?.id);
         sendResponse({ success: true });
         return false;
     }
 
-    // 🆕 Resetar badge
+    // Resetar badge
     if (request.action === 'resetBadge') {
         resetarBadgeETooltip(sender.tab?.id);
         sendResponse({ success: true });
         return false;
     }
 
-    // 🆕 Verificar blacklist
+    // Verificar blacklist
     if (request.action === 'checkBlacklist') {
         chrome.storage.local.get(['blacklist'], (res) => {
             const host = request.host;
@@ -244,7 +250,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         return true;
     }
 
-    // 🆕 Exportar dados
+    // Exportar dados
     if (request.action === 'exportData') {
         exportarDados().then(backup => {
             sendResponse({ success: true, data: backup });
@@ -252,7 +258,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         return true;
     }
 
-    // 🆕 Importar dados
+    // Importar dados
     if (request.action === 'importData') {
         importarDados(request.data).then(result => {
             sendResponse({ success: true, ...result });
@@ -262,7 +268,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         return true;
     }
 
-    // Verificação de gramática
+    // 🆕 Verificação de gramática (com suporte a API Key)
     if (request.action === 'checkGrammar') {
         const fetchUrl = request.apiUrl && request.apiUrl.trim() !== ''
             ? request.apiUrl
@@ -275,15 +281,22 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
         if (request.pickyMode) params['level'] = 'picky';
 
+        const headers = {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'Accept': 'application/json'
+        };
+
+        // 🆕 Adiciona API Key se existir
+        if (request.apiKey && request.apiKey.trim() !== '') {
+            headers['Authorization'] = `Bearer ${request.apiKey.trim()}`;
+        }
+
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 15000);
 
         fetch(fetchUrl, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-                'Accept': 'application/json'
-            },
+            headers: headers,
             body: new URLSearchParams(params),
             signal: controller.signal
         })
@@ -293,15 +306,11 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                 return response.json();
             })
             .then(data => {
-                try {
-                    sendResponse({ success: true, data: data });
-                } catch (e) { }
+                try { sendResponse({ success: true, data: data }); } catch (e) { }
             })
             .catch(err => {
                 clearTimeout(timeoutId);
-                try {
-                    sendResponse({ success: false, error: err.message });
-                } catch (e) { }
+                try { sendResponse({ success: false, error: err.message }); } catch (e) { }
             });
 
         return true;
@@ -315,7 +324,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 // =============================================
 chrome.storage.onChanged.addListener((changes, namespace) => {
     if (namespace !== 'local') return;
-
     if (changes.blacklist || changes.disabled) {
         verificarIconeGlobal();
     }
