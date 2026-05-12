@@ -1,32 +1,31 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
-<!-- SyntaxMentor - options-seguranca.html v2.3.0 -->
+<!-- SyntaxMentor - options-seguranca.html v2.4.0 -->
 <head>
     <meta charset="UTF-8">
-    <title>Segurança - SyntaxMentor Pro</title>
-    <link rel="stylesheet" href="css/style.css">
+    <title>Segurança - SyntaxMentor Elite</title>
+    <link rel="stylesheet" href="css/style-seguranca.css">
 </head>
 <body>
 
-    <!-- BARRA LATERAL -->
     <div class="sidebar">
-        <h2 class="logo">✨ SyntaxMentor <span style="font-size: 10px; color: #aaa;">v2.3.0 Pro</span></h2>
+        <h2 class="logo">✨ SyntaxMentor <span style="font-size: 10px; color: #aaa;">v2.4.0 Elite</span></h2>
         <ul class="menu">
             <li><a href="options.html">Geral</a></li>
             <li class="active"><a href="options-seguranca.html">Segurança</a></li>
+            <li><a href="options-dashboard.html">Dashboard</a></li>
         </ul>
     </div>
 
-    <!-- CONTEÚDO PRINCIPAL -->
     <div class="main-content">
         <div class="header-titles">
             <h1>Segurança &amp; Privacidade</h1>
-            <p>Configure a API, modo de correção e permissões.</p>
+            <p>Configure a API, modo de correção, whitelist e permissões.</p>
         </div>
 
         <div class="grid-container" style="grid-template-columns: 1fr 1fr;">
             
-            <!-- 🆕 API KEY -->
+            <!-- API KEY -->
             <div class="config-card full-width-seguranca">
                 <h3>🔑 Chave de API Personalizada</h3>
                 <p class="desc">Use sua própria chave da API LanguageTool Cloud ou um servidor self-hosted.</p>
@@ -41,39 +40,23 @@
                         <label style="font-weight: 600; font-size: 13px; display: block; margin-bottom: 4px;">API Key</label>
                         <div style="display: flex; gap: 10px;">
                             <input type="password" id="api-key" class="full-input" placeholder="Cole sua API Key aqui" style="flex: 1;">
-                            <button id="btn-toggle-visibilidade" class="btn-seguranca-outline" title="Mostrar/ocultar chave" style="white-space: nowrap;">👁️ Mostrar</button>
+                            <button id="btn-toggle-visibilidade" class="btn-seguranca-outline" style="white-space: nowrap;">👁️ Mostrar</button>
                         </div>
-                        <p style="font-size: 10px; color: #9ca3af; margin-top: 4px;">
-                            Sua chave é armazenada localmente e nunca é compartilhada.
-                        </p>
                     </div>
                     
                     <div style="display: flex; gap: 10px; align-items: center;">
-                        <button id="btn-testar-api" class="btn-backup-export" style="flex: 1;">
-                            🔍 Testar Conexão
-                        </button>
+                        <button id="btn-testar-api" class="btn-backup-export" style="flex: 1;">🔍 Testar Conexão</button>
                         <span id="status-api" style="font-size: 12px; font-weight: 600;"></span>
                     </div>
                     
-                    <div id="detalhes-api" style="display: none; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 12px; margin-top: 8px;">
-                        <p style="font-size: 12px; color: #166534; margin: 0;">
-                            ✅ <strong>Conexão bem-sucedida!</strong>
-                        </p>
+                    <div id="detalhes-api" style="display: none; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 12px;">
+                        <p style="font-size: 12px; color: #166534; margin: 0;">✅ <strong>Conexão bem-sucedida!</strong></p>
                         <p id="api-info" style="font-size: 11px; color: #166534; margin: 4px 0 0 0;"></p>
-                    </div>
-                    
-                    <div style="margin-top: 5px;">
-                        <p style="font-size: 11px; color: #6b7280;">
-                            💡 <strong>Como obter uma API Key:</strong><br>
-                            1. Acesse <a href="https://languagetool.org/cloud" target="_blank" style="color: #6f42c1;">languagetool.org/cloud</a><br>
-                            2. Crie uma conta gratuita (até 1000 requisições/mês)<br>
-                            3. Copie sua API Key do painel
-                        </p>
                     </div>
                 </div>
             </div>
 
-            <!-- 🆕 MODO DE CORREÇÃO -->
+            <!-- MODO DE CORREÇÃO -->
             <div class="config-card full-width-seguranca">
                 <h3>🔐 Modo de Correção</h3>
                 <p class="desc">Controle como as correções são aplicadas ao texto.</p>
@@ -98,7 +81,7 @@
                 
                 <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 15px 0;">
                 
-                <div style="margin-top: 10px;">
+                <div>
                     <label style="font-weight: 600; font-size: 13px; display: block; margin-bottom: 8px;">Sites em Modo Leitura</label>
                     <p class="desc" style="margin-bottom: 10px;">Nestes sites, a extensão apenas mostra os erros mas não corrige automaticamente.</p>
                     <div class="input-group">
@@ -107,6 +90,49 @@
                     </div>
                     <ul id="modo-leitura-list" class="blacklist-ul"></ul>
                 </div>
+            </div>
+
+            <!-- 🆕 MODO WHITELIST -->
+            <div class="config-card full-width-seguranca">
+                <h3>✅ Modo Whitelist (Apenas Nesses Sites)</h3>
+                <p class="desc">Inverta a lógica: a extensão fica desligada em todos os sites, exceto nos listados abaixo.</p>
+                
+                <div class="config-item">
+                    <div class="info-text">
+                        <label>Ativar Modo Whitelist</label>
+                        <p class="desc">Substitui a blacklist. Máximo de privacidade.</p>
+                    </div>
+                    <label class="switch"><input type="checkbox" id="modoWhitelist"><span class="slider"></span></label>
+                </div>
+                
+                <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 15px 0;">
+                
+                <div>
+                    <label style="font-weight: 600; font-size: 13px; display: block; margin-bottom: 8px;">Sites Permitidos</label>
+                    <div class="input-group">
+                        <input type="text" id="whitelist-input" placeholder="Adicionar domínio (ex: gmail.com)">
+                        <button id="btn-add-whitelist" class="btn-dark">Permitir</button>
+                    </div>
+                    <ul id="whitelist-list" class="blacklist-ul"></ul>
+                </div>
+            </div>
+
+            <!-- 🆕 CLOUD SYNC -->
+            <div class="config-card full-width-seguranca">
+                <h3>☁️ Sincronização em Nuvem</h3>
+                <p class="desc">Seus dados (dicionário, blacklist, configurações) sincronizam entre dispositivos via sua conta Google.</p>
+                
+                <div class="config-item">
+                    <div class="info-text">
+                        <label>Cloud Sync</label>
+                        <p class="desc">Ative para sincronizar entre Chrome do trabalho e de casa.</p>
+                    </div>
+                    <label class="switch"><input type="checkbox" id="cloudSync"><span class="slider"></span></label>
+                </div>
+                
+                <p style="font-size: 10px; color: #9ca3af; margin-top: 8px;">
+                    ⚠️ A API Key NÃO é sincronizada por segurança. Configure-a em cada dispositivo.
+                </p>
             </div>
         </div>
 
@@ -129,7 +155,6 @@
             </div>
         </div>
 
-        <!-- RODAPÉ -->
         <div class="footer-save">
             <span id="save-status">✓ Salvo com sucesso!</span>
             <button id="btn-salvar" class="btn-primary">Salvar Alterações</button>

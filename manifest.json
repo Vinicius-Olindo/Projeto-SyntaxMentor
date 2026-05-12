@@ -1,9 +1,9 @@
 {
     "manifest_version": 3,
     "name": "SyntaxMentor",
-    "version": "2.3.0",
-    "version_name": "2.3.0 Pro",
-    "description": "Mentor ortográfico com API Key, Modo Leitura e Backup.",
+    "version": "2.4.0",
+    "version_name": "2.4.0 Elite",
+    "description": "Mentor ortográfico com Cloud Sync, Estatísticas e Auto-Detecção de Idioma.",
     "icons": {
         "16": "icons/icon16.png",
         "32": "icons/icon32.png",
@@ -13,7 +13,8 @@
     "permissions": [
         "storage",
         "activeTab",
-        "scripting"
+        "scripting",
+        "contextMenus"
     ],
     "host_permissions": [
         "https://api.languagetool.org/*"

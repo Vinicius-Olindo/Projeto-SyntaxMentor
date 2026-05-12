@@ -1,0 +1,407 @@
+/* =========================================================
+   SyntaxMentor - style-dashboard.css v2.4.0
+   CSS EXCLUSIVO da página Dashboard
+   ========================================================= */
+
+/* ============================================
+   RESET E BASE (compartilhado)
+   ============================================ */
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f8f9fc;
+    margin: 0;
+    display: flex;
+    color: #333;
+    transition: background-color 0.3s, color 0.3s;
+}
+
+/* ============================================
+   SIDEBAR
+   ============================================ */
+.sidebar {
+    width: 260px;
+    background: #fff;
+    height: 100vh;
+    padding: 20px 0;
+    border-right: 1px solid #e5e7eb;
+    position: fixed;
+    transition: background-color 0.3s, border-color 0.3s;
+}
+
+.logo {
+    color: #6f42c1;
+    padding-left: 20px;
+    font-size: 18px;
+    margin-bottom: 30px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.menu {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.menu li {
+    padding: 0;
+    color: #666;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    transition: 0.3s;
+}
+
+.menu li a {
+    color: inherit;
+    text-decoration: none;
+    display: block;
+    padding: 15px 20px;
+}
+
+.menu li.active {
+    background: #f3e8ff;
+    color: #6f42c1;
+    font-weight: bold;
+    border-left: 4px solid #6f42c1;
+}
+
+/* ============================================
+   MAIN CONTENT
+   ============================================ */
+.main-content {
+    margin-left: 260px;
+    padding: 40px;
+    flex: 1;
+    max-width: 1100px;
+}
+
+.header-titles {
+    margin-bottom: 30px;
+}
+
+.header-titles h1 {
+    font-size: 24px;
+    margin: 0 0 5px 0;
+    transition: color 0.3s;
+}
+
+.header-titles p {
+    color: #666;
+    font-size: 14px;
+    margin: 0;
+    transition: color 0.3s;
+}
+
+/* ============================================
+   🆕 HERO DO DASHBOARD
+   ============================================ */
+.dashboard-hero {
+    text-align: center;
+    padding: 40px 30px;
+    background: linear-gradient(135deg, #6f42c1 0%, #8b5cf6 100%);
+    border-radius: 16px;
+    color: white;
+    margin-bottom: 25px;
+    box-shadow: 0 8px 25px rgba(111, 66, 193, 0.3);
+}
+
+.dashboard-hero .big-number {
+    font-size: 64px;
+    font-weight: 800;
+    line-height: 1;
+    letter-spacing: -2px;
+}
+
+.dashboard-hero .label {
+    font-size: 15px;
+    opacity: 0.9;
+    margin-top: 6px;
+    font-weight: 500;
+}
+
+.dashboard-hero .nivel {
+    font-size: 13px;
+    opacity: 0.9;
+    margin-top: 10px;
+    background: rgba(255, 255, 255, 0.2);
+    display: inline-block;
+    padding: 5px 18px;
+    border-radius: 20px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+
+/* ============================================
+   🆕 GRID DE ESTATÍSTICAS
+   ============================================ */
+.stat-grid-dash {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-bottom: 25px;
+}
+
+.stat-card-dash {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    text-align: center;
+    border: 1px solid #e5e7eb;
+    transition: transform 0.2s, box-shadow 0.2s;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.03);
+}
+
+.stat-card-dash:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+}
+
+.stat-card-dash .icon-dash {
+    font-size: 28px;
+    margin-bottom: 6px;
+}
+
+.stat-card-dash .value-dash {
+    font-size: 26px;
+    font-weight: 700;
+    color: #6f42c1;
+    line-height: 1.2;
+}
+
+.stat-card-dash .label-dash {
+    font-size: 11px;
+    color: #6b7280;
+    margin-top: 4px;
+    font-weight: 500;
+}
+
+/* ============================================
+   🆕 CARDS DE CONFIGURAÇÃO (reutilizados)
+   ============================================ */
+.config-card {
+    background: #fff;
+    padding: 24px;
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    border: 1px solid #f0f0f0;
+    margin-bottom: 20px;
+    transition: background-color 0.3s, border-color 0.3s;
+}
+
+.config-card h3 {
+    margin-top: 0;
+    font-size: 16px;
+    margin-bottom: 16px;
+    color: #111;
+    transition: color 0.3s;
+    border-bottom: 1px solid #f0f0f0;
+    padding-bottom: 10px;
+}
+
+/* ============================================
+   🆕 ERROS MAIS COMUNS (BARRAS)
+   ============================================ */
+.erros-comuns-dash {}
+
+.barra-container-dash {
+    margin-bottom: 12px;
+}
+
+.barra-label-dash {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    margin-bottom: 4px;
+    font-weight: 500;
+}
+
+.barra-label-dash span:first-child {
+    color: #e53e3e;
+    text-decoration: line-through;
+}
+
+.barra-label-dash span:last-child {
+    color: #6b7280;
+    font-weight: 600;
+}
+
+.barra-dash {
+    height: 26px;
+    background: #f3f4f6;
+    border-radius: 13px;
+    overflow: hidden;
+}
+
+.barra-preenchida-dash {
+    height: 100%;
+    background: linear-gradient(90deg, #6f42c1, #8b5cf6);
+    border-radius: 13px;
+    transition: width 0.6s ease;
+    display: flex;
+    align-items: center;
+    padding-left: 12px;
+    color: white;
+    font-size: 11px;
+    font-weight: 600;
+    min-width: 35px;
+}
+
+/* ============================================
+   🆕 CONQUISTAS GRID
+   ============================================ */
+.conquistas-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+}
+
+.conquista-card {
+    background: #f3f4f6;
+    border-radius: 12px;
+    padding: 16px;
+    text-align: center;
+    transition: all 0.3s ease;
+    border: 2px solid transparent;
+}
+
+.conquista-card .conquista-icon {
+    font-size: 28px;
+    margin-bottom: 6px;
+}
+
+.conquista-card .conquista-nome {
+    font-size: 12px;
+    font-weight: 600;
+    color: #6b7280;
+}
+
+.conquista-card.lock {
+    opacity: 0.5;
+    filter: grayscale(80%);
+}
+
+.conquista-card.unlock {
+    background: #fef3c7;
+    border-color: #f59e0b;
+    opacity: 1;
+    filter: none;
+    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.2);
+}
+
+.conquista-card.unlock .conquista-icon {
+    animation: bounce 0.5s ease;
+}
+
+.conquista-card.unlock .conquista-nome {
+    color: #92400e;
+}
+
+@keyframes bounce {
+
+    0%,
+    100% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.3);
+    }
+}
+
+/* ============================================
+   RODAPÉ
+   ============================================ */
+.footer-dash {
+    margin-top: 30px;
+    padding: 20px;
+    text-align: center;
+    border-top: 1px solid #e5e7eb;
+    transition: border-color 0.3s;
+}
+
+/* ============================================
+   🌙 DARK MODE
+   ============================================ */
+body.dark-mode {
+    background-color: #121212;
+    color: #e0e0e0;
+}
+
+body.dark-mode .sidebar {
+    background-color: #1a1a1a;
+    border-right-color: #2a2a2a;
+}
+
+body.dark-mode .menu li {
+    color: #888;
+}
+
+body.dark-mode .menu li.active {
+    background-color: #2d1b4e;
+    color: #d8b4fe;
+    border-left-color: #d8b4fe;
+}
+
+body.dark-mode .header-titles h1 {
+    color: #f1f1f1;
+}
+
+body.dark-mode .header-titles p {
+    color: #888;
+}
+
+body.dark-mode .config-card {
+    background-color: #1a1a1a;
+    border-color: #2a2a2a;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.4);
+}
+
+body.dark-mode .config-card h3 {
+    color: #f1f1f1;
+    border-bottom-color: #2a2a2a;
+}
+
+body.dark-mode .stat-card-dash {
+    background-color: #1a1a1a;
+    border-color: #2a2a2a;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.4);
+}
+
+body.dark-mode .stat-card-dash .value-dash {
+    color: #d8b4fe;
+}
+
+body.dark-mode .stat-card-dash .label-dash {
+    color: #888;
+}
+
+body.dark-mode .barra-dash {
+    background: #333;
+}
+
+body.dark-mode .conquista-card {
+    background: #2a2a2a;
+}
+
+body.dark-mode .conquista-card .conquista-nome {
+    color: #888;
+}
+
+body.dark-mode .conquista-card.unlock {
+    background: #3b2e1a;
+    border-color: #f59e0b;
+}
+
+body.dark-mode .conquista-card.unlock .conquista-nome {
+    color: #fbbf24;
+}
+
+body.dark-mode .footer-dash {
+    border-top-color: #2a2a2a;
+}
+
+body.dark-mode .footer-dash p {
+    color: #888;
+}

@@ -1,4 +1,4 @@
-// SyntaxMentor - v2.3.0 (API Key + Modo Leitura + Confirmação)
+// SyntaxMentor - v2.4.0 (Cloud Sync + Auto-Detect + Context Menu)
 let timeoutDigitacao = null;
 let errosGlobais = [];
 let elementoGlobal = null;
@@ -20,6 +20,7 @@ const isSiteRestrito = sitesSemGrifos.some(d => window.location.hostname.include
 
 let ignoradosTemporarios = [];
 let historicoCorrecoes = [];
+let idiomaSugerido = false;
 
 let smConfig = {
     language: 'pt-BR', pickyMode: true, speed: 500, darkMode: false, blacklist: [],
@@ -27,18 +28,139 @@ let smConfig = {
     toggleShortcut: { altKey: true, ctrlKey: false, shiftKey: false, key: 's' },
     ignoreShortcut: { altKey: true, ctrlKey: false, shiftKey: false, key: 'i' },
     corrigirTudoShortcut: { altKey: true, ctrlKey: false, shiftKey: true, key: 's' },
-    autoHideBubble: false,
-    modoConfirmacao: false,
-    modoLeituraGlobal: false,
-    modoLeituraSites: []
+    autoHideBubble: false, modoConfirmacao: false, modoLeituraGlobal: false,
+    modoLeituraSites: [], modoWhitelist: false, whitelist: [],
+    erroMaisComum: {}
 };
 
-// 🆕 Verifica se o site atual está em modo leitura
-function isModoLeitura() {
-    if (smConfig.modoLeituraGlobal) return true;
-    const host = window.location.hostname;
-    return (smConfig.modoLeituraSites || []).some(d => host.includes(d));
+let erroMaisComumTemp = {};
+
+// =============================================
+// 🆕 MELHORIA 8: AUTO-DETECÇÃO DE IDIOMA
+// =============================================
+async function verificarIdioma(texto) {
+    if (idiomaSugerido || texto.length < 30) return;
+
+    try {
+        const response = await new Promise((resolve) => {
+            chrome.runtime.sendMessage({
+                action: 'detectLanguage',
+                text: texto.substring(0, 500)
+            }, resolve);
+        });
+
+        if (response?.success && response.language) {
+            const idiomaDetectado = response.language;
+            const idiomaAtual = smConfig.language;
+
+            if (idiomaDetectado !== idiomaAtual) {
+                const nomesIdiomas = {
+                    'pt-BR': 'Português', 'en-US': 'Inglês',
+                    'es': 'Espanhol', 'fr': 'Francês',
+                    'de': 'Alemão', 'it': 'Italiano'
+                };
+
+                const nomeDetectado = nomesIdiomas[idiomaDetectado] || idiomaDetectado;
+                const nomeAtual = nomesIdiomas[idiomaAtual] || idiomaAtual;
+
+                mostrarSugestaoIdioma(
+                    `Parece que está escrevendo em ${nomeDetectado}.`,
+                    `Mudar de ${nomeAtual} para ${nomeDetectado}?`,
+                    idiomaDetectado
+                );
+
+                idiomaSugerido = true;
+            }
+        }
+    } catch (e) { }
 }
+
+function mostrarSugestaoIdioma(titulo, mensagem, novoIdioma) {
+    const overlay = document.createElement('div');
+    overlay.className = 'sm-confirm-overlay';
+    overlay.style.cssText = `
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0,0,0,0.5); z-index: 2147483646;
+        display: flex; align-items: center; justify-content: center;
+        font-family: 'Segoe UI', system-ui, sans-serif;
+    `;
+
+    const dialog = document.createElement('div');
+    dialog.style.cssText = `
+        background: white; border-radius: 12px; padding: 24px;
+        max-width: 420px; width: 90%; box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        animation: sm-slideUp 0.2s ease;
+    `;
+
+    if (smConfig.darkMode) {
+        dialog.style.background = '#1a1a1a';
+        dialog.style.color = '#e0e0e0';
+    }
+
+    dialog.innerHTML = `
+        <h3 style="margin:0 0 8px 0; font-size:16px;">🌐 ${titulo}</h3>
+        <p style="margin:0 0 16px 0; font-size:14px;">${mensagem}</p>
+        <div style="display:flex; gap:8px; justify-content:flex-end;">
+            <button class="sm-btn-cancelar" style="
+                background:#f3f4f6; border:1px solid #d1d5db; color:#374151;
+                padding:8px 16px; border-radius:6px; cursor:pointer; font-weight:600;
+            ">Manter</button>
+            <button class="sm-btn-confirmar" style="
+                background:linear-gradient(135deg,#6f42c1,#8b5cf6); border:none; color:white;
+                padding:8px 16px; border-radius:6px; cursor:pointer; font-weight:600;
+            ">Mudar Idioma</button>
+        </div>
+    `;
+
+    overlay.appendChild(dialog);
+    document.body.appendChild(overlay);
+
+    dialog.querySelector('.sm-btn-confirmar').onclick = () => {
+        overlay.remove();
+        smConfig.language = novoIdioma;
+        if (isExtensaoAtiva()) {
+            chrome.storage.local.set({ language: novoIdioma });
+        }
+        // Reanalisa o texto com o novo idioma
+        if (elementoGlobal && textoUltimaVerificacao) {
+            verificarTexto(textoUltimaVerificacao, elementoGlobal);
+        }
+        mostrarFeedback(`✓ Idioma alterado para ${novoIdioma}`, 'success');
+    };
+
+    dialog.querySelector('.sm-btn-cancelar').onclick = () => overlay.remove();
+    overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
+
+    setTimeout(() => { if (overlay.parentNode) overlay.remove(); }, 15000);
+}
+
+// =============================================
+// 🆕 CONTEXT MENU HANDLER
+// =============================================
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+    if (request.action === 'revisarSelecao' && request.texto) {
+        // Cria um elemento temporário para revisar
+        const div = document.createElement('div');
+        div.contentEditable = 'true';
+        div.style.cssText = 'position:fixed;left:-9999px;top:-9999px;';
+        div.textContent = request.texto;
+        document.body.appendChild(div);
+
+        textoUltimaVerificacao = request.texto;
+        elementoGlobal = div;
+
+        verificarTexto(request.texto, div);
+
+        setTimeout(() => {
+            if (errosGlobais.length > 0) exibirPainel();
+            document.body.removeChild(div);
+        }, 1500);
+    }
+
+    if (request.action === 'ignorarTemporariamente' && request.palavra) {
+        ignorarTemporariamente(request.palavra);
+    }
+});
 
 // =============================================
 // UTILITÁRIOS
@@ -73,15 +195,18 @@ function mostrarFeedback(msg, tipo) {
     setTimeout(() => f.remove(), 2200);
 }
 
-// 🆕 Confirmação antes de corrigir
+function isModoLeitura() {
+    if (smConfig.modoLeituraGlobal) return true;
+    const host = window.location.hostname;
+    return (smConfig.modoLeituraSites || []).some(d => host.includes(d));
+}
+
 function confirmarCorrecao(original, sugestao, callback) {
     if (!smConfig.modoConfirmacao && !isModoLeitura()) {
-        // Modo normal - aplica direto
         callback(true);
         return;
     }
 
-    // Modo confirmação - mostra popup
     const overlay = document.createElement('div');
     overlay.className = 'sm-confirm-overlay';
     overlay.style.cssText = `
@@ -110,24 +235,28 @@ function confirmarCorrecao(original, sugestao, callback) {
             para <strong style="color:#28a745;">${sugestao}</strong>?
         </p>
         <div style="display:flex; gap:8px; justify-content:flex-end;">
-            <button class="sm-btn-cancelar" style="
-                background:#f3f4f6; border:1px solid #d1d5db; color:#374151;
-                padding:8px 16px; border-radius:6px; cursor:pointer; font-weight:600;
-            ">Não</button>
-            <button class="sm-btn-confirmar" style="
-                background:linear-gradient(135deg,#6f42c1,#8b5cf6); border:none; color:white;
-                padding:8px 16px; border-radius:6px; cursor:pointer; font-weight:600;
-            ">Sim, corrigir</button>
+            <button class="sm-btn-cancelar">Não</button>
+            <button class="sm-btn-confirmar">Sim, corrigir</button>
         </div>
     `;
 
     overlay.appendChild(dialog);
     document.body.appendChild(overlay);
 
+    const estiloBtn = (el, tipo) => {
+        if (tipo === 'cancelar') {
+            el.style.cssText = 'background:#f3f4f6;border:1px solid #d1d5db;color:#374151;padding:8px 16px;border-radius:6px;cursor:pointer;font-weight:600;';
+        } else {
+            el.style.cssText = 'background:linear-gradient(135deg,#6f42c1,#8b5cf6);border:none;color:white;padding:8px 16px;border-radius:6px;cursor:pointer;font-weight:600;';
+        }
+    };
+
+    estiloBtn(dialog.querySelector('.sm-btn-cancelar'), 'cancelar');
+    estiloBtn(dialog.querySelector('.sm-btn-confirmar'), 'confirmar');
+
     dialog.querySelector('.sm-btn-confirmar').onclick = () => {
         overlay.remove();
         callback(true);
-        // Incrementa aceitas
         storageGetSeguro({ totalAceitas: 0 }, (res) => {
             storageSetSeguro({ totalAceitas: (res.totalAceitas || 0) + 1 });
         });
@@ -136,18 +265,12 @@ function confirmarCorrecao(original, sugestao, callback) {
     dialog.querySelector('.sm-btn-cancelar').onclick = () => {
         overlay.remove();
         callback(false);
-        // Incrementa recusadas
         storageGetSeguro({ totalRecusadas: 0 }, (res) => {
             storageSetSeguro({ totalRecusadas: (res.totalRecusadas || 0) + 1 });
         });
     };
 
-    overlay.onclick = (e) => {
-        if (e.target === overlay) {
-            overlay.remove();
-            callback(false);
-        }
-    };
+    overlay.onclick = (e) => { if (e.target === overlay) { overlay.remove(); callback(false); } };
 }
 
 function atualizarBadgeBackground(total) {
@@ -195,8 +318,6 @@ function dispararEventosNativos(elemento) {
 
     elemento.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'Process' }));
     elemento.dispatchEvent(new KeyboardEvent('keyup', { bubbles: true, key: 'Process' }));
-    elemento.dispatchEvent(new CompositionEvent('compositionstart', { bubbles: true }));
-    elemento.dispatchEvent(new CompositionEvent('compositionend', { bubbles: true, data: elemento.value || elemento.textContent || '' }));
 }
 
 function atualizarElementoComEventos(elemento) {
@@ -228,16 +349,23 @@ function iniciar() {
         'language', 'pickyMode', 'speed', 'darkMode', 'blacklist',
         'apiUrl', 'apiKey', 'strictMode', 'toggleShortcut', 'ignoreShortcut',
         'corrigirTudoShortcut', 'autoHideBubble', 'modoConfirmacao',
-        'modoLeituraGlobal', 'modoLeituraSites'
+        'modoLeituraGlobal', 'modoLeituraSites', 'modoWhitelist', 'whitelist',
+        'erroMaisComum'
     ], (res) => {
         smConfig = { ...smConfig, ...res };
-        if (smConfig.blacklist.some(d => window.location.hostname.includes(d))) {
-            smConfig.disabled = true;
-            resetarBadgeBackground();
+
+        const host = window.location.hostname;
+        if (smConfig.modoWhitelist) {
+            const whitelist = smConfig.whitelist || [];
+            smConfig.disabled = !whitelist.some(d => host.includes(d));
+        } else {
+            smConfig.disabled = (smConfig.blacklist || []).some(d => host.includes(d));
         }
-        if (smConfig.darkMode) {
-            document.body.classList.add('sm-dark-root');
-        }
+
+        if (smConfig.disabled) resetarBadgeBackground();
+        if (smConfig.darkMode) document.body.classList.add('sm-dark-root');
+
+        erroMaisComumTemp = smConfig.erroMaisComum || {};
     });
 
     try {
@@ -248,9 +376,17 @@ function iniciar() {
                 else document.body.classList.remove('sm-dark-root');
                 atualizarInterface();
             }
-            if (changes.blacklist) {
-                smConfig.blacklist = changes.blacklist.newValue || [];
-                smConfig.disabled = smConfig.blacklist.some(d => window.location.hostname.includes(d));
+            if (changes.blacklist || changes.modoWhitelist || changes.whitelist) {
+                smConfig.blacklist = changes.blacklist?.newValue || smConfig.blacklist;
+                smConfig.modoWhitelist = changes.modoWhitelist?.newValue ?? smConfig.modoWhitelist;
+                smConfig.whitelist = changes.whitelist?.newValue || smConfig.whitelist;
+
+                const host = window.location.hostname;
+                if (smConfig.modoWhitelist) {
+                    smConfig.disabled = !(smConfig.whitelist || []).some(d => host.includes(d));
+                } else {
+                    smConfig.disabled = (smConfig.blacklist || []).some(d => host.includes(d));
+                }
                 if (smConfig.disabled) resetarBadgeBackground();
             }
             if (changes.autoHideBubble) smConfig.autoHideBubble = changes.autoHideBubble.newValue;
@@ -259,6 +395,7 @@ function iniciar() {
             if (changes.modoLeituraSites) smConfig.modoLeituraSites = changes.modoLeituraSites.newValue || [];
             if (changes.apiKey) smConfig.apiKey = changes.apiKey.newValue || '';
             if (changes.apiUrl) smConfig.apiUrl = changes.apiUrl.newValue || '';
+            if (changes.language) smConfig.language = changes.language.newValue;
         });
     } catch (e) { }
 }
@@ -288,9 +425,7 @@ document.addEventListener('keydown', (e) => {
         if (errosGlobais.length > 0 && elementoGlobal) corrigirTudo();
     }
 
-    if (e.key === 'Escape' && painelAberto) {
-        fecharPainel();
-    }
+    if (e.key === 'Escape' && painelAberto) fecharPainel();
 
     if (painelAberto && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
         e.preventDefault();
@@ -325,7 +460,6 @@ function corrigirTudo() {
     if (correcoes.length === 0) return;
 
     if (smConfig.modoConfirmacao || isModoLeitura()) {
-        // Mostra confirmação única para todas as correções
         confirmarCorrecaoEmLote(correcoes);
     } else {
         correcoes.forEach(([o, s]) => aplicarCorrecao(o, s, elementoGlobal));
@@ -335,7 +469,6 @@ function corrigirTudo() {
     }
 }
 
-// 🆕 Confirmação em lote
 function confirmarCorrecaoEmLote(correcoes) {
     const overlay = document.createElement('div');
     overlay.className = 'sm-confirm-overlay';
@@ -343,16 +476,15 @@ function confirmarCorrecaoEmLote(correcoes) {
         position: fixed; top: 0; left: 0; width: 100%; height: 100%;
         background: rgba(0,0,0,0.5); z-index: 2147483646;
         display: flex; align-items: center; justify-content: center;
-        font-family: 'Segoe UI', system-ui, sans-serif;
     `;
 
-    let listaCorrecoes = correcoes.map(([o, s]) => `
-        <div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #e5e7eb;">
+    let lista = correcoes.map(([o, s]) =>
+        `<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #e5e7eb;">
             <span style="color:#e53e3e;text-decoration:line-through;flex:1;">${o}</span>
             <span>→</span>
             <span style="color:#28a745;flex:1;">${s}</span>
-        </div>
-    `).join('');
+        </div>`
+    ).join('');
 
     const dialog = document.createElement('div');
     dialog.style.cssText = `
@@ -360,16 +492,12 @@ function confirmarCorrecaoEmLote(correcoes) {
         max-width: 500px; width: 90%; max-height: 70vh; overflow-y: auto;
         box-shadow: 0 20px 60px rgba(0,0,0,0.3);
     `;
-
-    if (smConfig.darkMode) {
-        dialog.style.background = '#1a1a1a';
-        dialog.style.color = '#e0e0e0';
-    }
+    if (smConfig.darkMode) { dialog.style.background = '#1a1a1a'; dialog.style.color = '#e0e0e0'; }
 
     dialog.innerHTML = `
         <h3 style="margin:0 0 4px 0;">Confirmar Correções</h3>
-        <p style="margin:0 0 12px 0;font-size:12px;color:#888;">${correcoes.length} correção(ões) pendente(s)</p>
-        <div style="margin-bottom:16px;">${listaCorrecoes}</div>
+        <p style="margin:0 0 12px 0;font-size:12px;color:#888;">${correcoes.length} correção(ões)</p>
+        <div style="margin-bottom:16px;">${lista}</div>
         <div style="display:flex;gap:8px;justify-content:flex-end;">
             <button class="sm-btn-cancelar" style="background:#f3f4f6;border:1px solid #d1d5db;color:#374151;padding:8px 16px;border-radius:6px;cursor:pointer;font-weight:600;">Cancelar</button>
             <button class="sm-btn-confirmar" style="background:linear-gradient(135deg,#6f42c1,#8b5cf6);border:none;color:white;padding:8px 16px;border-radius:6px;cursor:pointer;font-weight:600;">Aplicar Todas</button>
@@ -421,6 +549,10 @@ document.addEventListener('input', (e) => {
         const texto = (el.value || el.textContent || el.innerText || '').trim();
         if (texto.length > 1) {
             textoUltimaVerificacao = texto;
+
+            // 🆕 Auto-detecção de idioma
+            if (!idiomaSugerido) verificarIdioma(texto);
+
             verificarTexto(texto, el);
         } else {
             errosGlobais = [];
@@ -483,6 +615,15 @@ async function verificarTexto(texto, elemento) {
             if (!m.replacements?.length) return false;
             const o = m.context.text.substr(m.context.offset, m.context.length);
             const ol = o.toLowerCase();
+
+            // 🆕 Atualiza estatísticas de erro mais comum
+            if (o.trim() && !ol.match(/^[0-9]+$/)) {
+                erroMaisComumTemp[ol] = (erroMaisComumTemp[ol] || 0) + 1;
+                if (errosGlobais.length === 0) {
+                    storageSetSeguro({ erroMaisComum: erroMaisComumTemp });
+                }
+            }
+
             return !dic.includes(ol) && !ignoradosTemporarios.includes(ol);
         });
 
@@ -524,7 +665,7 @@ function aplicarGrifos(erros, el) {
 }
 
 // =============================================
-// 🆕 APLICAÇÃO DE CORREÇÕES (COM CONFIRMAÇÃO)
+// APLICAÇÃO DE CORREÇÕES
 // =============================================
 function aplicarCorrecao(original, sugestao, el, pularConfirmacao = false) {
     if (!el || !original || !sugestao) return;
@@ -540,9 +681,7 @@ function aplicarCorrecao(original, sugestao, el, pularConfirmacao = false) {
             if (isSiteRestrito) {
                 el.focus();
                 try { document.execCommand('insertText', false, sugestao); } catch (e) {
-                    const textoAtual = el.textContent || '';
-                    const novoTexto = textoAtual.replace(new RegExp(esc, 'gi'), sugestao);
-                    if (textoAtual !== novoTexto) el.textContent = novoTexto;
+                    el.textContent = (el.textContent || '').replace(new RegExp(esc, 'gi'), sugestao);
                 }
                 atualizarElementoComEventos(el);
             } else {
@@ -633,7 +772,6 @@ function atualizarInterface() {
         if (painelAberto) fecharPainelComSucesso();
     } else {
         bubble.className = 'sm-bubble-error';
-        // 🆕 Badge diferente para modo leitura
         const icon = isModoLeitura() ? '👁️' : '✏️';
         bubble.innerHTML = `<span class="sm-bubble-icon">${icon}</span><span class="sm-bubble-badge">${total}</span>`;
         if (painelAberto) exibirPainel();
@@ -693,8 +831,8 @@ function exibirPainel() {
         <button id="btn-ignorar-tudo">Ignorar Tudo</button>
     </div>
     ${ignoradosTemporarios.length ? `<div style="text-align:center;font-size:10px;color:#9ca3af;">📋 ${ignoradosTemporarios.length} ignorada(s) na sessão</div>` : ''}
-    ${modoLeitura ? `<div style="text-align:center;font-size:10px;color:#f59e0b;">⚠️ Modo Leitura ativo - correções pedem confirmação</div>` : ''}
-    <div style="text-align:center;font-size:10px;color:#9ca3af;">Alt+Shift+S = corrigir sem abrir</div></div>`;
+    ${modoLeitura ? `<div style="text-align:center;font-size:10px;color:#f59e0b;">⚠️ Modo Leitura ativo</div>` : ''}
+    <div style="text-align:center;font-size:10px;color:#9ca3af;">Alt+Shift+S = corrigir sem abrir | Botão direito = revisar seleção</div></div>`;
 
     painel.innerHTML = html;
     tornarArrastavelPainel(painel, document.getElementById('syntax-mentor-header'));

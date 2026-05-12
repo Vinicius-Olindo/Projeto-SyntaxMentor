@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<!-- SyntaxMentor - options-dashboard.html v2.4.0 -->
+<head>
+    <meta charset="UTF-8">
+    <title>Dashboard - SyntaxMentor Elite</title>
+    <link rel="stylesheet" href="css/style-dashboard.css">
+</head>
+<body>
+
+    <!-- BARRA LATERAL -->
+    <div class="sidebar">
+        <h2 class="logo">✨ SyntaxMentor <span style="font-size: 10px; color: #aaa;">v2.4.0 Elite</span></h2>
+        <ul class="menu">
+            <li><a href="options.html">Geral</a></li>
+            <li><a href="options-seguranca.html">Segurança</a></li>
+            <li class="active"><a href="options-dashboard.html">Dashboard</a></li>
+        </ul>
+    </div>
+
+    <!-- CONTEÚDO PRINCIPAL -->
+    <div class="main-content">
+        <div class="header-titles">
+            <h1>📊 Dashboard de Estatísticas</h1>
+            <p>Acompanhe seu progresso e conquistas com o SyntaxMentor.</p>
+        </div>
+
+        <!-- HERO -->
+        <div class="dashboard-hero">
+            <div class="big-number" id="hero-total">0</div>
+            <div class="label">Total de Erros Corrigidos</div>
+            <div class="nivel" id="hero-nivel">Nível: Iniciante</div>
+        </div>
+
+        <!-- GRID DE ESTATÍSTICAS -->
+        <div class="stat-grid-dash">
+            <div class="stat-card-dash">
+                <div class="icon-dash">✅</div>
+                <div class="value-dash" id="stat-aceitas">0</div>
+                <div class="label-dash">Correções Aceitas</div>
+            </div>
+            <div class="stat-card-dash">
+                <div class="icon-dash">❌</div>
+                <div class="value-dash" id="stat-recusadas">0</div>
+                <div class="label-dash">Correções Recusadas</div>
+            </div>
+            <div class="stat-card-dash">
+                <div class="icon-dash">📈</div>
+                <div class="value-dash" id="stat-taxa">100%</div>
+                <div class="label-dash">Taxa de Aceitação</div>
+            </div>
+            <div class="stat-card-dash">
+                <div class="icon-dash">📖</div>
+                <div class="value-dash" id="stat-dic">0</div>
+                <div class="label-dash">Palavras no Dicionário</div>
+            </div>
+            <div class="stat-card-dash">
+                <div class="icon-dash">🌐</div>
+                <div class="value-dash" id="stat-idioma">pt-BR</div>
+                <div class="label-dash">Idioma Atual</div>
+            </div>
+            <div class="stat-card-dash">
+                <div class="icon-dash">☁️</div>
+                <div class="value-dash" id="stat-cloud">Desligado</div>
+                <div class="label-dash">Cloud Sync</div>
+            </div>
+        </div>
+
+        <!-- ERROS MAIS COMUNS -->
+        <div class="config-card erros-comuns-dash">
+            <h3>🔝 Seus Erros Mais Comuns</h3>
+            <div id="lista-erros-comuns">
+                <p style="color: #888; text-align: center; padding: 20px;">
+                    Corrija alguns erros para ver suas estatísticas aqui!
+                </p>
+            </div>
+        </div>
+
+        <!-- CONQUISTAS -->
+        <div class="config-card">
+            <h3>🏆 Conquistas</h3>
+            <div class="conquistas-grid" id="lista-conquistas">
+                <div class="conquista-card lock">
+                    <div class="conquista-icon">🔒</div>
+                    <div class="conquista-nome">Primeira Correção</div>
+                </div>
+                <div class="conquista-card lock">
+                    <div class="conquista-icon">🔒</div>
+                    <div class="conquista-nome">10 Correções</div>
+                </div>
+                <div class="conquista-card lock">
+                    <div class="conquista-icon">🔒</div>
+                    <div class="conquista-nome">50 Correções</div>
+                </div>
+                <div class="conquista-card lock">
+                    <div class="conquista-icon">🔒</div>
+                    <div class="conquista-nome">100 Correções</div>
+                </div>
+                <div class="conquista-card lock">
+                    <div class="conquista-icon">🔒</div>
+                    <div class="conquista-nome">500 Correções</div>
+                </div>
+                <div class="conquista-card lock">
+                    <div class="conquista-icon">🔒</div>
+                    <div class="conquista-nome">1000 Correções</div>
+                </div>
+                <div class="conquista-card lock">
+                    <div class="conquista-icon">🔒</div>
+                    <div class="conquista-nome">10 Palavras no Dicionário</div>
+                </div>
+                <div class="conquista-card lock">
+                    <div class="conquista-icon">🔒</div>
+                    <div class="conquista-nome">50 Palavras no Dicionário</div>
+                </div>
+                <div class="conquista-card lock">
+                    <div class="conquista-icon">🔒</div>
+                    <div class="conquista-nome">Usou Cloud Sync</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- RODAPÉ -->
+        <div class="footer-dash">
+            <p style="color: #9ca3af; font-size: 12px;">
+                Os dados são atualizados automaticamente conforme você usa a extensão.
+            </p>
+        </div>
+    </div>
+
+    <script src="js/options-dashboard.js"></script>
+</body>
+</html>
