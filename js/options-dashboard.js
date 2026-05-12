@@ -1,10 +1,11 @@
-// SyntaxMentor - options-dashboard.js v2.4.0
+// SyntaxMentor - options-dashboard.js v2.5.0
 document.addEventListener('DOMContentLoaded', () => {
 
     const heroTotal = document.getElementById('hero-total');
     const heroNivel = document.getElementById('hero-nivel');
     const statAceitas = document.getElementById('stat-aceitas');
     const statRecusadas = document.getElementById('stat-recusadas');
+    const statTaxa = document.getElementById('stat-taxa');
     const statDic = document.getElementById('stat-dic');
     const statIdioma = document.getElementById('stat-idioma');
     const listaErrosComuns = document.getElementById('lista-erros-comuns');
@@ -20,10 +21,14 @@ document.addEventListener('DOMContentLoaded', () => {
             erroMaisComum: {},
             darkMode: false
         }, (res) => {
+
             const total = res.totalCorrigidas || 0;
+            const aceitas = res.totalAceitas || 0;
+            const recusadas = res.totalRecusadas || 0;
+
             heroTotal.textContent = total.toLocaleString();
 
-            // Nível
+            // Lógica de Níveis
             let nivel = 'Iniciante';
             if (total >= 1000) nivel = '👑 Lendário';
             else if (total >= 500) nivel = '⭐ Mestre';
@@ -31,30 +36,36 @@ document.addEventListener('DOMContentLoaded', () => {
             else if (total >= 10) nivel = '📈 Intermediário';
             heroNivel.textContent = 'Nível: ' + nivel;
 
-            statAceitas.textContent = (res.totalAceitas || 0).toLocaleString();
-            statRecusadas.textContent = (res.totalRecusadas || 0).toLocaleString();
+            // Estatísticas Superiores
+            statAceitas.textContent = aceitas.toLocaleString();
+            statRecusadas.textContent = recusadas.toLocaleString();
             statDic.textContent = (res.dicionario_pessoal || []).length.toLocaleString();
             statIdioma.textContent = res.language || 'pt-BR';
 
-            // Erros mais comuns
+            // Cálculo Real da Taxa de Aceitação
+            const totalIteracoes = aceitas + recusadas;
+            const taxa = totalIteracoes > 0 ? Math.round((aceitas / totalIteracoes) * 100) + '%' : '100%';
+            statTaxa.textContent = taxa;
+
+            // Renderiza Erros Mais Comuns com Barras Shimmer
             const erros = res.erroMaisComum || {};
             const ordenados = Object.entries(erros).sort((a, b) => b[1] - a[1]).slice(0, 5);
 
             if (ordenados.length === 0) {
-                listaErrosComuns.innerHTML = '<p style="color:#888;">Corrija alguns erros para ver suas estatísticas!</p>';
+                listaErrosComuns.innerHTML = '<p style="color:#888; text-align: center; padding: 20px;">Corrija alguns erros para ver suas estatísticas!</p>';
             } else {
                 const max = ordenados[0][1];
                 listaErrosComuns.innerHTML = ordenados.map(([palavra, count]) => {
                     const pct = Math.round((count / max) * 100);
                     return `
-                        <div class="barra-container">
-                            <div class="barra-label"><span>${palavra}</span><span>${count}x</span></div>
-                            <div class="barra"><div class="barra-preenchida" style="width: ${pct}%;">${count}x</div></div>
+                        <div class="barra-container-dash">
+                            <div class="barra-label-dash"><span>${palavra}</span><span>${count}x</span></div>
+                            <div class="barra-dash"><div class="barra-preenchida-dash" style="width: ${pct}%;">${count}x</div></div>
                         </div>`;
                 }).join('');
             }
 
-            // Conquistas
+            // Mapeamento e Renderização Perfeita das Conquistas (Classes lock/unlock corrigidas)
             const conquistas = [
                 { nome: 'Primeira Correção', desbloqueada: total >= 1 },
                 { nome: '10 Correções', desbloqueada: total >= 10 },
@@ -65,20 +76,27 @@ document.addEventListener('DOMContentLoaded', () => {
             ];
 
             listaConquistas.innerHTML = conquistas.map(c =>
-                `<div class="conquista ${c.desbloqueada ? 'desbloqueada' : ''}">
-                    ${c.desbloqueada ? '🏆' : '🔒'} ${c.nome}
+                `<div class="conquista-card ${c.desbloqueada ? 'unlock' : 'lock'}">
+                    <div class="conquista-icon">${c.desbloqueada ? '🏆' : '🔒'}</div>
+                    <div class="conquista-nome">${c.nome}</div>
                 </div>`
             ).join('');
 
-            if (res.darkMode) document.body.classList.add('dark-mode');
+            // Aplica Dark Mode global
+            if (res.darkMode) {
+                document.body.classList.add('dark-mode');
+            } else {
+                document.body.classList.remove('dark-mode');
+            }
         });
     }
 
     carregarDashboard();
 
+    // Mantém tudo sincronizado em tempo real se o usuário estiver usando a extensão em outra aba
     chrome.storage.onChanged.addListener((changes) => {
         if (changes.totalCorrigidas || changes.totalAceitas || changes.totalRecusadas ||
-            changes.dicionario_pessoal || changes.erroMaisComum) {
+            changes.dicionario_pessoal || changes.erroMaisComum || changes.darkMode) {
             carregarDashboard();
         }
     });
