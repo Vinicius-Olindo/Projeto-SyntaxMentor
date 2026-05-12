@@ -1,4 +1,4 @@
-// SyntaxMentor - popup.js v2.0.1 (Dark Mode Fix)
+// SyntaxMentor - popup.js v2.5.0 (Live Sync Fix)
 document.addEventListener('DOMContentLoaded', () => {
     const wordInput = document.getElementById('word-input');
     const addBtn = document.getElementById('add-btn');
@@ -8,10 +8,27 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentDictionary = [];
 
     // =============================================
+    // CARREGAR DICIONÁRIO
+    // =============================================
+    function carregarDicionario() {
+        chrome.storage.local.get(['dicionario_pessoal'], (res) => {
+            if (chrome.runtime.lastError) {
+                console.warn('Erro ao carregar dicionário:', chrome.runtime.lastError.message);
+                currentDictionary = [];
+            } else {
+                currentDictionary = res.dicionario_pessoal || [];
+                if (!Array.isArray(currentDictionary)) currentDictionary = [];
+            }
+            renderizarLista();
+        });
+    }
+
+    // =============================================
     // 🌙 CARREGAR TEMA ESCURO
     // =============================================
     function carregarTema() {
         chrome.storage.local.get(['darkMode'], (res) => {
+            if (chrome.runtime.lastError) return;
             if (res.darkMode) {
                 document.body.classList.add('dark-mode');
             } else {
@@ -20,89 +37,87 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Sincroniza tema em tempo real
-    chrome.storage.onChanged.addListener((changes, namespace) => {
-        if (namespace === 'local') {
-            if (changes.darkMode) {
-                if (changes.darkMode.newValue) {
-                    document.body.classList.add('dark-mode');
-                } else {
-                    document.body.classList.remove('dark-mode');
-                }
-            }
-            if (changes.dicionario_pessoal) {
-                currentDictionary = changes.dicionario_pessoal.newValue || [];
-                if (!Array.isArray(currentDictionary)) currentDictionary = [];
-                renderizarLista();
-            }
-        }
-    });
-
     // =============================================
-    // 1. CARREGAR DICIONÁRIO
-    // =============================================
-    function carregarDicionario() {
-        chrome.storage.local.get(['dicionario_pessoal'], (res) => {
-            // Garante que sempre será uma lista (array), mesmo se der erro no banco
-            currentDictionary = res.dicionario_pessoal || [];
-            if (!Array.isArray(currentDictionary)) currentDictionary = [];
-
-            renderizarLista();
-        });
-    }
-
-    // =============================================
-    // 2. RENDERIZAR LISTA
+    // RENDERIZAR LISTA
     // =============================================
     function renderizarLista() {
         if (!wordList) return;
         wordList.innerHTML = '';
+
+        if (currentDictionary.length === 0) {
+            wordList.innerHTML = '<li style="color:#9ca3af;text-align:center;padding:15px;font-size:12px;">📭 Nenhuma palavra adicionada</li>';
+            return;
+        }
+
         currentDictionary.forEach((word, index) => {
             const li = document.createElement('li');
             li.innerHTML = `
-                <span>${word}</span>
+                <span style="flex:1;">${escapeHtml(word)}</span>
                 <button class="btn-remove" data-index="${index}" title="Remover">✕</button>
             `;
             wordList.appendChild(li);
         });
 
+        // Adicionar listeners de remoção
         document.querySelectorAll('.btn-remove').forEach(btn => {
             btn.addEventListener('click', (e) => {
-                const idx = e.target.getAttribute('data-index');
-                currentDictionary.splice(idx, 1);
-                salvarDicionario();
+                e.stopPropagation();
+                const idx = parseInt(e.target.getAttribute('data-index'));
+                if (idx >= 0 && idx < currentDictionary.length) {
+                    const removida = currentDictionary[idx];
+                    currentDictionary.splice(idx, 1);
+                    salvarDicionario();
+                    console.log(`🗑️ Palavra removida: "${removida}"`);
+                }
             });
         });
     }
 
     // =============================================
-    // 3. SALVAR DICIONÁRIO
+    // SALVAR DICIONÁRIO
     // =============================================
     function salvarDicionario() {
         chrome.storage.local.set({ dicionario_pessoal: currentDictionary }, () => {
+            if (chrome.runtime.lastError) {
+                console.warn('Erro ao salvar dicionário:', chrome.runtime.lastError.message);
+                return;
+            }
             renderizarLista();
             if (wordInput) wordInput.focus();
         });
     }
 
     // =============================================
-    // 4. ADICIONAR NOVA PALAVRA
+    // ADICIONAR NOVA PALAVRA
     // =============================================
     function adicionarPalavra() {
         if (!wordInput) return;
         const word = wordInput.value.trim().toLowerCase();
 
-        if (word && !currentDictionary.includes(word)) {
-            currentDictionary.unshift(word); // Adiciona no topo
+        if (!word) {
+            wordInput.value = '';
+            return;
+        }
+
+        if (word.length < 2) {
+            wordInput.style.borderColor = '#e53e3e';
+            setTimeout(() => { wordInput.style.borderColor = ''; }, 1000);
+            return;
+        }
+
+        if (!currentDictionary.includes(word)) {
+            currentDictionary.unshift(word);
             wordInput.value = '';
             salvarDicionario();
         } else {
-            wordInput.value = ''; // Apenas limpa se for repetida ou vazia
+            wordInput.value = '';
+            wordInput.style.borderColor = '#f59e0b';
+            setTimeout(() => { wordInput.style.borderColor = ''; }, 1000);
         }
     }
 
     // =============================================
-    // EVENTOS DE CLIQUE E TECLADO
+    // EVENTOS
     // =============================================
     if (addBtn) {
         addBtn.addEventListener('click', adicionarPalavra);
@@ -126,6 +141,42 @@ document.addEventListener('DOMContentLoaded', () => {
                 window.open(chrome.runtime.getURL('options.html'));
             }
         });
+    }
+
+    // =============================================
+    // 🆕 LIVE SYNC (CORRIGIDO)
+    // =============================================
+    chrome.storage.onChanged.addListener((changes, namespace) => {
+        // Só responde a mudanças no storage local
+        if (namespace !== 'local') return;
+
+        // 🆕 Atualiza dicionário se mudou
+        if (changes.dicionario_pessoal) {
+            console.log('📖 Dicionário atualizado via sync:', 
+                (changes.dicionario_pessoal.newValue || []).length, 'palavras');
+            currentDictionary = changes.dicionario_pessoal.newValue || [];
+            if (!Array.isArray(currentDictionary)) currentDictionary = [];
+            renderizarLista();
+        }
+
+        // 🆕 Atualiza tema se mudou
+        if (changes.darkMode) {
+            if (changes.darkMode.newValue) {
+                document.body.classList.add('dark-mode');
+            } else {
+                document.body.classList.remove('dark-mode');
+            }
+        }
+    });
+
+    // =============================================
+    // UTILITÁRIOS
+    // =============================================
+    function escapeHtml(texto) {
+        if (!texto) return '';
+        const div = document.createElement('div');
+        div.textContent = texto;
+        return div.innerHTML;
     }
 
     // =============================================
