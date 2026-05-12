@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<!-- SyntaxMentor - options-seguranca.html v2.3.0 -->
+<head>
+    <meta charset="UTF-8">
+    <title>Segurança - SyntaxMentor Pro</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+    <!-- BARRA LATERAL -->
+    <div class="sidebar">
+        <h2 class="logo">✨ SyntaxMentor <span style="font-size: 10px; color: #aaa;">v2.3.0 Pro</span></h2>
+        <ul class="menu">
+            <li><a href="options.html">Geral</a></li>
+            <li class="active"><a href="options-seguranca.html">Segurança</a></li>
+        </ul>
+    </div>
+
+    <!-- CONTEÚDO PRINCIPAL -->
+    <div class="main-content">
+        <div class="header-titles">
+            <h1>Segurança &amp; Privacidade</h1>
+            <p>Configure a API, modo de correção e permissões.</p>
+        </div>
+
+        <div class="grid-container" style="grid-template-columns: 1fr 1fr;">
+            
+            <!-- 🆕 API KEY -->
+            <div class="config-card full-width-seguranca">
+                <h3>🔑 Chave de API Personalizada</h3>
+                <p class="desc">Use sua própria chave da API LanguageTool Cloud ou um servidor self-hosted.</p>
+                
+                <div class="config-item-vertical" style="gap: 12px;">
+                    <div>
+                        <label style="font-weight: 600; font-size: 13px; display: block; margin-bottom: 4px;">URL do Servidor</label>
+                        <input type="text" id="api-url" class="full-input" placeholder="https://api.languagetool.org/v2/check">
+                    </div>
+                    
+                    <div>
+                        <label style="font-weight: 600; font-size: 13px; display: block; margin-bottom: 4px;">API Key</label>
+                        <div style="display: flex; gap: 10px;">
+                            <input type="password" id="api-key" class="full-input" placeholder="Cole sua API Key aqui" style="flex: 1;">
+                            <button id="btn-toggle-visibilidade" class="btn-seguranca-outline" title="Mostrar/ocultar chave" style="white-space: nowrap;">👁️ Mostrar</button>
+                        </div>
+                        <p style="font-size: 10px; color: #9ca3af; margin-top: 4px;">
+                            Sua chave é armazenada localmente e nunca é compartilhada.
+                        </p>
+                    </div>
+                    
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <button id="btn-testar-api" class="btn-backup-export" style="flex: 1;">
+                            🔍 Testar Conexão
+                        </button>
+                        <span id="status-api" style="font-size: 12px; font-weight: 600;"></span>
+                    </div>
+                    
+                    <div id="detalhes-api" style="display: none; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 12px; margin-top: 8px;">
+                        <p style="font-size: 12px; color: #166534; margin: 0;">
+                            ✅ <strong>Conexão bem-sucedida!</strong>
+                        </p>
+                        <p id="api-info" style="font-size: 11px; color: #166534; margin: 4px 0 0 0;"></p>
+                    </div>
+                    
+                    <div style="margin-top: 5px;">
+                        <p style="font-size: 11px; color: #6b7280;">
+                            💡 <strong>Como obter uma API Key:</strong><br>
+                            1. Acesse <a href="https://languagetool.org/cloud" target="_blank" style="color: #6f42c1;">languagetool.org/cloud</a><br>
+                            2. Crie uma conta gratuita (até 1000 requisições/mês)<br>
+                            3. Copie sua API Key do painel
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 🆕 MODO DE CORREÇÃO -->
+            <div class="config-card full-width-seguranca">
+                <h3>🔐 Modo de Correção</h3>
+                <p class="desc">Controle como as correções são aplicadas ao texto.</p>
+                
+                <div class="config-item">
+                    <div class="info-text">
+                        <label>Sempre perguntar antes de corrigir</label>
+                        <p class="desc">Cada correção exibe uma confirmação antes de ser aplicada.</p>
+                    </div>
+                    <label class="switch"><input type="checkbox" id="modoConfirmacao"><span class="slider"></span></label>
+                </div>
+                
+                <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 15px 0;">
+                
+                <div class="config-item">
+                    <div class="info-text">
+                        <label>Modo Somente Leitura Global</label>
+                        <p class="desc">Detecta erros mas NÃO aplica correções automaticamente em nenhum site.</p>
+                    </div>
+                    <label class="switch"><input type="checkbox" id="modoLeituraGlobal"><span class="slider"></span></label>
+                </div>
+                
+                <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 15px 0;">
+                
+                <div style="margin-top: 10px;">
+                    <label style="font-weight: 600; font-size: 13px; display: block; margin-bottom: 8px;">Sites em Modo Leitura</label>
+                    <p class="desc" style="margin-bottom: 10px;">Nestes sites, a extensão apenas mostra os erros mas não corrige automaticamente.</p>
+                    <div class="input-group">
+                        <input type="text" id="modo-leitura-input" placeholder="Adicionar domínio (ex: docs.google.com)">
+                        <button id="btn-add-modo-leitura" class="btn-dark">Adicionar</button>
+                    </div>
+                    <ul id="modo-leitura-list" class="blacklist-ul"></ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- ESTATÍSTICAS -->
+        <div class="config-card" style="margin-top: 20px;">
+            <h3>📊 Estatísticas de Correção</h3>
+            <div style="display: flex; gap: 40px; flex-wrap: wrap;">
+                <div style="text-align: center;">
+                    <div style="font-size: 32px; font-weight: 700; color: #6f42c1;" id="stat-total-corrigidas">0</div>
+                    <p style="font-size: 12px; color: #6b7280; margin: 0;">Total de Correções</p>
+                </div>
+                <div style="text-align: center;">
+                    <div style="font-size: 32px; font-weight: 700; color: #28a745;" id="stat-taxa-aceitacao">100%</div>
+                    <p style="font-size: 12px; color: #6b7280; margin: 0;">Taxa de Aceitação</p>
+                </div>
+                <div style="text-align: center;">
+                    <div style="font-size: 32px; font-weight: 700; color: #f59e0b;" id="stat-dicionario">0</div>
+                    <p style="font-size: 12px; color: #6b7280; margin: 0;">Palavras no Dicionário</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- RODAPÉ -->
+        <div class="footer-save">
+            <span id="save-status">✓ Salvo com sucesso!</span>
+            <button id="btn-salvar" class="btn-primary">Salvar Alterações</button>
+            <div class="spacer"></div>
+        </div>
+    </div>
+
+    <script src="js/options-seguranca.js"></script>
+</body>
+</html>
