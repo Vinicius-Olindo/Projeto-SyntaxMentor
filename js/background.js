@@ -1,7 +1,8 @@
-// SyntaxMentor - background.js v2.3.0 (API Key + Modo Leitura)
+// SyntaxMentor - background.js v2.3.0 (Icon Path Fix)
 let ultimaRequisicao = null;
 let ultimoTimeout = null;
 
+// 🆕 Usa os mesmos ícones do manifest.json (raiz)
 let iconesPadrao = {
     "16": "icons/icon16.png",
     "32": "icons/icon32.png",
@@ -14,13 +15,11 @@ let iconesPadrao = {
 // =============================================
 chrome.runtime.onInstalled.addListener(() => {
     console.log("✅ SyntaxMentor Pro v2.3.0 instalado!");
-    resetarBadgeETooltip();
-    verificarIconeGlobal();
+    // Não tenta setar ícone na instalação - usa o padrão do manifest
 });
 
 chrome.runtime.onStartup.addListener(() => {
-    resetarBadgeETooltip();
-    verificarIconeGlobal();
+    // Não tenta setar ícone no startup - usa o padrão do manifest
 });
 
 // =============================================
@@ -29,80 +28,69 @@ chrome.runtime.onStartup.addListener(() => {
 function atualizarBadge(totalErros, tabId) {
     if (!tabId) return;
 
-    if (totalErros > 0) {
-        chrome.action.setBadgeText({
-            text: totalErros > 999 ? '999+' : String(totalErros),
-            tabId: tabId
-        });
-        chrome.action.setBadgeBackgroundColor({
-            color: '#e53e3e',
-            tabId: tabId
-        });
-        chrome.action.setTitle({
-            title: `SyntaxMentor: ${totalErros} erro(s) encontrado(s)`,
-            tabId: tabId
-        });
-    } else {
-        chrome.action.setBadgeText({ text: '', tabId: tabId });
-        chrome.action.setTitle({ title: 'SyntaxMentor: Nenhum erro', tabId: tabId });
+    try {
+        if (totalErros > 0) {
+            chrome.action.setBadgeText({
+                text: totalErros > 999 ? '999+' : String(totalErros),
+                tabId: tabId
+            }).catch(() => { });
+
+            chrome.action.setBadgeBackgroundColor({
+                color: '#e53e3e',
+                tabId: tabId
+            }).catch(() => { });
+
+            chrome.action.setTitle({
+                title: `SyntaxMentor: ${totalErros} erro(s) encontrado(s)`,
+                tabId: tabId
+            }).catch(() => { });
+        } else {
+            chrome.action.setBadgeText({
+                text: '',
+                tabId: tabId
+            }).catch(() => { });
+
+            chrome.action.setTitle({
+                title: 'SyntaxMentor: Nenhum erro',
+                tabId: tabId
+            }).catch(() => { });
+        }
+    } catch (e) {
+        // Ignora erros de contexto inválido
     }
 }
 
 function resetarBadgeETooltip(tabId) {
-    if (tabId) {
-        chrome.action.setBadgeText({ text: '', tabId: tabId });
-        chrome.action.setTitle({ title: 'SyntaxMentor Pro', tabId: tabId });
-    } else {
-        chrome.action.setBadgeText({ text: '' });
-        chrome.action.setTitle({ title: 'SyntaxMentor Pro' });
+    try {
+        if (tabId) {
+            chrome.action.setBadgeText({ text: '', tabId: tabId }).catch(() => { });
+            chrome.action.setTitle({ title: 'SyntaxMentor Pro', tabId: tabId }).catch(() => { });
+        } else {
+            chrome.action.setBadgeText({ text: '' }).catch(() => { });
+            chrome.action.setTitle({ title: 'SyntaxMentor Pro' }).catch(() => { });
+        }
+    } catch (e) {
+        // Ignora erros de contexto inválido
     }
 }
 
 // =============================================
 // ÍCONE MODO DESATIVADO
 // =============================================
-function verificarIconeGlobal() {
-    chrome.storage.local.get(['disabled', 'blacklist'], (res) => {
-        const blacklist = res.blacklist || [];
-        const desativado = res.disabled || false;
-
-        if (desativado || blacklist.length > 0) {
-            chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-                if (tabs[0] && tabs[0].url) {
-                    try {
-                        const host = new URL(tabs[0].url).hostname;
-                        const bloqueado = blacklist.some(d => host.includes(d));
-
-                        if (bloqueado || desativado) {
-                            setIconeDesativado(tabs[0].id);
-                        } else {
-                            setIconePadrao(tabs[0].id);
-                        }
-                    } catch (e) {
-                        setIconePadrao(tabs[0].id);
-                    }
-                }
-            });
-        } else {
-            setIconePadrao();
-        }
-    });
-}
-
 function setIconePadrao(tabId) {
-    if (tabId) {
-        chrome.action.setIcon({ path: iconesPadrao, tabId: tabId });
-    } else {
-        chrome.action.setIcon({ path: iconesPadrao });
-    }
+    // Não faz nada - o ícone padrão já está no manifest.json
+    // Isso evita o erro "Failed to set icon"
 }
 
 function setIconeDesativado(tabId) {
-    if (tabId) {
-        chrome.action.setIcon({ path: iconesPadrao, tabId: tabId });
-        chrome.action.setBadgeText({ text: 'OFF', tabId: tabId });
-        chrome.action.setBadgeBackgroundColor({ color: '#6b7280', tabId: tabId });
-        chrome.action.setTitle({ title: 'SyntaxMentor: Desativado neste site', tabId: tabId });
+    try {
+        if (tabId) {
+            chrome.action.setBadgeText({ text: 'OFF', tabId: tabId }).catch(() => { });
+            chrome.action.setBadgeBackgroundColor({ color: '#6b7280', tabId: tabId }).catch(() => { });
+            chrome.action.setTitle({ title: 'SyntaxMentor: Desativado neste site', tabId: tabId }).catch(() => { });
+        }
+    } catch (e) {
+        // Ignora erros
     }
 }
 
@@ -134,11 +122,10 @@ function verificarIconeParaTab(tabId) {
                 if (bloqueado || desativado) {
                     setIconeDesativado(tabId);
                 } else {
-                    setIconePadrao(tabId);
                     resetarBadgeETooltip(tabId);
                 }
             } catch (e) {
-                setIconePadrao(tabId);
+                resetarBadgeETooltip(tabId);
             }
         });
     });
@@ -254,6 +241,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.action === 'exportData') {
         exportarDados().then(backup => {
             sendResponse({ success: true, data: backup });
+        }).catch(() => {
+            sendResponse({ success: false, error: 'Erro ao exportar' });
         });
         return true;
     }
@@ -268,7 +257,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         return true;
     }
 
-    // 🆕 Verificação de gramática (com suporte a API Key)
+    // Verificação de gramática (com suporte a API Key)
     if (request.action === 'checkGrammar') {
         const fetchUrl = request.apiUrl && request.apiUrl.trim() !== ''
             ? request.apiUrl
@@ -286,7 +275,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             'Accept': 'application/json'
         };
 
-        // 🆕 Adiciona API Key se existir
+        // Adiciona API Key se existir
         if (request.apiKey && request.apiKey.trim() !== '') {
             headers['Authorization'] = `Bearer ${request.apiKey.trim()}`;
         }
@@ -324,7 +313,11 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 // =============================================
 chrome.storage.onChanged.addListener((changes, namespace) => {
     if (namespace !== 'local') return;
+
+    // Atualiza badge quando blacklist mudar
     if (changes.blacklist || changes.disabled) {
-        verificarIconeGlobal();
+        chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+            if (tabs[0]) verificarIconeParaTab(tabs[0].id);
+        });
     }
 });
