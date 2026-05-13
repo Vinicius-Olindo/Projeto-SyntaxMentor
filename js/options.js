@@ -66,6 +66,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const listaConquistas = document.getElementById('lista-conquistas');
 
     // =============================================
+    // 0. APLICAR TEMA ESCURO AO INICIAR
+    // =============================================
+    chrome.storage.local.get({ darkMode: false }, (res) => {
+        if (res.darkMode) {
+            document.body.classList.add('dark-mode');
+        } else {
+            document.body.classList.remove('dark-mode');
+        }
+    });
+
+    // =============================================
     // 1. CARREGAR CONFIGURAÇÕES
     // =============================================
     chrome.storage.local.get({

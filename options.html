@@ -1,212 +1,187 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
-<!-- SyntaxMentor - options.html v2.6.0 (Unified) -->
 <head>
     <meta charset="UTF-8">
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>Configurações - SyntaxMentor Elite</title>
+    <title>SyntaxMentor - Configurações</title>
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
 
-    <!-- BARRA LATERAL -->
     <div class="sidebar">
         <h2 class="logo">✨ SyntaxMentor <span style="font-size: 10px; color: #aaa;">v2.6.0 Elite</span></h2>
         <ul class="menu">
-            <li class="active" data-tab="geral"><a href="#" onclick="mostrarAba('geral')">Geral</a></li>
-            <li data-tab="seguranca"><a href="#" onclick="mostrarAba('seguranca')">Segurança</a></li>
-            <li data-tab="dashboard"><a href="#" onclick="mostrarAba('dashboard')">Dashboard</a></li>
+            <li class="active"><a href="options.html">Geral</a></li>
+            <li><a href="options-seguranca.html">Segurança</a></li>
+            <li><a href="options-dashboard.html">Dashboard</a></li>
         </ul>
     </div>
 
-    <!-- CONTEÚDO PRINCIPAL -->
     <div class="main-content">
-        <div class="header-titles" id="header-geral">
+        <div class="header-titles">
             <h1>Configurações do Mentor</h1>
-            <p>Personalize como a extensão deve se comportar enquanto você escreve.</p>
-        </div>
-        <div class="header-titles" id="header-seguranca" style="display:none;">
-            <h1>Segurança &amp; Privacidade</h1>
-            <p>Configure a API, modo de correção, whitelist e sincronização.</p>
-        </div>
-        <div class="header-titles" id="header-dashboard" style="display:none;">
-            <h1>📊 Dashboard de Estatísticas</h1>
-            <p>Acompanhe seu progresso e conquistas com o SyntaxMentor.</p>
+            <p>Personalize como a extensão se deve comportar enquanto escreve.</p>
         </div>
 
-        <!-- ============================================ -->
-        <!-- ABA GERAL -->
-        <!-- ============================================ -->
-        <div id="aba-geral" class="aba-conteudo">
-            <div class="grid-container">
-                <div class="column-left">
-                    <div class="config-card">
-                        <h3>Análise Ortográfica</h3>
-                        <div class="config-item">
-                            <div class="info-text"><label>Idioma Principal</label><p class="desc">Idioma que o mentor usará para validar textos.</p></div>
-                            <select id="language" class="select-box">
-                                <option value="pt-BR">Português (Brasil)</option>
-                                <option value="en-US">English (US)</option>
-                                <option value="es">Español</option>
-                            </select>
+        <div class="grid-container">
+            <div class="column-left">
+                
+                <div class="config-card">
+                    <h3>Análise Ortográfica</h3>
+                    <div class="config-item">
+                        <div class="info-text">
+                            <label>Idioma Principal</label>
+                            <p class="desc">Idioma para validar textos.</p>
                         </div>
-                        <div class="config-item">
-                            <div class="info-text"><label>Nível de Rigor (Picky)</label><p class="desc">Ativa correções de estilo e gramática avançada.</p></div>
-                            <label class="switch"><input type="checkbox" id="pickyMode"><span class="slider"></span></label>
-                        </div>
+                        <select id="language" class="select-box">
+                            <option value="pt-BR">Português (Brasil)</option>
+                            <option value="pt-PT">Português (Portugal)</option>
+                            <option value="en-US">English (US)</option>
+                            <option value="es">Español</option>
+                        </select>
                     </div>
-                    <div class="config-card">
-                        <h3>Aparência</h3>
-                        <div class="config-item">
-                            <div class="info-text"><label>Modo Escuro (Dark Mode)</label><p class="desc">Altera o painel e a bolinha para tons escuros.</p></div>
-                            <label class="switch"><input type="checkbox" id="darkMode"><span class="slider"></span></label>
+                    <div class="config-item">
+                        <div class="info-text">
+                            <label>Nível de Rigor (Picky)</label>
+                            <p class="desc">Ativa correções de estilo e gramática avançada.</p>
                         </div>
-                        <div class="config-item">
-                            <div class="info-text"><label>Ocultar bolinha ao digitar</label><p class="desc">A bolinha desaparece enquanto você digita.</p></div>
-                            <label class="switch"><input type="checkbox" id="autoHideBubble"><span class="slider"></span></label>
-                        </div>
-                    </div>
-                    <div class="config-card">
-                        <h3>Sites Ignorados</h3>
-                        <p class="desc">Adicione domínios onde o SyntaxMentor deve ficar desativado.</p>
-                        <div class="input-group">
-                            <input type="text" id="blacklist-input" placeholder="Adicionar site (ex: gmail.com)">
-                            <button id="btn-add-blacklist" class="btn-dark">Bloquear</button>
-                        </div>
-                        <ul id="blacklist-list" class="blacklist-ul"></ul>
+                        <label class="switch"><input type="checkbox" id="pickyMode"><span class="slider"></span></label>
                     </div>
                 </div>
-                <div class="column-center">
-                    <div class="config-card">
-                        <h3>Performance</h3>
-                        <div class="config-item-vertical">
-                            <label class="speed-title">Velocidade de Resposta</label>
-                            <p class="desc" style="margin-bottom:12px;">Quanto tempo esperar após você parar de digitar.</p>
-                            <div class="speed-selector">
-                                <label class="speed-option"><input type="radio" name="speed" value="300"><span>Rápido</span></label>
-                                <label class="speed-option"><input type="radio" name="speed" value="500"><span>Equilibrado</span></label>
-                                <label class="speed-option"><input type="radio" name="speed" value="1000"><span>Leve</span></label>
-                            </div>
+
+                <div class="config-card">
+                    <h3>Aparência</h3>
+                    <div class="config-item">
+                        <div class="info-text">
+                            <label>Modo Escuro (Dark Mode)</label>
+                            <p class="desc">Altera o painel para tons escuros.</p>
                         </div>
+                        <label class="switch"><input type="checkbox" id="darkMode"><span class="slider"></span></label>
                     </div>
-                    <div class="config-card">
-                        <h3>Atalhos de Teclado</h3>
-                        <p class="desc" style="margin-bottom:20px;">Acione o mentor e navegue pelas sugestões mais rápido.</p>
-                        <div class="atalho-row"><div><span class="atalho-title">Abrir / Fechar Painel</span><span class="atalho-sub">Clique no botão para alterar</span></div><button id="btn-gravar-atalho" class="btn-gravar">Alt + S</button></div>
-                        <div class="atalho-row" style="margin-top:5px;"><div><span class="atalho-title">Ignorar Tudo</span><span class="atalho-sub">Limpa todos os erros na tela</span></div><button id="btn-gravar-ignorar" class="btn-gravar">Alt + I</button></div>
-                        <div class="atalho-row" style="margin-top:5px;"><div><span class="atalho-title">Corrigir Tudo</span><span class="atalho-sub">Corrige sem abrir o painel</span></div><button id="btn-gravar-corrigir-tudo" class="btn-gravar">Alt + Shift + S</button></div>
-                        <hr class="divisor">
-                        <div class="atalho-row"><span class="atalho-label">Próxima Sugestão</span><kbd class="tecla-kbd">Seta Baixo ↓</kbd></div>
-                        <div class="atalho-row"><span class="atalho-label">Sugestão Anterior</span><kbd class="tecla-kbd">Seta Cima ↑</kbd></div>
-                        <div class="atalho-row"><span class="atalho-label">Aplicar Correção</span><kbd class="tecla-kbd">Enter ↵</kbd></div>
-                        <div class="atalho-row"><span class="atalho-label">Fechar Painel</span><kbd class="tecla-kbd">Esc</kbd></div>
+                    <div class="config-item">
+                        <div class="info-text">
+                            <label>Ocultar ao digitar</label>
+                            <p class="desc">A bolinha desaparece enquanto digita.</p>
+                        </div>
+                        <label class="switch"><input type="checkbox" id="autoHideBubble"><span class="slider"></span></label>
                     </div>
                 </div>
-                <div class="column-right">
-                    <div class="config-card">
-                        <h3>Meu Dicionário</h3>
-                        <p class="desc">Palavras que o mentor deve ignorar (gírias, nomes próprios, etc).</p>
-                        <div class="input-group">
-                            <input type="text" id="dictionary-input" placeholder="Adicionar palavra (ex: syntaxmentor)">
-                            <button id="btn-add-dictionary" class="btn-dark">Adicionar</button>
-                        </div>
-                        <ul id="dictionary-list" class="blacklist-ul"></ul>
+
+                <div class="config-card">
+                    <h3>Sites Ignorados</h3>
+                    <p class="desc">Domínios onde o SyntaxMentor fica desativado.</p>
+                    <div class="input-group">
+                        <input type="text" id="blacklist-input" placeholder="Ex: gmail.com">
+                        <button id="btn-add-blacklist" class="btn-dark">Bloquear</button>
                     </div>
-                    <div class="config-card">
-                        <h3>💾 Backup de Dados</h3>
-                        <p class="desc">Exporte ou restaure seu dicionário, blacklist e configurações.</p>
-                        <div style="display:flex;gap:10px;margin-top:15px;">
-                            <button id="btn-exportar" class="btn-backup-export" style="flex:1;">📤 Exportar</button>
-                            <button id="btn-importar" class="btn-backup-import" style="flex:1;">📥 Importar</button>
-                            <input type="file" id="input-importar" accept=".json,.txt" style="display:none;">
+                    <ul id="blacklist-list" class="blacklist-ul"></ul>
+                    <button id="btn-clear-blacklist" class="btn-clear-all">🗑️ Limpar Sites Ignorados</button>
+                </div>
+
+            </div>
+
+            <div class="column-center">
+                
+                <div class="config-card">
+                    <h3>Performance</h3>
+                    <div class="config-item-vertical">
+                        <label style="font-weight: 600; font-size: 14px;" class="speed-title">Velocidade de Resposta</label>
+                        <p class="desc" style="margin-bottom: 12px;">Quanto tempo esperar após parar de digitar.</p>
+                        <div class="speed-selector">
+                            <label class="speed-option"><input type="radio" name="speed" value="300"><span>Rápido</span></label>
+                            <label class="speed-option"><input type="radio" name="speed" value="500"><span>Equilibrado</span></label>
+                            <label class="speed-option"><input type="radio" name="speed" value="1000"><span>Leve</span></label>
                         </div>
                     </div>
                 </div>
+
+                <div class="config-card">
+                    <h3>Atalhos de Teclado</h3>
+                    <p class="desc" style="margin-bottom: 20px;">Acione o mentor rapidamente.</p>
+
+                    <div class="atalho-row">
+                        <div>
+                            <span class="atalho-title">Painel</span>
+                        </div>
+                        <button id="btn-gravar-atalho" class="btn-gravar">Alt + S</button>
+                    </div>
+                    
+                    <div class="atalho-row" style="margin-top: 5px;">
+                        <div>
+                            <span class="atalho-title">Ignorar Tudo</span>
+                        </div>
+                        <button id="btn-gravar-ignorar" class="btn-gravar">Alt + I</button>
+                    </div>
+
+                    <div class="atalho-row" style="margin-top: 5px;">
+                        <div>
+                            <span class="atalho-title">Corrigir Tudo</span>
+                        </div>
+                        <button id="btn-gravar-corrigir-tudo" class="btn-gravar">Alt+Shift+S</button>
+                    </div>
+
+                    <hr class="divisor">
+
+                    <div class="atalho-row">
+                        <span class="atalho-label">Próxima Sugestão</span>
+                        <kbd class="tecla-kbd">Seta Baixo ↓</kbd>
+                    </div>
+                    <div class="atalho-row">
+                        <span class="atalho-label">Sugestão Anterior</span>
+                        <kbd class="tecla-kbd">Seta Cima ↑</kbd>
+                    </div>
+                    <div class="atalho-row">
+                        <span class="atalho-label">Aplicar Correção</span>
+                        <kbd class="tecla-kbd">Enter ↵</kbd>
+                    </div>
+                    <div class="atalho-row">
+                        <span class="atalho-label">Fechar Painel</span>
+                        <kbd class="tecla-kbd">Esc</kbd>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="column-right">
+                
+                <div class="config-card">
+                    <h3>O Meu Dicionário</h3>
+                    <p class="desc">Palavras que o mentor deve ignorar.</p>
+                    <div class="input-group">
+                        <input type="text" id="dictionary-input" placeholder="Nova palavra...">
+                        <button id="btn-add-dictionary" class="btn-dark">Adicionar</button>
+                    </div>
+                    <ul id="dictionary-list" class="blacklist-ul"></ul>
+                    <button id="btn-clear-dictionary" class="btn-clear-all">🗑️ Limpar Dicionário</button>
+                </div>
+
+                <div class="config-card">
+                    <h3>💾 Backup e Dicionário</h3>
+                    <p class="desc">Exporte dados ou importe listas em massa.</p>
+                    <div style="display: flex; gap: 10px; margin-top: 15px;">
+                        <button id="btn-exportar" class="btn-backup-export" style="flex: 1;">📤 Exportar</button>
+                        <button id="btn-importar" class="btn-backup-import" style="flex: 1;">📥 Importar</button>
+                        <input type="file" id="input-importar" accept=".json,.txt" style="display: none;">
+                    </div>
+                    <div style="background: #f8f9fa; padding: 10px; border-radius: 6px; margin-top: 15px; border: 1px dashed #d1d5db;">
+                        <p style="font-size: 11px; color: #555; margin: 0; line-height: 1.4;">
+                            <strong>💡 Dica:</strong> Crie um ficheiro <b>.txt</b> no Bloco de Notas com uma palavra por linha para importar tudo de uma vez!
+                        </p>
+                    </div>
+                </div>
+
             </div>
         </div>
 
-        <!-- ============================================ -->
-        <!-- ABA SEGURANÇA -->
-        <!-- ============================================ -->
-        <div id="aba-seguranca" class="aba-conteudo" style="display:none;">
-            <div class="grid-container" style="grid-template-columns:1fr 1fr;">
-                <div class="config-card full-width-seguranca">
-                    <h3>🔑 Chave de API Personalizada</h3>
-                    <p class="desc">Use sua própria chave da API LanguageTool Cloud ou um servidor self-hosted.</p>
-                    <div class="config-item-vertical" style="gap:12px;">
-                        <div><label style="font-weight:600;font-size:13px;display:block;margin-bottom:4px;">URL do Servidor</label><input type="text" id="api-url" class="full-input" placeholder="https://api.languagetool.org/v2/check"></div>
-                        <div><label style="font-weight:600;font-size:13px;display:block;margin-bottom:4px;">API Key</label><div style="display:flex;gap:10px;"><input type="password" id="api-key" class="full-input" placeholder="Cole sua API Key aqui" style="flex:1;"><button id="btn-toggle-visibilidade" class="btn-seguranca-outline" style="white-space:nowrap;">👁️ Mostrar</button></div></div>
-                        <div style="display:flex;gap:10px;align-items:center;"><button id="btn-testar-api" class="btn-backup-export" style="flex:1;">🔍 Testar Conexão</button><span id="status-api" style="font-size:12px;font-weight:600;"></span></div>
-                        <div id="detalhes-api" style="display:none;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:12px;"><p style="font-size:12px;color:#166534;margin:0;">✅ <strong>Conexão bem-sucedida!</strong></p><p id="api-info" style="font-size:11px;color:#166534;margin:4px 0 0 0;"></p></div>
-                    </div>
-                </div>
-                <div class="config-card full-width-seguranca">
-                    <h3>🔐 Modo de Correção</h3>
-                    <p class="desc">Controle como as correções são aplicadas ao texto.</p>
-                    <div class="config-item"><div class="info-text"><label>Sempre perguntar antes de corrigir</label><p class="desc">Cada correção exibe uma confirmação antes de ser aplicada.</p></div><label class="switch"><input type="checkbox" id="modoConfirmacao"><span class="slider"></span></label></div>
-                    <hr style="border:none;border-top:1px solid #e5e7eb;margin:15px 0;">
-                    <div class="config-item"><div class="info-text"><label>Modo Somente Leitura Global</label><p class="desc">Detecta erros mas NÃO aplica correções automaticamente.</p></div><label class="switch"><input type="checkbox" id="modoLeituraGlobal"><span class="slider"></span></label></div>
-                    <hr style="border:none;border-top:1px solid #e5e7eb;margin:15px 0;">
-                    <div><label style="font-weight:600;font-size:13px;display:block;margin-bottom:8px;">Sites em Modo Leitura</label><div class="input-group"><input type="text" id="modo-leitura-input" placeholder="Adicionar domínio"><button id="btn-add-modo-leitura" class="btn-dark">Adicionar</button></div><ul id="modo-leitura-list" class="blacklist-ul"></ul></div>
-                </div>
-                <div class="config-card full-width-seguranca">
-                    <h3>✅ Modo Whitelist</h3>
-                    <p class="desc">A extensão fica desligada em todos os sites, exceto nos listados.</p>
-                    <div class="config-item"><div class="info-text"><label>Ativar Modo Whitelist</label></div><label class="switch"><input type="checkbox" id="modoWhitelist"><span class="slider"></span></label></div>
-                    <hr style="border:none;border-top:1px solid #e5e7eb;margin:15px 0;">
-                    <div><label style="font-weight:600;font-size:13px;display:block;margin-bottom:8px;">Sites Permitidos</label><div class="input-group"><input type="text" id="whitelist-input" placeholder="Adicionar domínio"><button id="btn-add-whitelist" class="btn-dark">Permitir</button></div><ul id="whitelist-list" class="blacklist-ul"></ul></div>
-                </div>
-                <div class="config-card full-width-seguranca">
-                    <h3>☁️ Sincronização em Nuvem</h3>
-                    <p class="desc">Seus dados sincronizam entre dispositivos via sua conta Google.</p>
-                    <div class="config-item"><div class="info-text"><label>Cloud Sync</label></div><label class="switch"><input type="checkbox" id="cloudSync"><span class="slider"></span></label></div>
-                </div>
-            </div>
-        </div>
-
-        <!-- ============================================ -->
-        <!-- ABA DASHBOARD -->
-        <!-- ============================================ -->
-        <div id="aba-dashboard" class="aba-conteudo" style="display:none;">
-            <div class="dashboard-hero slide-in">
-                <div class="big-number" id="hero-total">0</div>
-                <div class="label">Total de Erros Corrigidos</div>
-                <div class="nivel" id="hero-nivel">Nível: Iniciante</div>
-            </div>
-            <div class="stat-grid-dash stagger-1">
-                <div class="stat-card-dash"><div class="icon-dash">✅</div><div class="value-dash" id="stat-aceitas">0</div><div class="label-dash">Correções Aceitas</div></div>
-                <div class="stat-card-dash"><div class="icon-dash">❌</div><div class="value-dash" id="stat-recusadas">0</div><div class="label-dash">Correções Recusadas</div></div>
-                <div class="stat-card-dash"><div class="icon-dash">📈</div><div class="value-dash" id="stat-taxa">100%</div><div class="label-dash">Taxa de Aceitação</div></div>
-                <div class="stat-card-dash"><div class="icon-dash">📖</div><div class="value-dash" id="stat-dic">0</div><div class="label-dash">Palavras no Dicionário</div></div>
-                <div class="stat-card-dash"><div class="icon-dash">🌐</div><div class="value-dash" id="stat-idioma">pt-BR</div><div class="label-dash">Idioma Atual</div></div>
-                <div class="stat-card-dash"><div class="icon-dash">☁️</div><div class="value-dash" id="stat-cloud">Desligado</div><div class="label-dash">Cloud Sync</div></div>
-            </div>
-            <div class="config-card stagger-2"><h3>🔝 Seus Erros Mais Comuns</h3><div id="lista-erros-comuns"></div></div>
-            <div class="config-card stagger-3"><h3>🏆 Conquistas</h3><div class="conquistas-grid" id="lista-conquistas"></div></div>
-            <div class="footer-dash"><p style="color:#9ca3af;font-size:12px;">Os dados são atualizados automaticamente conforme você usa a extensão.</p></div>
-        </div>
-
-        <!-- RODAPÉ -->
         <div class="footer-save">
-            <span id="save-status">✓ Salvo com sucesso!</span>
-            <button id="btn-salvar" class="btn-primary">Salvar Alterações</button>
+            <span id="save-status"></span>
+            <button id="btn-salvar" class="btn-primary">Guardar Alterações</button>
             <div class="spacer"></div>
         </div>
     </div>
 
     <script src="js/options.js"></script>
-    <script>
-        // 🆕 Navegação por abas
-        function mostrarAba(tab) {
-            document.querySelectorAll('.aba-conteudo').forEach(el => el.style.display = 'none');
-            document.querySelectorAll('.header-titles').forEach(el => el.style.display = 'none');
-            document.getElementById('aba-' + tab).style.display = '';
-            document.getElementById('header-' + tab).style.display = '';
-            document.querySelectorAll('.menu li').forEach(el => el.classList.remove('active'));
-            document.querySelector(`.menu li[data-tab="${tab}"]`).classList.add('active');
-        }
-    </script>
 </body>
 </html>

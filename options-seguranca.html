@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>SyntaxMentor - Segurança</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="seguranca-page">
+
+    <div class="sidebar">
+        <h2 class="logo">✨ SyntaxMentor <span style="font-size: 10px; color: #aaa;">v2.7.0 Elite</span></h2>
+        <ul class="menu">
+            <li><a href="options.html">Geral</a></li>
+            <li class="active"><a href="options-seguranca.html">Segurança</a></li>
+            <li><a href="options-dashboard.html">Dashboard</a></li>
+        </ul>
+    </div>
+
+    <div class="main-content">
+        <div class="header-titles">
+            <h1>🛡️ Segurança & Privacidade</h1>
+            <p>Controle as conexões externas e como os seus dados são processados.</p>
+        </div>
+
+        <div class="grid-container" style="grid-template-columns: 1fr 1fr; gap: 25px;">
+            
+            <div class="column-seg-left">
+                <div class="config-card">
+                    <h3>🔑 Servidor de Verificação (API)</h3>
+                    <p class="desc">Configure um servidor personalizado para maior privacidade ou limites maiores.</p>
+                    
+                    <div class="config-item-vertical" style="gap: 12px; margin-top: 15px;">
+                        <div>
+                            <label style="font-weight: 600; font-size: 13px; display: block; margin-bottom: 4px;">URL do Endpoint</label>
+                            <input type="text" id="api-url" class="full-input" placeholder="https://api.languagetool.org/v2/check">
+                        </div>
+                        
+                        <div>
+                            <label style="font-weight: 600; font-size: 13px; display: block; margin-bottom: 4px;">Chave de API (Opcional)</label>
+                            <div style="display: flex; gap: 10px;">
+                                <input type="password" id="api-key" class="full-input" placeholder="Sua chave privada" style="flex: 1;">
+                                <button id="btn-toggle-visibilidade" class="btn-seguranca-outline">👁️</button>
+                            </div>
+                        </div>
+                        
+                        <div style="display: flex; gap: 10px; align-items: center; margin-top: 5px;">
+                            <button id="btn-testar-api" class="btn-backup-export" style="flex: 1;">🔍 Testar Conexão</button>
+                        </div>
+                        
+                        <div id="detalhes-api" style="display: none; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 12px;">
+                            <span id="status-api" style="font-size: 12px; font-weight: 700; color: #166534;">✅ Conectado!</span>
+                            <p id="api-info" style="font-size: 11px; color: #166534; margin: 4px 0 0 0;"></p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="config-card">
+                    <h3>☁️ Sincronização em Nuvem (Sync)</h3>
+                    <div class="config-item">
+                        <div class="info-text">
+                            <label>Ativar Cloud Sync</label>
+                            <p class="desc">Sincroniza preferências via conta Google.</p>
+                        </div>
+                        <label class="switch"><input type="checkbox" id="cloudSync"><span class="slider"></span></label>
+                    </div>
+                    <div id="sync-status-area" style="margin-top: 10px; display: flex; justify-content: space-between; align-items: center;">
+                        <span style="font-size: 11px; color: #9ca3af;">Estado: <b id="stat-cloud">Desligado</b></span>
+                        <button id="btn-sync-now" class="btn-seguranca-outline" style="font-size: 10px; padding: 5px 10px;">Forçar Sincronização</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="column-seg-right">
+                <div class="config-card">
+                    <h3>🔐 Regras de Aplicação</h3>
+                    <div class="config-item">
+                        <div class="info-text">
+                            <label>Confirmação Manual</label>
+                            <p class="desc">Pergunta sempre antes de alterar o texto.</p>
+                        </div>
+                        <label class="switch"><input type="checkbox" id="modoConfirmacao"><span class="slider"></span></label>
+                    </div>
+                    
+                    <div class="divisor" style="margin: 15px 0;"></div>
+                    
+                    <div class="config-item">
+                        <div class="info-text">
+                            <label>Modo Leitura Global</label>
+                            <p class="desc">Deteta erros mas nunca corrige (Segurança Máxima).</p>
+                        </div>
+                        <label class="switch"><input type="checkbox" id="modoLeituraGlobal"><span class="slider"></span></label>
+                    </div>
+                </div>
+
+                <div class="config-card">
+                    <h3>🌐 Filtros por Domínio</h3>
+                    
+                    <div style="margin-bottom: 20px;">
+                        <label style="font-weight: 700; font-size: 13px; color: #92400e;">📖 Sites em Modo Leitura</label>
+                        <div class="input-group">
+                            <input type="text" id="modo-leitura-input" placeholder="ex: docs.google.com">
+                            <button id="btn-add-modo-leitura" class="btn-dark">Add</button>
+                        </div>
+                        <ul id="modo-leitura-list" class="blacklist-ul"></ul>
+                    </div>
+
+                    <div class="divisor" style="margin: 15px 0;"></div>
+
+                    <div>
+                        <label style="font-weight: 700; font-size: 13px; color: #166534;">✅ Modo Whitelist (Permitidos)</label>
+                        <p class="desc" style="margin-bottom: 8px;">A extensão funcionará <b>apenas</b> nestes sites.</p>
+                        <div class="config-item" style="margin-bottom: 10px;">
+                            <span class="desc">Ativar Whitelist Global</span>
+                            <label class="switch"><input type="checkbox" id="modoWhitelist"><span class="slider"></span></label>
+                        </div>
+                        <div class="input-group">
+                            <input type="text" id="whitelist-input" placeholder="ex: gmail.com">
+                            <button id="btn-add-whitelist" class="btn-dark">Add</button>
+                        </div>
+                        <ul id="whitelist-list" class="blacklist-ul"></ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer-save">
+            <span id="save-status"></span>
+            <button id="btn-salvar" class="btn-primary">Guardar Todas as Alterações</button>
+            <div class="spacer"></div>
+        </div>
+    </div>
+
+    <script src="js/options.js"></script>
+</body>
+</html>
