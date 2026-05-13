@@ -1,5 +1,5 @@
 // =============================================
-// SyntaxMentor - 2.6.0 - (Unified: Geral + Segurança + Dashboard)
+// SyntaxMentor - 2.7.0 - 
 // =============================================
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -25,6 +25,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const dictionaryUl = document.getElementById('dictionary-list');
     let currentDictionary = [];
 
+    const btnClearBlacklist = document.getElementById('btn-clear-blacklist');
+    const btnClearDictionary = document.getElementById('btn-clear-dictionary');
     const btnGravarToggle = document.getElementById('btn-gravar-atalho');
     const btnGravarIgnore = document.getElementById('btn-gravar-ignorar');
     const btnGravarCorrigirTudo = document.getElementById('btn-gravar-corrigir-tudo');
@@ -187,6 +189,22 @@ document.addEventListener('DOMContentLoaded', () => {
         blacklistInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') { e.preventDefault(); btnAddBlacklist.click(); } });
     }
 
+    if (btnClearBlacklist) {
+        btnClearBlacklist.addEventListener('click', () => {
+            if (currentBlacklist.length === 0) {
+                mostrarNotificacao('A lista já está vazia', 'info');
+                return;
+            }
+            if (window.confirm('Tem a certeza que deseja remover TODOS os sites ignorados? Esta ação não pode ser desfeita.')) {
+                currentBlacklist = [];
+                chrome.storage.local.set({ blacklist: currentBlacklist }, () => {
+                    renderizarBlacklist();
+                    mostrarNotificacao('✅ Todos os sites foram removidos', 'success');
+                });
+            }
+        });
+    }
+
     function renderizarBlacklist() {
         if (!blacklistUl) return;
         blacklistUl.innerHTML = '';
@@ -210,6 +228,22 @@ document.addEventListener('DOMContentLoaded', () => {
             else { mostrarNotificacao('⚠️ Esta palavra já existe no dicionário', 'info'); dictionaryInput.value = ''; }
         });
         dictionaryInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') { e.preventDefault(); btnAddDictionary.click(); } });
+    }
+
+    if (btnClearDictionary) {
+        btnClearDictionary.addEventListener('click', () => {
+            if (currentDictionary.length === 0) {
+                mostrarNotificacao('O dicionário já está vazio', 'info');
+                return;
+            }
+            if (window.confirm('Tem a certeza que deseja remover TODAS as palavras do dicionário? Esta ação não pode ser desfeita.')) {
+                currentDictionary = [];
+                chrome.storage.local.set({ dicionario_pessoal: currentDictionary }, () => {
+                    renderizarDicionario();
+                    mostrarNotificacao('✅ Dicionário limpo com sucesso', 'success');
+                });
+            }
+        });
     }
 
     function renderizarDicionario() {
@@ -431,7 +465,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const erros = res.erroMaisComum || {};
         const ordenados = Object.entries(erros).sort((a, b) => b[1] - a[1]).slice(0, 6);
         if (ordenados.length === 0) { listaErrosComuns.innerHTML = '<p style="color:#888;text-align:center;padding:20px;">Corrija alguns erros para ver suas estatísticas aqui!</p>'; }
-        else { const max = ordenados[0][1]; listaErrosComuns.innerHTML = ordenados.map(([p, c]) => `<div class="barra-container-dash"><div class="barra-label-dash"><span>${p}</span><span>${c}x</span></div><div class="barra-dash"><div class="barra-preenchida-dash" style="width:${Math.max(Math.round((c/max)*100),10)}%;">${c}x</div></div></div>`).join(''); }
+        else { const max = ordenados[0][1]; listaErrosComuns.innerHTML = ordenados.map(([p, c]) => `<div class="barra-container-dash"><div class="barra-label-dash"><span>${p}</span><span>${c}x</span></div><div class="barra-dash"><div class="barra-preenchida-dash" style="width:${Math.max(Math.round((c / max) * 100), 10)}%;">${c}x</div></div></div>`).join(''); }
 
         const conquistas = [
             { nome: 'Primeira Correção', desbloqueada: total >= 1 }, { nome: '10 Correções', desbloqueada: total >= 10 },

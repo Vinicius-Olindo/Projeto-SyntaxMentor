@@ -1,8 +1,7 @@
-/* =========================================================================
-   SyntaxMentor - 2.6.0 - Caixa do dicionario
-   ========================================================================= */
+/* =========================================================
+   SyntaxMentor - popup.css v2.7.0 (Elite UI)
+   ========================================================= */
 
-/* SyntaxMentor - popup.css v2.0.1 (Dark Mode Fix) */
 body {
     width: 320px;
     margin: 0;
@@ -12,9 +11,10 @@ body {
     display: flex;
     flex-direction: column;
     transition: background-color 0.3s, color 0.3s;
+    overflow: hidden;
 }
 
-/* Cabeçalho */
+/* --- 1. CABEÇALHO --- */
 .header {
     background: linear-gradient(135deg, #6f42c1 0%, #8b5cf6 100%);
     color: white;
@@ -26,16 +26,101 @@ body {
     align-items: center;
     justify-content: center;
     gap: 8px;
-    border-radius: 0 0 12px 12px;
     box-shadow: 0 2px 10px rgba(111, 66, 193, 0.2);
-    transition: background 0.3s, box-shadow 0.3s;
 }
 
+/* --- 2. QUICK ACTION BAR --- */
+.quick-action-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #f8f9fa;
+    padding: 10px 15px;
+    border-bottom: 1px solid #e5e7eb;
+    transition: all 0.3s;
+}
+
+.site-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #4b5563;
+}
+
+.site-name {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 200px;
+}
+
+.status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: #e53e3e;
+    box-shadow: 0 0 5px rgba(229, 62, 62, 0.3);
+}
+
+.status-dot.active {
+    background-color: #28a745;
+    box-shadow: 0 0 5px rgba(40, 167, 69, 0.4);
+}
+
+/* Switch Miniatura */
+.switch-mini {
+    position: relative;
+    display: inline-block;
+    width: 34px;
+    height: 18px;
+    flex-shrink: 0;
+}
+
+.switch-mini input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.slider-mini {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    transition: .3s;
+    border-radius: 18px;
+}
+
+.slider-mini:before {
+    position: absolute;
+    content: "";
+    height: 12px;
+    width: 12px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    transition: .3s;
+    border-radius: 50%;
+}
+
+input:checked+.slider-mini {
+    background-color: #6f42c1;
+}
+
+input:checked+.slider-mini:before {
+    transform: translateX(16px);
+}
+
+/* --- 3. CONTEÚDO E DICIONÁRIO --- */
 .content {
-    padding: 20px 15px 10px 15px;
+    padding: 15px;
 }
 
-/* Input e Botão de Adicionar */
 .input-container {
     display: flex;
     margin-bottom: 15px;
@@ -52,38 +137,23 @@ body {
     transition: 0.3s;
 }
 
-#word-input:focus {
-    border-color: #8b5cf6;
-}
-
 #add-btn {
     background-color: #28a745;
     color: white;
     border: 2px solid #28a745;
     border-radius: 0 8px 8px 0;
     padding: 0 16px;
-    font-size: 20px;
+    font-size: 18px;
     font-weight: bold;
     cursor: pointer;
-    transition: 0.2s;
-    display: flex;
-    align-items: center;
-    justify-content: center;
 }
 
-#add-btn:hover {
-    background-color: #218838;
-    border-color: #218838;
-}
-
-/* Lista de Palavras */
 #word-list {
     list-style: none;
     padding: 0;
     margin: 0;
-    max-height: 220px;
+    max-height: 200px;
     overflow-y: auto;
-    padding-right: 5px;
 }
 
 #word-list li {
@@ -91,77 +161,48 @@ body {
     justify-content: space-between;
     align-items: center;
     background-color: #fff;
-    padding: 10px 15px;
-    margin-bottom: 8px;
+    padding: 10px 12px;
+    margin-bottom: 6px;
     border-radius: 8px;
     border: 1px solid #f0f0f0;
     border-left: 4px solid #8b5cf6;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
     font-size: 13px;
     font-weight: 600;
     color: #4b5563;
-    transition: background-color 0.3s, border-color 0.3s, color 0.3s;
 }
 
 .btn-remove {
     background: none;
     border: none;
     color: #9ca3af;
-    font-size: 16px;
+    font-size: 14px;
     cursor: pointer;
-    padding: 0;
     transition: 0.2s;
 }
 
-.btn-remove:hover {
-    color: #dc3545;
-}
-
-/* Custom Scrollbar */
-#word-list::-webkit-scrollbar {
-    width: 6px;
-}
-
-#word-list::-webkit-scrollbar-track {
-    background: transparent;
-}
-
-#word-list::-webkit-scrollbar-thumb {
-    background: #d1d5db;
-    border-radius: 4px;
-}
-
-#word-list::-webkit-scrollbar-thumb:hover {
-    background: #9ca3af;
-}
-
-/* Dica de Edição no Rodapé */
-.popup-footer-hint {
-    text-align: center;
-    font-size: 11.5px;
-    color: #6b7280;
-    margin: 0 15px 15px 15px;
-    padding-top: 12px;
-    border-top: 1px solid #f3f4f6;
-    transition: color 0.3s, border-color 0.3s;
-}
-
-.popup-footer-hint a {
-    color: #6f42c1;
-    font-weight: 700;
+/* --- 4. RODAPÉ ELITE CENTRALIZADO (ATUALIZADO) --- */
+.elite-footer-link {
+    display: flex;
+    justify-content: center;
+    /* Centraliza o texto */
+    align-items: center;
+    background-color: #f8f9fa;
+    color: #4b5563;
     text-decoration: none;
-    transition: color 0.2s;
-    cursor: pointer;
+    padding: 14px 20px;
+    font-size: 12px;
+    font-weight: 700;
+    border-top: 1px solid #e5e7eb;
+    transition: all 0.2s ease;
+    margin-top: auto;
 }
 
-.popup-footer-hint a:hover {
-    color: #5a32a3;
-    text-decoration: underline;
+.elite-footer-link:hover {
+    background-color: #f3f0ff;
+    color: #6f42c1;
 }
 
-/* =========================================================
-   🌙 DARK MODE - POPUP
-   ========================================================= */
+/* --- 5. 🌙 MODO ESCURO --- */
 body.dark-mode {
     background-color: #1a1a1a;
     color: #e0e0e0;
@@ -169,7 +210,11 @@ body.dark-mode {
 
 body.dark-mode .header {
     background: linear-gradient(135deg, #4a2b85 0%, #6f42c1 100%);
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.4);
+}
+
+body.dark-mode .quick-action-bar {
+    background: #222;
+    border-bottom-color: #333;
 }
 
 body.dark-mode #word-input {
@@ -178,72 +223,19 @@ body.dark-mode #word-input {
     border-color: #444;
 }
 
-body.dark-mode #word-input:focus {
-    border-color: #8b5cf6;
-}
-
-body.dark-mode #word-input::placeholder {
-    color: #666;
-}
-
-body.dark-mode #add-btn {
-    background-color: #2d6a3f;
-    border-color: #2d6a3f;
-}
-
-body.dark-mode #add-btn:hover {
-    background-color: #236b32;
-    border-color: #236b32;
-}
-
 body.dark-mode #word-list li {
-    background-color: #2a2a2a;
+    background-color: #252525;
     border-color: #333;
     color: #ddd;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
-body.dark-mode #word-list::-webkit-scrollbar-thumb {
-    background: #555;
-}
-
-body.dark-mode #word-list::-webkit-scrollbar-thumb:hover {
-    background: #777;
-}
-
-body.dark-mode .btn-remove {
-    color: #666;
-}
-
-body.dark-mode .btn-remove:hover {
-    color: #f87171;
-}
-
-body.dark-mode .popup-footer-hint {
-    color: #888;
+body.dark-mode .elite-footer-link {
+    background-color: #1c1c1c;
+    color: #a1a1aa;
     border-top-color: #333;
 }
 
-body.dark-mode .popup-footer-hint a {
+body.dark-mode .elite-footer-link:hover {
+    background-color: #2a2a2a;
     color: #d8b4fe;
-}
-
-body.dark-mode .popup-footer-hint a:hover {
-    color: #e9d8fd;
-}
-
-/* =========================================================
-   🆕 BOTÃO CORRIGIR TUDO - DARK MODE
-   ========================================================= */
-body.dark-mode #btn-corrigir-tudo {
-    background: linear-gradient(135deg, #4a2b85 0%, #6f42c1 100%);
-    box-shadow: 0 4px 10px rgba(111, 66, 193, 0.5);
-}
-
-body.dark-mode #btn-corrigir-tudo:hover {
-    box-shadow: 0 6px 15px rgba(111, 66, 193, 0.7);
-}
-
-body.dark-mode .content > div:has(#btn-corrigir-tudo) {
-    border-top-color: #333;
 }
