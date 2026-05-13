@@ -1384,3 +1384,318 @@ body.dark-mode .divisor,
 body.dark-mode .footer-save {
     border-top-color: #2a2a2a;
 }
+
+/* ============================================
+   🆕 PÁGINA SEGURANÇA REDESENHADA v2.7.0
+   ============================================ */
+
+/* Fundo da página segurança */
+.seguranca-page {
+    background: linear-gradient(180deg, #f8f9fc 0%, #f0f4ff 100%);
+}
+
+body.dark-mode.seguranca-page {
+    background: linear-gradient(180deg, #121212 0%, #1a1025 100%);
+}
+
+/* Conteúdo principal - OCUPA TELA TODA */
+.seguranca-page .main-content {
+    margin-left: 260px;
+    padding: 30px 40px;
+    flex: 1;
+    max-width: none;
+    width: auto;
+}
+
+.seguranca-page .header-titles {
+    padding: 0;
+    margin-bottom: 24px;
+}
+
+/* ============================================
+   ROW DE STATUS RÁPIDO
+   ============================================ */
+.seguranca-status-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+    margin-bottom: 24px;
+    width: 100%;
+}
+
+.seguranca-status-card {
+    background: white;
+    border-radius: 14px;
+    padding: 18px 20px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    border: 1px solid #f0f0f0;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.03);
+}
+
+.seguranca-status-icon {
+    font-size: 28px;
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f8f9fa;
+    border-radius: 12px;
+    flex-shrink: 0;
+}
+
+.seguranca-status-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.seguranca-status-label {
+    font-size: 11px;
+    color: #6b7280;
+    font-weight: 500;
+    margin-bottom: 2px;
+}
+
+.seguranca-status-value {
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.seguranca-status-value.api-ok {
+    color: #28a745;
+}
+
+.seguranca-status-value.api-off {
+    color: #9ca3af;
+}
+
+.seguranca-status-value.modo-leitura {
+    color: #f59e0b;
+}
+
+.seguranca-status-value.modo-normal {
+    color: #6f42c1;
+}
+
+.seguranca-status-value.cloud-on {
+    color: #3b82f6;
+}
+
+.seguranca-status-value.cloud-off {
+    color: #9ca3af;
+}
+
+body.dark-mode .seguranca-status-card {
+    background: #1a1a1a;
+    border-color: #2a2a2a;
+}
+
+body.dark-mode .seguranca-status-icon {
+    background: #2a2a2a;
+}
+
+/* ============================================
+   GRID PRINCIPAL DA SEGURANÇA
+   ============================================ */
+.seguranca-main-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    width: 100%;
+}
+
+.seguranca-col-left,
+.seguranca-col-right {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    min-width: 0;
+}
+
+/* ============================================
+   CARDS COM CABEÇALHO (SEGURANÇA)
+   ============================================ */
+.card-api-key .card-header,
+.card-modo-correcao .card-header,
+.card-whitelist .card-header,
+.card-cloud-sync .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.card-api-key .card-header h3,
+.card-modo-correcao .card-header h3,
+.card-whitelist .card-header h3,
+.card-cloud-sync .card-header h3 {
+    margin: 0;
+    font-size: 16px;
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+body.dark-mode .card-api-key .card-header,
+body.dark-mode .card-modo-correcao .card-header,
+body.dark-mode .card-whitelist .card-header,
+body.dark-mode .card-cloud-sync .card-header {
+    border-bottom-color: #2a2a2a;
+}
+
+/* ============================================
+   FORMULÁRIO DA API
+   ============================================ */
+.api-form {
+    margin-top: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.api-field label {
+    font-weight: 600;
+    font-size: 13px;
+    display: block;
+    margin-bottom: 6px;
+}
+
+.api-key-row {
+    display: flex;
+    gap: 8px;
+}
+
+.api-key-row .full-input {
+    flex: 1;
+}
+
+.api-hint {
+    font-size: 10px;
+    color: #9ca3af;
+    margin-top: 4px;
+}
+
+.api-actions {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+
+#status-api {
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.api-success-box {
+    display: none;
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    border-radius: 8px;
+    padding: 12px;
+}
+
+.api-success-box p {
+    font-size: 12px;
+    color: #166534;
+    margin: 0;
+}
+
+.api-success-box p+p {
+    margin-top: 4px;
+}
+
+body.dark-mode .api-success-box {
+    background: #1a3a2a;
+    border-color: #166534;
+}
+
+body.dark-mode .api-success-box p {
+    color: #6ee7b7;
+}
+
+.api-help {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 14px;
+    font-size: 11px;
+    color: #6b7280;
+}
+
+.api-help p {
+    margin: 0 0 6px 0;
+}
+
+.api-help ol {
+    margin: 0;
+    padding-left: 18px;
+}
+
+.api-help ol li {
+    margin-bottom: 4px;
+}
+
+.api-help a {
+    color: #6f42c1;
+    font-weight: 600;
+}
+
+body.dark-mode .api-help {
+    background: #2a2a2a;
+    color: #9ca3af;
+}
+
+/* ============================================
+   LISTA DENTRO DOS CARDS
+   ============================================ */
+.list-section {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid #f0f0f0;
+}
+
+.list-section label {
+    font-weight: 600;
+    font-size: 13px;
+    display: block;
+    margin-bottom: 4px;
+}
+
+.list-section .input-group {
+    margin-top: 8px;
+}
+
+body.dark-mode .list-section {
+    border-top-color: #2a2a2a;
+}
+
+/* ============================================
+   RESPONSIVO
+   ============================================ */
+@media (max-width: 1200px) {
+    .seguranca-main-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .seguranca-status-row {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+@media (max-width: 900px) {
+    .seguranca-page .main-content {
+        padding: 20px;
+    }
+
+    .seguranca-status-row {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 600px) {
+    .api-key-row {
+        flex-direction: column;
+    }
+}

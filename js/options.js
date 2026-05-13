@@ -1,8 +1,15 @@
 // =============================================
-// SyntaxMentor - 2.7.0 - 
+// SyntaxMentor - options.js v2.7.0 (Unified: Geral + Segurança + Dashboard + Status Badges)
 // =============================================
 
 document.addEventListener('DOMContentLoaded', () => {
+
+    // =============================================
+    // 0. APLICAR TEMA ESCURO AO INICIAR
+    // =============================================
+    chrome.storage.local.get({ darkMode: false }, (res) => {
+        document.body.classList.toggle('dark-mode', res.darkMode);
+    });
 
     // =============================================
     // ELEMENTOS DA INTERFACE
@@ -18,15 +25,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const blacklistInput = document.getElementById('blacklist-input');
     const btnAddBlacklist = document.getElementById('btn-add-blacklist');
     const blacklistUl = document.getElementById('blacklist-list');
+    const btnClearBlacklist = document.getElementById('btn-clear-blacklist');
     let currentBlacklist = [];
 
     const dictionaryInput = document.getElementById('dictionary-input');
     const btnAddDictionary = document.getElementById('btn-add-dictionary');
     const dictionaryUl = document.getElementById('dictionary-list');
+    const btnClearDictionary = document.getElementById('btn-clear-dictionary');
     let currentDictionary = [];
 
-    const btnClearBlacklist = document.getElementById('btn-clear-blacklist');
-    const btnClearDictionary = document.getElementById('btn-clear-dictionary');
     const btnGravarToggle = document.getElementById('btn-gravar-atalho');
     const btnGravarIgnore = document.getElementById('btn-gravar-ignorar');
     const btnGravarCorrigirTudo = document.getElementById('btn-gravar-corrigir-tudo');
@@ -37,7 +44,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnImportar = document.getElementById('btn-importar');
     const inputImportar = document.getElementById('input-importar');
 
-    // 🆕 Segurança
+    // Segurança
     const elApiUrl = document.getElementById('api-url');
     const elApiKey = document.getElementById('api-key');
     const btnTestarApi = document.getElementById('btn-testar-api');
@@ -47,6 +54,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const apiInfo = document.getElementById('api-info');
     const elModoConfirmacao = document.getElementById('modoConfirmacao');
     const elModoLeituraGlobal = document.getElementById('modoLeituraGlobal');
+    const elModoFoco = document.getElementById('modoFoco');
     const modoLeituraInput = document.getElementById('modo-leitura-input');
     const btnAddModoLeitura = document.getElementById('btn-add-modo-leitura');
     const modoLeituraUl = document.getElementById('modo-leitura-list');
@@ -58,28 +66,63 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentWhitelist = [];
     const elCloudSync = document.getElementById('cloudSync');
 
-    // 🆕 Dashboard
-    const heroTotal = document.getElementById('hero-total');
-    const heroNivel = document.getElementById('hero-nivel');
+    // Dashboard
+    const heroTotalMini = document.getElementById('hero-total-mini');
+    const heroNivelCompact = document.getElementById('hero-nivel-compact');
+    const heroProgressRing = document.getElementById('hero-progress-ring');
+    const statCorrigidasHoje = document.getElementById('stat-corrigidas-hoje');
+    const statSequencia = document.getElementById('stat-sequencia');
+    const statNivelCurto = document.getElementById('stat-nivel-curto');
+    const statDicCurto = document.getElementById('stat-dic-curto');
+    const statIdiomaMini = document.getElementById('stat-idioma-mini');
+    const statCloudMini = document.getElementById('stat-cloud-mini');
     const statAceitas = document.getElementById('stat-aceitas');
     const statRecusadas = document.getElementById('stat-recusadas');
     const statTaxa = document.getElementById('stat-taxa');
     const statDic = document.getElementById('stat-dic');
-    const statIdioma = document.getElementById('stat-idioma');
-    const statCloud = document.getElementById('stat-cloud');
-    const listaErrosComuns = document.getElementById('lista-erros-comuns');
+    const conquistasDesbloqueadas = document.getElementById('conquistas-desbloqueadas');
     const listaConquistas = document.getElementById('lista-conquistas');
+    const listaErrosComuns = document.getElementById('lista-erros-comuns');
 
     // =============================================
-    // 0. APLICAR TEMA ESCURO AO INICIAR
+    // 🆕 ATUALIZAR STATUS DA PÁGINA DE SEGURANÇA
     // =============================================
-    chrome.storage.local.get({ darkMode: false }, (res) => {
-        if (res.darkMode) {
-            document.body.classList.add('dark-mode');
-        } else {
-            document.body.classList.remove('dark-mode');
-        }
-    });
+    function atualizarStatusSeguranca() {
+        const statusApiBadge = document.getElementById('status-api-badge');
+        const statusModoBadge = document.getElementById('status-modo-badge');
+        const statusCloudBadge = document.getElementById('status-cloud-badge');
+        if (!statusApiBadge && !statusModoBadge && !statusCloudBadge) return;
+
+        chrome.storage.local.get({ apiKey: '', modoLeituraGlobal: false, cloudSync: false }, (res) => {
+            if (statusApiBadge) {
+                if (res.apiKey && res.apiKey.trim() !== '') {
+                    statusApiBadge.textContent = '✅ Configurada';
+                    statusApiBadge.className = 'seguranca-status-value api-ok';
+                } else {
+                    statusApiBadge.textContent = 'Não configurada';
+                    statusApiBadge.className = 'seguranca-status-value api-off';
+                }
+            }
+            if (statusModoBadge) {
+                if (res.modoLeituraGlobal) {
+                    statusModoBadge.textContent = '📖 Somente Leitura';
+                    statusModoBadge.className = 'seguranca-status-value modo-leitura';
+                } else {
+                    statusModoBadge.textContent = 'Normal';
+                    statusModoBadge.className = 'seguranca-status-value modo-normal';
+                }
+            }
+            if (statusCloudBadge) {
+                if (res.cloudSync) {
+                    statusCloudBadge.textContent = '☁️ Ligado';
+                    statusCloudBadge.className = 'seguranca-status-value cloud-on';
+                } else {
+                    statusCloudBadge.textContent = 'Desligado';
+                    statusCloudBadge.className = 'seguranca-status-value cloud-off';
+                }
+            }
+        });
+    }
 
     // =============================================
     // 1. CARREGAR CONFIGURAÇÕES
@@ -92,12 +135,13 @@ document.addEventListener('DOMContentLoaded', () => {
         corrigirTudoShortcut: { altKey: true, ctrlKey: false, shiftKey: true, key: 's', display: 'Alt + Shift + S' },
         apiUrl: '', apiKey: '', modoConfirmacao: false, modoLeituraGlobal: false,
         modoLeituraSites: [], modoWhitelist: false, whitelist: [], cloudSync: false,
+        modoFoco: false,
         totalCorrigidas: 0, totalAceitas: 0, totalRecusadas: 0, erroMaisComum: {}
     }, (res) => {
         // Geral
         if (elLanguage) elLanguage.value = res.language;
         if (elPickyMode) elPickyMode.checked = res.pickyMode;
-        if (elDarkMode) { elDarkMode.checked = res.darkMode; if (res.darkMode) document.body.classList.add('dark-mode'); }
+        if (elDarkMode) { elDarkMode.checked = res.darkMode; document.body.classList.toggle('dark-mode', res.darkMode); }
         if (elAutoHideBubble) elAutoHideBubble.checked = res.autoHideBubble || false;
         elSpeedOptions.forEach(opt => { if (opt.value === res.speed.toString()) opt.checked = true; });
         currentBlacklist = res.blacklist; renderizarBlacklist();
@@ -111,10 +155,12 @@ document.addEventListener('DOMContentLoaded', () => {
         if (elApiKey) elApiKey.value = res.apiKey || '';
         if (elModoConfirmacao) elModoConfirmacao.checked = res.modoConfirmacao || false;
         if (elModoLeituraGlobal) elModoLeituraGlobal.checked = res.modoLeituraGlobal || false;
+        if (elModoFoco) elModoFoco.checked = res.modoFoco || false;
         if (elModoWhitelist) elModoWhitelist.checked = res.modoWhitelist || false;
         if (elCloudSync) elCloudSync.checked = res.cloudSync || false;
         currentModoLeitura = res.modoLeituraSites || []; renderizarModoLeitura();
         currentWhitelist = res.whitelist || []; renderizarWhitelist();
+        atualizarStatusSeguranca();
 
         // Dashboard
         carregarDashboard(res);
@@ -136,10 +182,15 @@ document.addEventListener('DOMContentLoaded', () => {
         if (changes.whitelist) { currentWhitelist = changes.whitelist.newValue || []; renderizarWhitelist(); }
         if (changes.modoConfirmacao && elModoConfirmacao) elModoConfirmacao.checked = changes.modoConfirmacao.newValue;
         if (changes.modoLeituraGlobal && elModoLeituraGlobal) elModoLeituraGlobal.checked = changes.modoLeituraGlobal.newValue;
+        if (changes.modoFoco && elModoFoco) elModoFoco.checked = changes.modoFoco.newValue;
         if (changes.modoWhitelist && elModoWhitelist) elModoWhitelist.checked = changes.modoWhitelist.newValue;
         if (changes.cloudSync && elCloudSync) elCloudSync.checked = changes.cloudSync.newValue;
+        if (changes.apiKey || changes.modoLeituraGlobal || changes.cloudSync) atualizarStatusSeguranca();
         if (changes.totalCorrigidas || changes.totalAceitas || changes.totalRecusadas || changes.dicionario_pessoal || changes.erroMaisComum || changes.language || changes.cloudSync) {
-            chrome.storage.local.get({ totalCorrigidas: 0, totalAceitas: 0, totalRecusadas: 0, dicionario_pessoal: [], language: 'pt-BR', erroMaisComum: {}, cloudSync: false }, carregarDashboard);
+            chrome.storage.local.get({ totalCorrigidas: 0, totalAceitas: 0, totalRecusadas: 0, dicionario_pessoal: [], language: 'pt-BR', erroMaisComum: {}, cloudSync: false, modoLeituraGlobal: false }, (r) => {
+                carregarDashboard(r);
+                atualizarStatusSeguranca();
+            });
         }
     });
 
@@ -152,9 +203,14 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     if (elAutoHideBubble) elAutoHideBubble.addEventListener('change', (e) => chrome.storage.local.set({ autoHideBubble: e.target.checked }));
     if (elModoConfirmacao) elModoConfirmacao.addEventListener('change', (e) => chrome.storage.local.set({ modoConfirmacao: e.target.checked }));
-    if (elModoLeituraGlobal) elModoLeituraGlobal.addEventListener('change', (e) => chrome.storage.local.set({ modoLeituraGlobal: e.target.checked }));
+    if (elModoLeituraGlobal) elModoLeituraGlobal.addEventListener('change', (e) => {
+        chrome.storage.local.set({ modoLeituraGlobal: e.target.checked }, atualizarStatusSeguranca);
+    });
+    if (elModoFoco) elModoFoco.addEventListener('change', (e) => chrome.storage.local.set({ modoFoco: e.target.checked }));
     if (elModoWhitelist) elModoWhitelist.addEventListener('change', (e) => chrome.storage.local.set({ modoWhitelist: e.target.checked }));
-    if (elCloudSync) elCloudSync.addEventListener('change', (e) => chrome.storage.local.set({ cloudSync: e.target.checked }));
+    if (elCloudSync) elCloudSync.addEventListener('change', (e) => {
+        chrome.storage.local.set({ cloudSync: e.target.checked }, atualizarStatusSeguranca);
+    });
 
     // =============================================
     // 4. SALVAR CONFIGURAÇÕES GERAIS
@@ -171,9 +227,13 @@ document.addEventListener('DOMContentLoaded', () => {
             apiKey: elApiKey?.value?.trim() || '',
             modoConfirmacao: elModoConfirmacao?.checked || false,
             modoLeituraGlobal: elModoLeituraGlobal?.checked || false,
+            modoFoco: elModoFoco?.checked || false,
             modoWhitelist: elModoWhitelist?.checked || false,
             cloudSync: elCloudSync?.checked || false
-        }, () => mostrarNotificacao('✓ Guardado com sucesso!', 'success'));
+        }, () => {
+            mostrarNotificacao('✓ Guardado com sucesso!', 'success');
+            atualizarStatusSeguranca();
+        });
     });
 
     // =============================================
@@ -188,19 +248,12 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         blacklistInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') { e.preventDefault(); btnAddBlacklist.click(); } });
     }
-
     if (btnClearBlacklist) {
         btnClearBlacklist.addEventListener('click', () => {
-            if (currentBlacklist.length === 0) {
-                mostrarNotificacao('A lista já está vazia', 'info');
-                return;
-            }
-            if (window.confirm('Tem a certeza que deseja remover TODOS os sites ignorados? Esta ação não pode ser desfeita.')) {
+            if (currentBlacklist.length === 0) { mostrarNotificacao('📭 A lista de sites já está vazia.', 'info'); return; }
+            if (confirm(`⚠️ Tem certeza que deseja remover TODOS os ${currentBlacklist.length} sites bloqueados?\n\nEsta ação não pode ser desfeita.`)) {
                 currentBlacklist = [];
-                chrome.storage.local.set({ blacklist: currentBlacklist }, () => {
-                    renderizarBlacklist();
-                    mostrarNotificacao('✅ Todos os sites foram removidos', 'success');
-                });
+                chrome.storage.local.set({ blacklist: [] }, () => { renderizarBlacklist(); mostrarNotificacao('🗑️ Todos os sites foram removidos!', 'success'); });
             }
         });
     }
@@ -229,19 +282,12 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         dictionaryInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') { e.preventDefault(); btnAddDictionary.click(); } });
     }
-
     if (btnClearDictionary) {
         btnClearDictionary.addEventListener('click', () => {
-            if (currentDictionary.length === 0) {
-                mostrarNotificacao('O dicionário já está vazio', 'info');
-                return;
-            }
-            if (window.confirm('Tem a certeza que deseja remover TODAS as palavras do dicionário? Esta ação não pode ser desfeita.')) {
+            if (currentDictionary.length === 0) { mostrarNotificacao('📭 O dicionário já está vazio.', 'info'); return; }
+            if (confirm(`⚠️ Tem certeza que deseja remover TODAS as ${currentDictionary.length} palavras do dicionário?\n\nEsta ação não pode ser desfeita.`)) {
                 currentDictionary = [];
-                chrome.storage.local.set({ dicionario_pessoal: currentDictionary }, () => {
-                    renderizarDicionario();
-                    mostrarNotificacao('✅ Dicionário limpo com sucesso', 'success');
-                });
+                chrome.storage.local.set({ dicionario_pessoal: [] }, () => { renderizarDicionario(); mostrarNotificacao('🗑️ Todas as palavras foram removidas!', 'success'); });
             }
         });
     }
@@ -329,8 +375,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (btnExportar) btnExportar.addEventListener('click', () => {
         mostrarNotificacao('⏳ A gerar backup...', 'info');
         chrome.storage.local.get(null, (dados) => {
-            delete dados.apiKey;
-            const jsonStr = JSON.stringify({ versao: '2.6.0', data: new Date().toISOString(), dados }, null, 2);
+            delete dados.apiKey; delete dados.dataInstalacao;
+            const jsonStr = JSON.stringify({ versao: '2.7.0', data: new Date().toISOString(), dados }, null, 2);
             const blob = new Blob([jsonStr], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a'); a.href = url; a.download = `syntaxmentor-backup-${new Date().toISOString().split('T')[0]}.json`;
@@ -398,13 +444,22 @@ document.addEventListener('DOMContentLoaded', () => {
     if (btnTestarApi) btnTestarApi.addEventListener('click', async () => {
         const url = (elApiUrl?.value || 'https://api.languagetool.org/v2/check').trim();
         const key = elApiKey?.value?.trim() || '';
-        statusApi.textContent = '⏳ Testando...'; statusApi.style.color = '#f59e0b'; detalhesApi.style.display = 'none';
+        if (statusApi) { statusApi.textContent = '⏳ Testando...'; statusApi.style.color = '#f59e0b'; }
+        if (detalhesApi) detalhesApi.style.display = 'none';
         try {
             const headers = { 'Content-Type': 'application/x-www-form-urlencoded' }; if (key) headers['Authorization'] = `Bearer ${key}`;
             const resp = await fetch(url, { method: 'POST', headers, body: new URLSearchParams({ text: 'Hello world', language: 'en-US' }) });
-            if (resp.ok) { const data = await resp.json(); statusApi.textContent = '✅ Conectado!'; statusApi.style.color = '#28a745'; detalhesApi.style.display = 'block'; apiInfo.textContent = `Idioma: ${data.language?.name || 'OK'} | ${new URL(url).hostname}`; chrome.storage.local.set({ apiUrl: url, apiKey: key }); }
-            else throw new Error(`HTTP ${resp.status}`);
-        } catch (err) { statusApi.textContent = '❌ ' + err.message; statusApi.style.color = '#e53e3e'; detalhesApi.style.display = 'none'; }
+            if (resp.ok) {
+                const data = await resp.json();
+                if (statusApi) { statusApi.textContent = '✅ Conectado!'; statusApi.style.color = '#28a745'; }
+                if (detalhesApi) { detalhesApi.style.display = 'block'; }
+                if (apiInfo) apiInfo.textContent = `Idioma: ${data.language?.name || 'OK'} | ${new URL(url).hostname}`;
+                chrome.storage.local.set({ apiUrl: url, apiKey: key }, atualizarStatusSeguranca);
+            } else throw new Error(`HTTP ${resp.status}`);
+        } catch (err) {
+            if (statusApi) { statusApi.textContent = '❌ ' + err.message; statusApi.style.color = '#e53e3e'; }
+            if (detalhesApi) detalhesApi.style.display = 'none';
+        }
     });
     if (btnToggleVisibilidade && elApiKey) btnToggleVisibilidade.addEventListener('click', () => {
         if (elApiKey.type === 'password') { elApiKey.type = 'text'; btnToggleVisibilidade.textContent = '🙈 Ocultar'; }
@@ -446,56 +501,27 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // =============================================
-    // 14. DASHBOARD (ATUALIZADO)
+    // 14. DASHBOARD
     // =============================================
     function carregarDashboard(res) {
-        // Hero Compacto
-        const heroTotalMini = document.getElementById('hero-total-mini');
-        const heroNivelCompact = document.getElementById('hero-nivel-compact');
-        const heroProgressRing = document.getElementById('hero-progress-ring');
-
-        // Quick Stats
-        const statCorrigidasHoje = document.getElementById('stat-corrigidas-hoje');
-        const statSequencia = document.getElementById('stat-sequencia');
-        const statNivelCurto = document.getElementById('stat-nivel-curto');
-        const statDicCurto = document.getElementById('stat-dic-curto');
-        const statIdiomaMini = document.getElementById('stat-idioma-mini');
-        const statCloudMini = document.getElementById('stat-cloud-mini');
-
-        // Mini Stats
-        const statAceitas = document.getElementById('stat-aceitas');
-        const statRecusadas = document.getElementById('stat-recusadas');
-        const statTaxa = document.getElementById('stat-taxa');
-        const statDic = document.getElementById('stat-dic');
-
-        // Conquistas
-        const conquistasDesbloqueadas = document.getElementById('conquistas-desbloqueadas');
-        const listaConquistas = document.getElementById('lista-conquistas');
-        const listaErrosComuns = document.getElementById('lista-erros-comuns');
-
-        if (!heroTotalMini && !listaConquistas) return; // Não está na página do dashboard
+        if (!heroTotalMini && !listaConquistas && !listaErrosComuns) return;
 
         const total = res.totalCorrigidas || 0;
         const aceitas = res.totalAceitas || 0;
         const recusadas = res.totalRecusadas || 0;
         const dicSize = (res.dicionario_pessoal || []).length;
 
-        // Nível
         let nivel = '🟢 Iniciante';
         let nivelCurto = 'Iniciante';
-        let progresso = 0; // 0 a 1
-
+        let progresso = 0;
         if (total >= 1000) { nivel = '👑 Lendário'; nivelCurto = 'Lendário'; progresso = 1; }
         else if (total >= 500) { nivel = '⭐ Mestre'; nivelCurto = 'Mestre'; progresso = 0.8; }
         else if (total >= 100) { nivel = '🔥 Avançado'; nivelCurto = 'Avançado'; progresso = 0.6; }
         else if (total >= 10) { nivel = '📈 Intermediário'; nivelCurto = 'Inter.'; progresso = 0.4; }
         else { progresso = Math.min(total / 10, 0.2); }
 
-        // Hero Compacto
         if (heroTotalMini) heroTotalMini.textContent = total.toLocaleString();
         if (heroNivelCompact) heroNivelCompact.textContent = nivel;
-
-        // Anel de progresso
         if (heroProgressRing) {
             const circunferencia = 2 * Math.PI * 54;
             const offset = circunferencia - (progresso * circunferencia);
@@ -503,70 +529,46 @@ document.addEventListener('DOMContentLoaded', () => {
             heroProgressRing.style.strokeDashoffset = offset;
             heroProgressRing.style.transition = 'stroke-dashoffset 1s ease';
         }
-
-        // Quick Stats
         if (statNivelCurto) statNivelCurto.textContent = nivelCurto;
         if (statDicCurto) statDicCurto.textContent = dicSize.toLocaleString();
         if (statIdiomaMini) statIdiomaMini.textContent = '🌐 ' + (res.language || 'pt-BR');
         if (statCloudMini) statCloudMini.textContent = res.cloudSync ? '☁️ Ligado' : '☁️ Desligado';
-
-        // Correções hoje (simulado - pode ser melhorado com storage)
-        if (statCorrigidasHoje) {
-            const hoje = new Date().toISOString().split('T')[0];
-            chrome.storage.local.get({ correcoesHoje: {}, dataUltimaCorrecao: '' }, (r) => {
-                const correcoesHoje = r.correcoesHoje || {};
-                statCorrigidasHoje.textContent = (correcoesHoje[hoje] || 0).toLocaleString();
-
-                // Calcula sequência de dias
-                let sequencia = 0;
-                let data = new Date();
-                while (true) {
-                    const chave = data.toISOString().split('T')[0];
-                    if (correcoesHoje[chave] && correcoesHoje[chave] > 0) {
-                        sequencia++;
-                        data.setDate(data.getDate() - 1);
-                    } else if (chave === hoje) {
-                        data.setDate(data.getDate() - 1);
-                    } else {
-                        break;
-                    }
-                }
-                if (statSequencia) statSequencia.textContent = sequencia;
-            });
-        }
-
-        // Mini Stats
         if (statAceitas) statAceitas.textContent = aceitas.toLocaleString();
         if (statRecusadas) statRecusadas.textContent = recusadas.toLocaleString();
         if (statTaxa) statTaxa.textContent = (aceitas + recusadas) > 0 ? Math.round((aceitas / (aceitas + recusadas)) * 100) + '%' : '100%';
         if (statDic) statDic.textContent = dicSize.toLocaleString();
 
-        // Erros Mais Comuns
+        if (statCorrigidasHoje) {
+            const hoje = new Date().toISOString().split('T')[0];
+            chrome.storage.local.get({ correcoesHoje: {}, dataUltimaCorrecao: '' }, (r) => {
+                const correcoesHoje = r.correcoesHoje || {};
+                statCorrigidasHoje.textContent = (correcoesHoje[hoje] || 0).toLocaleString();
+                let sequencia = 0;
+                let data = new Date();
+                while (true) {
+                    const chave = data.toISOString().split('T')[0];
+                    if (correcoesHoje[chave] && correcoesHoje[chave] > 0) { sequencia++; data.setDate(data.getDate() - 1); }
+                    else if (chave === hoje) { data.setDate(data.getDate() - 1); }
+                    else break;
+                }
+                if (statSequencia) statSequencia.textContent = sequencia;
+            });
+        }
+
         if (listaErrosComuns) {
             const erros = res.erroMaisComum || {};
             const ordenados = Object.entries(erros).sort((a, b) => b[1] - a[1]).slice(0, 5);
-
             if (ordenados.length === 0) {
                 listaErrosComuns.innerHTML = '<p style="color:#888;text-align:center;padding:20px;">Corrija alguns erros para ver suas estatísticas aqui!</p>';
             } else {
                 const max = ordenados[0][1];
                 listaErrosComuns.innerHTML = ordenados.map(([palavra, count]) => {
                     const pct = Math.max(Math.round((count / max) * 100), 10);
-                    return `
-                        <div class="barra-container-dash">
-                            <div class="barra-label-dash">
-                                <span>${palavra}</span>
-                                <span>${count}x</span>
-                            </div>
-                            <div class="barra-dash">
-                                <div class="barra-preenchida-dash" style="width:${pct}%;">${count}x</div>
-                            </div>
-                        </div>`;
+                    return `<div class="barra-container-dash"><div class="barra-label-dash"><span>${palavra}</span><span>${count}x</span></div><div class="barra-dash"><div class="barra-preenchida-dash" style="width:${pct}%;">${count}x</div></div></div>`;
                 }).join('');
             }
         }
 
-        // Conquistas
         if (listaConquistas) {
             const conquistas = [
                 { nome: 'Primeira Correção', desbloqueada: total >= 1 },
@@ -579,15 +581,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 { nome: '50 Palavras no Dicionário', desbloqueada: dicSize >= 50 },
                 { nome: 'Usou Cloud Sync', desbloqueada: res.cloudSync || false }
             ];
-
             const desbloqueadas = conquistas.filter(c => c.desbloqueada).length;
             if (conquistasDesbloqueadas) conquistasDesbloqueadas.textContent = desbloqueadas + '/9';
-
             listaConquistas.innerHTML = conquistas.map(c =>
-                `<div class="conquista-card ${c.desbloqueada ? 'unlock' : 'lock'}">
-                    <div class="conquista-icon">${c.desbloqueada ? '🏆' : '🔒'}</div>
-                    <div class="conquista-nome">${c.nome}</div>
-                </div>`
+                `<div class="conquista-card ${c.desbloqueada ? 'unlock' : 'lock'}"><div class="conquista-icon">${c.desbloqueada ? '🏆' : '🔒'}</div><div class="conquista-nome">${c.nome}</div></div>`
             ).join('');
         }
     }

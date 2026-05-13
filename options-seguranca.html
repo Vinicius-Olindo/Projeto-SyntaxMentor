@@ -1,5 +1,5 @@
 <!-- ============================================= -->
-<!-- SyntaxMentor - 2.6.0 - -->
+<!-- SyntaxMentor - options-seguranca.html v2.7.0 -->
 <!-- ============================================= -->
  
 <!DOCTYPE html>
@@ -9,11 +9,12 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
+    <title>Segurança - SyntaxMentor Elite</title>
     <link rel="stylesheet" href="css/style.css">
-    <title>SyntaxMentor - Segurança</title>
 </head>
 <body class="seguranca-page">
 
+    <!-- BARRA LATERAL -->
     <div class="sidebar">
         <h2 class="logo">✨ SyntaxMentor <span style="font-size: 10px; color: #aaa;">v2.7.0 Elite</span></h2>
         <ul class="menu">
@@ -23,116 +24,190 @@
         </ul>
     </div>
 
+    <!-- CONTEÚDO PRINCIPAL -->
     <div class="main-content">
         <div class="header-titles">
-            <h1>🛡️ Segurança & Privacidade</h1>
-            <p>Controle as conexões externas e como os seus dados são processados.</p>
+            <h1>🛡️ Segurança &amp; Privacidade</h1>
+            <p>Configure a API, modo de correção, whitelist e sincronização.</p>
         </div>
 
-        <div class="grid-container" style="grid-template-columns: 1fr 1fr; gap: 25px;">
+        <!-- 🆕 ROW DE STATUS RÁPIDO -->
+        <div class="seguranca-status-row">
+            <div class="seguranca-status-card" id="status-api-card">
+                <div class="seguranca-status-icon">🔑</div>
+                <div class="seguranca-status-info">
+                    <div class="seguranca-status-label">API Personalizada</div>
+                    <div class="seguranca-status-value" id="status-api-badge">Não configurada</div>
+                </div>
+            </div>
+            <div class="seguranca-status-card" id="status-modo-card">
+                <div class="seguranca-status-icon">🔐</div>
+                <div class="seguranca-status-info">
+                    <div class="seguranca-status-label">Modo de Correção</div>
+                    <div class="seguranca-status-value" id="status-modo-badge">Normal</div>
+                </div>
+            </div>
+            <div class="seguranca-status-card" id="status-cloud-card">
+                <div class="seguranca-status-icon">☁️</div>
+                <div class="seguranca-status-info">
+                    <div class="seguranca-status-label">Cloud Sync</div>
+                    <div class="seguranca-status-value" id="status-cloud-badge">Desligado</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 🆕 GRID PRINCIPAL (2 colunas) -->
+        <div class="seguranca-main-grid">
             
-            <div class="column-seg-left">
-                <div class="config-card">
-                    <h3>🔑 Servidor de Verificação (API)</h3>
-                    <p class="desc">Configure um servidor personalizado para maior privacidade ou limites maiores.</p>
+            <!-- COLUNA ESQUERDA -->
+            <div class="seguranca-col-left">
+                
+                <!-- API KEY -->
+                <div class="config-card card-api-key">
+                    <div class="card-header">
+                        <h3>🔑 Chave de API Personalizada</h3>
+                        <span class="card-badge">Premium</span>
+                    </div>
+                    <p class="desc">Use sua própria chave da API LanguageTool Cloud ou um servidor self-hosted.</p>
                     
-                    <div class="config-item-vertical" style="gap: 12px; margin-top: 15px;">
-                        <div>
-                            <label style="font-weight: 600; font-size: 13px; display: block; margin-bottom: 4px;">URL do Endpoint</label>
+                    <div class="api-form">
+                        <div class="api-field">
+                            <label>URL do Servidor</label>
                             <input type="text" id="api-url" class="full-input" placeholder="https://api.languagetool.org/v2/check">
                         </div>
                         
-                        <div>
-                            <label style="font-weight: 600; font-size: 13px; display: block; margin-bottom: 4px;">Chave de API (Opcional)</label>
-                            <div style="display: flex; gap: 10px;">
-                                <input type="password" id="api-key" class="full-input" placeholder="Sua chave privada" style="flex: 1;">
-                                <button id="btn-toggle-visibilidade" class="btn-seguranca-outline">👁️</button>
+                        <div class="api-field">
+                            <label>API Key</label>
+                            <div class="api-key-row">
+                                <input type="password" id="api-key" class="full-input" placeholder="Cole sua API Key aqui">
+                                <button id="btn-toggle-visibilidade" class="btn-seguranca-outline" title="Mostrar/ocultar chave">👁️</button>
                             </div>
+                            <p class="api-hint">Sua chave é armazenada localmente e nunca é compartilhada.</p>
                         </div>
                         
-                        <div style="display: flex; gap: 10px; align-items: center; margin-top: 5px;">
-                            <button id="btn-testar-api" class="btn-backup-export" style="flex: 1;">🔍 Testar Conexão</button>
+                        <div class="api-actions">
+                            <button id="btn-testar-api" class="btn-backup-export">
+                                🔍 Testar Conexão
+                            </button>
+                            <span id="status-api"></span>
                         </div>
                         
-                        <div id="detalhes-api" style="display: none; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 12px;">
-                            <span id="status-api" style="font-size: 12px; font-weight: 700; color: #166534;">✅ Conectado!</span>
-                            <p id="api-info" style="font-size: 11px; color: #166534; margin: 4px 0 0 0;"></p>
+                        <div id="detalhes-api" class="api-success-box">
+                            <p>✅ <strong>Conexão bem-sucedida!</strong></p>
+                            <p id="api-info"></p>
+                        </div>
+                        
+                        <div class="api-help">
+                            <p>💡 <strong>Como obter uma API Key:</strong></p>
+                            <ol>
+                                <li>Acesse <a href="https://languagetool.org/cloud" target="_blank">languagetool.org/cloud</a></li>
+                                <li>Crie uma conta gratuita (até 1000 requisições/mês)</li>
+                                <li>Copie sua API Key do painel</li>
+                            </ol>
                         </div>
                     </div>
                 </div>
 
-                <div class="config-card">
-                    <h3>☁️ Sincronização em Nuvem (Sync)</h3>
-                    <div class="config-item">
-                        <div class="info-text">
-                            <label>Ativar Cloud Sync</label>
-                            <p class="desc">Sincroniza preferências via conta Google.</p>
-                        </div>
-                        <label class="switch"><input type="checkbox" id="cloudSync"><span class="slider"></span></label>
+                <!-- MODO WHITELIST -->
+                <div class="config-card card-whitelist">
+                    <div class="card-header">
+                        <h3>✅ Modo Whitelist</h3>
+                        <span class="card-badge">Privacidade</span>
                     </div>
-                    <div id="sync-status-area" style="margin-top: 10px; display: flex; justify-content: space-between; align-items: center;">
-                        <span style="font-size: 11px; color: #9ca3af;">Estado: <b id="stat-cloud">Desligado</b></span>
-                        <button id="btn-sync-now" class="btn-seguranca-outline" style="font-size: 10px; padding: 5px 10px;">Forçar Sincronização</button>
-                    </div>
-                </div>
-            </div>
-
-            <div class="column-seg-right">
-                <div class="config-card">
-                    <h3>🔐 Regras de Aplicação</h3>
-                    <div class="config-item">
-                        <div class="info-text">
-                            <label>Confirmação Manual</label>
-                            <p class="desc">Pergunta sempre antes de alterar o texto.</p>
-                        </div>
-                        <label class="switch"><input type="checkbox" id="modoConfirmacao"><span class="slider"></span></label>
-                    </div>
-                    
-                    <div class="divisor" style="margin: 15px 0;"></div>
+                    <p class="desc">A extensão fica desligada em todos os sites, exceto nos listados abaixo.</p>
                     
                     <div class="config-item">
                         <div class="info-text">
-                            <label>Modo Leitura Global</label>
-                            <p class="desc">Deteta erros mas nunca corrige (Segurança Máxima).</p>
+                            <label>Ativar Modo Whitelist</label>
+                            <p class="desc">Substitui a blacklist. Máximo de privacidade.</p>
                         </div>
-                        <label class="switch"><input type="checkbox" id="modoLeituraGlobal"><span class="slider"></span></label>
+                        <label class="switch"><input type="checkbox" id="modoWhitelist"><span class="slider"></span></label>
                     </div>
-                </div>
-
-                <div class="config-card">
-                    <h3>🌐 Filtros por Domínio</h3>
                     
-                    <div style="margin-bottom: 20px;">
-                        <label style="font-weight: 700; font-size: 13px; color: #92400e;">📖 Sites em Modo Leitura</label>
+                    <div class="list-section">
+                        <label>Sites Permitidos</label>
                         <div class="input-group">
-                            <input type="text" id="modo-leitura-input" placeholder="ex: docs.google.com">
-                            <button id="btn-add-modo-leitura" class="btn-dark">Add</button>
-                        </div>
-                        <ul id="modo-leitura-list" class="blacklist-ul"></ul>
-                    </div>
-
-                    <div class="divisor" style="margin: 15px 0;"></div>
-
-                    <div>
-                        <label style="font-weight: 700; font-size: 13px; color: #166534;">✅ Modo Whitelist (Permitidos)</label>
-                        <p class="desc" style="margin-bottom: 8px;">A extensão funcionará <b>apenas</b> nestes sites.</p>
-                        <div class="config-item" style="margin-bottom: 10px;">
-                            <span class="desc">Ativar Whitelist Global</span>
-                            <label class="switch"><input type="checkbox" id="modoWhitelist"><span class="slider"></span></label>
-                        </div>
-                        <div class="input-group">
-                            <input type="text" id="whitelist-input" placeholder="ex: gmail.com">
-                            <button id="btn-add-whitelist" class="btn-dark">Add</button>
+                            <input type="text" id="whitelist-input" placeholder="Adicionar domínio (ex: gmail.com)">
+                            <button id="btn-add-whitelist" class="btn-dark">Permitir</button>
                         </div>
                         <ul id="whitelist-list" class="blacklist-ul"></ul>
                     </div>
                 </div>
+
+            </div>
+
+            <!-- COLUNA DIREITA -->
+            <div class="seguranca-col-right">
+                
+                <!-- MODO DE CORREÇÃO -->
+                <div class="config-card card-modo-correcao">
+                    <div class="card-header">
+                        <h3>🔐 Modo de Correção</h3>
+                        <span class="card-badge">Controle</span>
+                    </div>
+                    <p class="desc">Controle como as correções são aplicadas ao texto.</p>
+                    
+                    <div class="config-item">
+                        <div class="info-text">
+                            <label>Sempre perguntar antes de corrigir</label>
+                            <p class="desc">Cada correção exibe uma confirmação antes de ser aplicada.</p>
+                        </div>
+                        <label class="switch"><input type="checkbox" id="modoConfirmacao"><span class="slider"></span></label>
+                    </div>
+                    
+                    <div class="config-item">
+                        <div class="info-text">
+                            <label>Modo Somente Leitura Global</label>
+                            <p class="desc">Detecta erros mas NÃO aplica correções automaticamente.</p>
+                        </div>
+                        <label class="switch"><input type="checkbox" id="modoLeituraGlobal"><span class="slider"></span></label>
+                    </div>
+                    
+                    <div class="config-item">
+                        <div class="info-text">
+                            <label>Modo Foco (Escritores)</label>
+                            <p class="desc">A bolinha fica quase invisível e só aparece com o mouse próximo.</p>
+                        </div>
+                        <label class="switch"><input type="checkbox" id="modoFoco"><span class="slider"></span></label>
+                    </div>
+                    
+                    <div class="list-section">
+                        <label>Sites em Modo Leitura</label>
+                        <p class="desc">Nestes sites, a extensão apenas mostra os erros mas não corrige automaticamente.</p>
+                        <div class="input-group">
+                            <input type="text" id="modo-leitura-input" placeholder="Adicionar domínio">
+                            <button id="btn-add-modo-leitura" class="btn-dark">Adicionar</button>
+                        </div>
+                        <ul id="modo-leitura-list" class="blacklist-ul"></ul>
+                    </div>
+                </div>
+
+                <!-- CLOUD SYNC -->
+                <div class="config-card card-cloud-sync">
+                    <div class="card-header">
+                        <h3>☁️ Sincronização em Nuvem</h3>
+                        <span class="card-badge">Google</span>
+                    </div>
+                    <p class="desc">Seus dados (dicionário, blacklist, configurações) sincronizam entre dispositivos via sua conta Google.</p>
+                    
+                    <div class="config-item">
+                        <div class="info-text">
+                            <label>Cloud Sync</label>
+                            <p class="desc">Ative para sincronizar entre Chrome do trabalho e de casa.</p>
+                        </div>
+                        <label class="switch"><input type="checkbox" id="cloudSync"><span class="slider"></span></label>
+                    </div>
+                    
+                    <p class="api-hint">⚠️ A API Key NÃO é sincronizada por segurança. Configure-a em cada dispositivo.</p>
+                </div>
+
             </div>
         </div>
 
+        <!-- RODAPÉ -->
         <div class="footer-save">
-            <span id="save-status"></span>
-            <button id="btn-salvar" class="btn-primary">Guardar Todas as Alterações</button>
+            <span id="save-status">✓ Salvo com sucesso!</span>
+            <button id="btn-salvar" class="btn-primary">Salvar Alterações</button>
             <div class="spacer"></div>
         </div>
     </div>
