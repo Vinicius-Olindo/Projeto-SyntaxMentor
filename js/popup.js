@@ -1,12 +1,14 @@
 // =============================================
-// SyntaxMentor - popup.js v2.5.0 (Live Sync Fix)
+// SyntaxMentor - 2.6.0 -  (Live Sync + Corrigir Tudo)
 // =============================================
 
+// SyntaxMentor - popup.js v2.6.0 (Live Sync + Corrigir Tudo)
 document.addEventListener('DOMContentLoaded', () => {
     const wordInput = document.getElementById('word-input');
     const addBtn = document.getElementById('add-btn');
     const wordList = document.getElementById('word-list');
     const linkOpcoes = document.getElementById('link-opcoes');
+    const btnCorrigirTudo = document.getElementById('btn-corrigir-tudo');
 
     let currentDictionary = [];
 
@@ -120,6 +122,23 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // =============================================
+    // 🆕 CORRIGIR TUDO NA ABA ATIVA
+    // =============================================
+    function corrigirTudoNaAbaAtiva() {
+        chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+            if (tabs[0] && tabs[0].id) {
+                chrome.tabs.sendMessage(tabs[0].id, {
+                    action: 'corrigirTudo'
+                }, (response) => {
+                    if (chrome.runtime.lastError) {
+                        console.warn('Erro ao comunicar com a página:', chrome.runtime.lastError.message);
+                    }
+                });
+            }
+        });
+    }
+
+    // =============================================
     // EVENTOS
     // =============================================
     if (addBtn) {
@@ -135,6 +154,14 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // 🆕 Botão Corrigir Tudo
+    if (btnCorrigirTudo) {
+        btnCorrigirTudo.addEventListener('click', () => {
+            corrigirTudoNaAbaAtiva();
+            window.close(); // Fecha o popup após clicar
+        });
+    }
+
     if (linkOpcoes) {
         linkOpcoes.addEventListener('click', (e) => {
             e.preventDefault();
@@ -147,13 +174,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // =============================================
-    // 🆕 LIVE SYNC (CORRIGIDO)
+    // LIVE SYNC
     // =============================================
     chrome.storage.onChanged.addListener((changes, namespace) => {
-        // Só responde a mudanças no storage local
         if (namespace !== 'local') return;
 
-        // 🆕 Atualiza dicionário se mudou
         if (changes.dicionario_pessoal) {
             console.log('📖 Dicionário atualizado via sync:', 
                 (changes.dicionario_pessoal.newValue || []).length, 'palavras');
@@ -162,7 +187,6 @@ document.addEventListener('DOMContentLoaded', () => {
             renderizarLista();
         }
 
-        // 🆕 Atualiza tema se mudou
         if (changes.darkMode) {
             if (changes.darkMode.newValue) {
                 document.body.classList.add('dark-mode');

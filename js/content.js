@@ -1,5 +1,5 @@
 // =============================================
-// SyntaxMentor - v2.5.0 Elite (Shadow DOM + Digisac + Fila Inteligente + Correção Persistente)
+// SyntaxMentor - 2.6.0 - (Shadow DOM + Digisac + Fila Inteligente + Correção Persistente)
 // =============================================
 
 let timeoutDigitacao = null;
@@ -152,6 +152,12 @@ if (typeof chrome !== 'undefined' && chrome.runtime) {
         }
         if (request.action === 'ignorarTemporariamente' && request.palavra) {
             ignorarTemporariamente(request.palavra);
+        }
+        // 🆕 Corrigir Tudo (chamado do popup)
+        if (request.action === 'corrigirTudo') {
+            if (errosGlobais.length > 0 && elementoGlobal) {
+                corrigirTudo();
+            }
         }
     });
 }

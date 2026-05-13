@@ -1,5 +1,5 @@
 /* =========================================================================
-   SyntaxMentor - popup.css (Caixa do dicionario)
+   SyntaxMentor - 2.6.0 - Caixa do dicionario
    ========================================================================= */
 
 /* SyntaxMentor - popup.css v2.0.1 (Dark Mode Fix) */
@@ -230,4 +230,20 @@ body.dark-mode .popup-footer-hint a {
 
 body.dark-mode .popup-footer-hint a:hover {
     color: #e9d8fd;
+}
+
+/* =========================================================
+   🆕 BOTÃO CORRIGIR TUDO - DARK MODE
+   ========================================================= */
+body.dark-mode #btn-corrigir-tudo {
+    background: linear-gradient(135deg, #4a2b85 0%, #6f42c1 100%);
+    box-shadow: 0 4px 10px rgba(111, 66, 193, 0.5);
+}
+
+body.dark-mode #btn-corrigir-tudo:hover {
+    box-shadow: 0 6px 15px rgba(111, 66, 193, 0.7);
+}
+
+body.dark-mode .content > div:has(#btn-corrigir-tudo) {
+    border-top-color: #333;
 }

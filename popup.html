@@ -1,13 +1,13 @@
-<!-- SyntaxMentor - popup -->
+<!-- ============================================= -->
+<!-- SyntaxMentor - 2.6.0 - -->
+<!-- ============================================= -->
+ 
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-    <meta http-equiv="Pragma" content="no-cache">
-    <meta http-equiv="Expires" content="0">
-    <link rel="stylesheet" href="css/popup.css">
     <title>SyntaxMentor - Dicionário</title>
+    <link rel="stylesheet" href="css/popup.css">
 </head>
 <body>
 
@@ -27,9 +27,29 @@
         <ul id="word-list">
             <!-- As palavras vão brotar aqui via Javascript -->
         </ul>
+
+        <!-- 🆕 Botão Corrigir Tudo -->
+        <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #f0f0f0;">
+            <button id="btn-corrigir-tudo" style="
+                width: 100%;
+                background: linear-gradient(135deg, #6f42c1 0%, #8b5cf6 100%);
+                color: white;
+                border: none;
+                padding: 12px;
+                border-radius: 8px;
+                font-weight: 700;
+                font-size: 14px;
+                cursor: pointer;
+                transition: transform 0.2s, box-shadow 0.2s;
+                box-shadow: 0 4px 10px rgba(111, 66, 193, 0.3);
+                font-family: 'Segoe UI', system-ui, sans-serif;
+            " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 15px rgba(111, 66, 193, 0.4)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 10px rgba(111, 66, 193, 0.3)'">
+                ✨ Corrigir Tudo na Página
+            </button>
+        </div>
     </div>
 
-    <!-- O Novo Rodapé com o Link para as Opções -->
+    <!-- Rodapé com o Link para as Opções -->
     <div class="popup-footer-hint">
         💡 Dica: Você pode editar palavras nas <a href="#" id="link-opcoes">Configurações</a>.
     </div>
