@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bem-vindo ao SyntaxMentor!</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: linear-gradient(135deg, #6f42c1 0%, #8b5cf6 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+        .container {
+            text-align: center;
+            max-width: 600px;
+            padding: 40px;
+        }
+        .logo { font-size: 72px; margin-bottom: 20px; animation: float 3s ease-in-out infinite; }
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+        h1 { font-size: 32px; margin-bottom: 10px; font-weight: 800; letter-spacing: -0.5px; }
+        .version { font-size: 14px; opacity: 0.7; margin-bottom: 20px; }
+        p { font-size: 16px; opacity: 0.9; margin-bottom: 30px; line-height: 1.6; }
+        .steps { text-align: left; background: rgba(255,255,255,0.12); border-radius: 16px; padding: 28px; margin-bottom: 30px; border: 1px solid rgba(255,255,255,0.2); }
+        .steps h3 { margin-bottom: 18px; font-size: 18px; display: flex; align-items: center; gap: 10px; }
+        .steps ol { padding-left: 20px; }
+        .steps li { margin-bottom: 14px; line-height: 1.5; font-size: 15px; }
+        .badge {
+            display: inline-block;
+            background: rgba(255,255,255,0.25);
+            padding: 3px 10px;
+            border-radius: 6px;
+            font-weight: 700;
+            font-size: 14px;
+            letter-spacing: 0.5px;
+        }
+        .shortcut {
+            display: inline-block;
+            background: rgba(255,255,255,0.2);
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-weight: 700;
+            font-size: 13px;
+            font-family: 'Segoe UI', monospace;
+            letter-spacing: 0.5px;
+        }
+        .btn {
+            display: inline-block;
+            background: white;
+            color: #6f42c1;
+            padding: 14px 32px;
+            border-radius: 10px;
+            text-decoration: none;
+            font-weight: 700;
+            font-size: 16px;
+            transition: all 0.2s;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+        }
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 30px rgba(0,0,0,0.35);
+        }
+        .footer { margin-top: 30px; font-size: 13px; opacity: 0.7; }
+        .footer span { font-weight: 600; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">✨</div>
+        <h1>SyntaxMentor Instalado!</h1>
+        <p class="version">v2.6.0 Elite</p>
+        <p>Seu mentor ortográfico está pronto para usar.<br>Corrija textos em <strong>qualquer site</strong> com um clique.</p>
+        
+        <div class="steps">
+            <h3>📌 Para acesso rápido, fixe o ícone:</h3>
+            <ol>
+                <li>Clique no ícone <span class="badge">🧩</span> na barra de ferramentas</li>
+                <li>Encontre o <strong>SyntaxMentor</strong> na lista</li>
+                <li>Clique no <span class="badge">📌</span> para fixar na barra</li>
+            </ol>
+        </div>
+        
+        <a href="options.html" class="btn">⚙️ Configurar Agora</a>
+        
+        <div class="footer">
+            <p>
+                💡 Dica: Use <span class="shortcut">Alt + S</span> para abrir as sugestões enquanto digita!
+            </p>
+        </div>
+    </div>
+</body>
+</html>
