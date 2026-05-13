@@ -1,4 +1,7 @@
+// =============================================
 // SyntaxMentor - popup.js v2.5.0 (Live Sync Fix)
+// =============================================
+
 document.addEventListener('DOMContentLoaded', () => {
     const wordInput = document.getElementById('word-input');
     const addBtn = document.getElementById('add-btn');

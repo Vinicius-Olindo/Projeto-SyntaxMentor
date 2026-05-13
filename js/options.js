@@ -1,4 +1,7 @@
+// =============================================
 // SyntaxMentor - options.js v2.6.0 (Unified: Geral + Segurança + Dashboard)
+// =============================================
+
 document.addEventListener('DOMContentLoaded', () => {
 
     // =============================================

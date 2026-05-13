@@ -1,4 +1,7 @@
+// =============================================
 // SyntaxMentor - v2.5.0 Elite (Shadow DOM + Digisac + Fila Inteligente + Correção Persistente)
+// =============================================
+
 let timeoutDigitacao = null;
 let errosGlobais = [];
 let elementoGlobal = null;

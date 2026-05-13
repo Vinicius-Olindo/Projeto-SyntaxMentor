@@ -1,4 +1,7 @@
+// =============================================
 // SyntaxMentor - background.js v2.6.0 (Welcome Page + Badge NEW)
+// =============================================
+
 let ultimaRequisicao = null;
 let ultimoTimeout = null;
 
