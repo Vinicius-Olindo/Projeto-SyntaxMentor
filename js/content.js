@@ -1,5 +1,5 @@
 // =============================================
-// SyntaxMentor - 2.6.0 - (Shadow DOM + Digisac + Fila Inteligente + Correção Persistente)
+// SyntaxMentor - v2.7.0 Elite (Shadow DOM + Digisac + Fila Inteligente + Correção Persistente + Ctrl+Z)
 // =============================================
 
 let timeoutDigitacao = null;
@@ -23,6 +23,10 @@ let filaRequisicoes = [];
 let processandoFila = false;
 let ultimoTextoValido = '';
 
+// 🆕 Sistema de Desfazer (Ctrl+Z)
+let historicoDesfazer = [];
+const MAX_HISTORICO_DESFAZER = 20;
+
 const sitesSemGrifos = ['mail.google.com', 'linkedin.com', 'docs.google.com', 'notion.so', 'twitter.com', 'x.com'];
 const isSiteRestrito = sitesSemGrifos.some(d => window.location.hostname.includes(d));
 
@@ -33,6 +37,10 @@ let conquistasNotificadas = {};
 
 let erroMaisComumTemp = {};
 
+// 🆕 Modo Foco
+let modoFocoAtivo = false;
+let timeoutFoco = null;
+
 let smConfig = {
     language: 'pt-BR', pickyMode: true, speed: 500, darkMode: false, blacklist: [],
     apiUrl: '', apiKey: '', strictMode: false, disabled: false,
@@ -41,7 +49,8 @@ let smConfig = {
     corrigirTudoShortcut: { altKey: true, ctrlKey: false, shiftKey: true, key: 's' },
     autoHideBubble: false, modoConfirmacao: false, modoLeituraGlobal: false,
     modoLeituraSites: [], modoWhitelist: false, whitelist: [],
-    erroMaisComum: {}
+    erroMaisComum: {},
+    modoFoco: false
 };
 
 // =============================================
@@ -57,9 +66,9 @@ function verificarConquistas(totalCorrigidas, dicSize) {
         { id: '1000correcoes', nome: '🌟 1000 Correções! Lendário!', condicao: totalCorrigidas >= 1000 },
         { id: '10dic', nome: '📖 10 Palavras no Dicionário!', condicao: dicSize >= 10 }
     ];
-    
+
     const novasConquistas = conquistas.filter(c => c.condicao && !conquistasNotificadas[c.id]);
-    
+
     if (novasConquistas.length > 0) {
         novasConquistas.forEach(c => { conquistasNotificadas[c.id] = true; });
         if (isExtensaoAtiva()) chrome.storage.local.set({ conquistasNotificadas });
@@ -78,15 +87,15 @@ function mostrarNotificacaoConquista(mensagem) {
 }
 
 function criarConfete() {
-    const cores = ['#f59e0b','#fbbf24','#fcd34d','#fde68a','#fef3c7','#6f42c1','#8b5cf6'];
+    const cores = ['#f59e0b', '#fbbf24', '#fcd34d', '#fde68a', '#fef3c7', '#6f42c1', '#8b5cf6'];
     for (let i = 0; i < 30; i++) {
         setTimeout(() => {
             const c = document.createElement('div');
-            const s = Math.random()*10+5;
-            c.style.cssText = `position:fixed;top:-10px;left:${Math.random()*100}%;z-index:2147483646;width:${s}px;height:${s}px;background:${cores[Math.floor(Math.random()*cores.length)]};border-radius:${Math.random()>.5?'50%':'0'};pointer-events:none;animation:sm-confete-fall ${Math.random()*2+1.5}s linear forwards;`;
+            const s = Math.random() * 10 + 5;
+            c.style.cssText = `position:fixed;top:-10px;left:${Math.random() * 100}%;z-index:2147483646;width:${s}px;height:${s}px;background:${cores[Math.floor(Math.random() * cores.length)]};border-radius:${Math.random() > .5 ? '50%' : '0'};pointer-events:none;animation:sm-confete-fall ${Math.random() * 2 + 1.5}s linear forwards;`;
             document.body.appendChild(c);
             setTimeout(() => { if (c.parentNode) c.remove(); }, 2500);
-        }, i*30);
+        }, i * 30);
     }
 }
 
@@ -104,12 +113,12 @@ async function verificarIdioma(texto) {
             const idiomaDetectado = response.language;
             const idiomaAtual = smConfig.language;
             if (idiomaDetectado !== idiomaAtual) {
-                const nomes = {'pt-BR':'Português','en-US':'Inglês','es':'Espanhol','fr':'Francês','de':'Alemão','it':'Italiano'};
+                const nomes = { 'pt-BR': 'Português', 'en-US': 'Inglês', 'es': 'Espanhol', 'fr': 'Francês', 'de': 'Alemão', 'it': 'Italiano' };
                 mostrarSugestaoIdioma(`Parece que está escrevendo em ${nomes[idiomaDetectado] || idiomaDetectado}.`, `Mudar de ${nomes[idiomaAtual] || idiomaAtual}?`, idiomaDetectado);
                 idiomaSugerido = true;
             }
         }
-    } catch (e) {}
+    } catch (e) { }
 }
 
 function mostrarSugestaoIdioma(titulo, mensagem, novoIdioma) {
@@ -153,11 +162,8 @@ if (typeof chrome !== 'undefined' && chrome.runtime) {
         if (request.action === 'ignorarTemporariamente' && request.palavra) {
             ignorarTemporariamente(request.palavra);
         }
-        // 🆕 Corrigir Tudo (chamado do popup)
         if (request.action === 'corrigirTudo') {
-            if (errosGlobais.length > 0 && elementoGlobal) {
-                corrigirTudo();
-            }
+            if (errosGlobais.length > 0 && elementoGlobal) corrigirTudo();
         }
     });
 }
@@ -176,7 +182,7 @@ function storageGetSeguro(chave, fallback) {
 
 function storageSetSeguro(dados) {
     if (!isExtensaoAtiva()) return;
-    try { chrome.storage.local.set(dados); } catch (e) {}
+    try { chrome.storage.local.set(dados); } catch (e) { }
 }
 
 function mostrarFeedback(msg, tipo) {
@@ -213,12 +219,12 @@ function confirmarCorrecao(original, sugestao, callback) {
 
 function atualizarBadgeBackground(total) {
     if (!isExtensaoAtiva()) return;
-    try { chrome.runtime.sendMessage({ action: 'updateBadge', totalErros: total }); } catch (e) {}
+    try { chrome.runtime.sendMessage({ action: 'updateBadge', totalErros: total }); } catch (e) { }
 }
 
 function resetarBadgeBackground() {
     if (!isExtensaoAtiva()) return;
-    try { chrome.runtime.sendMessage({ action: 'resetBadge' }); } catch (e) {}
+    try { chrome.runtime.sendMessage({ action: 'resetBadge' }); } catch (e) { }
 }
 
 function atualizarVisibilidadeBolha() {
@@ -233,6 +239,53 @@ function atualizarVisibilidadeBolha() {
 }
 
 // =============================================
+// 🆕 SISTEMA DE DESFAZER (Ctrl+Z)
+// =============================================
+function salvarEstadoParaDesfazer(elemento, textoOriginal, textoNovo) {
+    if (!elemento) return;
+    historicoDesfazer.push({
+        elemento: elemento,
+        textoAnterior: textoOriginal,
+        textoNovo: textoNovo,
+        timestamp: Date.now()
+    });
+    if (historicoDesfazer.length > MAX_HISTORICO_DESFAZER) {
+        historicoDesfazer.shift();
+    }
+}
+
+function desfazerUltimaCorrecao() {
+    if (historicoDesfazer.length === 0) {
+        mostrarFeedback('📭 Nada para desfazer', 'info');
+        return false;
+    }
+    const ultima = historicoDesfazer.pop();
+    const el = ultima.elemento;
+    if (!el || !document.contains(el)) {
+        mostrarFeedback('⚠️ Elemento não está mais disponível', 'info');
+        return false;
+    }
+    const escAnterior = ultima.textoNovo.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    if (el.tagName === 'TEXTAREA' || el.tagName === 'INPUT') {
+        const valorAntigo = el.value;
+        el.value = el.value.replace(new RegExp(`(?<![\\p{L}])${escAnterior}(?![\\p{L}])`, 'gu'), ultima.textoAnterior);
+        if (el.value !== valorAntigo) {
+            dispararEventosNativos(el);
+            requestAnimationFrame(() => { if (el.value !== valorAntigo) dispararEventosNativos(el); });
+        }
+    } else if (el.isContentEditable) {
+        let html = el.innerHTML;
+        const htmlAntigo = html;
+        html = html.replace(new RegExp(`(?<!<[^>]*)(?<![\\p{L}])${escAnterior}(?![\\p{L}])(?![^<]*>)`, 'gu'), ultima.textoAnterior);
+        if (html !== htmlAntigo) el.innerHTML = html;
+        atualizarElementoComEventos(el);
+        setTimeout(() => atualizarElementoComEventos(el), 100);
+    }
+    mostrarFeedback('↩ Correção desfeita!', 'info');
+    return true;
+}
+
+// =============================================
 // 🔧 DISPARA EVENTOS NATIVOS (REACT FIX)
 // =============================================
 function dispararEventosNativos(elemento) {
@@ -243,30 +296,116 @@ function dispararEventosNativos(elemento) {
     const nativeSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set
         || Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value')?.set;
     if (nativeSetter) { try { nativeSetter.call(elemento, valor); } catch (e) { elemento.value = valor; } }
-    try { elemento.setSelectionRange(start, end); } catch (e) {}
+    try { elemento.setSelectionRange(start, end); } catch (e) { }
     [new Event('input', { bubbles: true }), new Event('change', { bubbles: true }),
-     new InputEvent('input', { bubbles: true, inputType: 'insertText', data: valor }),
-     new CompositionEvent('compositionend', { bubbles: true, data: valor }),
-     new FocusEvent('blur', { bubbles: true }), new FocusEvent('focus', { bubbles: true })]
-        .forEach(evt => { try { elemento.dispatchEvent(evt); } catch (e) {} });
-    if (elemento._valueTracker) { try { elemento._valueTracker.setValue(valor); } catch (e) {} }
+    new InputEvent('input', { bubbles: true, inputType: 'insertText', data: valor }),
+    new CompositionEvent('compositionend', { bubbles: true, data: valor }),
+    new FocusEvent('blur', { bubbles: true }), new FocusEvent('focus', { bubbles: true })]
+        .forEach(evt => { try { elemento.dispatchEvent(evt); } catch (e) { } });
+    if (elemento._valueTracker) { try { elemento._valueTracker.setValue(valor); } catch (e) { } }
 }
 
 function atualizarElementoComEventos(elemento) {
     if (!elemento) return;
     if (elemento.isContentEditable || elemento.getAttribute?.('contenteditable') === 'true') {
         [new Event('input', { bubbles: true }), new Event('change', { bubbles: true }),
-         new InputEvent('beforeinput', { bubbles: true, inputType: 'insertText' }),
-         new InputEvent('input', { bubbles: true, inputType: 'insertText' }),
-         new CompositionEvent('compositionend', { bubbles: true }),
-         new FocusEvent('blur', { bubbles: true }), new FocusEvent('focus', { bubbles: true })]
-            .forEach(evt => { try { elemento.dispatchEvent(evt); } catch (e) {} });
+        new InputEvent('beforeinput', { bubbles: true, inputType: 'insertText' }),
+        new InputEvent('input', { bubbles: true, inputType: 'insertText' }),
+        new CompositionEvent('compositionend', { bubbles: true }),
+        new FocusEvent('blur', { bubbles: true }), new FocusEvent('focus', { bubbles: true })]
+            .forEach(evt => { try { elemento.dispatchEvent(evt); } catch (e) { } });
         elemento.focus();
         setTimeout(() => { elemento.blur(); elemento.focus(); }, 50);
         return;
     }
     if (elemento.tagName === 'INPUT' || elemento.tagName === 'TEXTAREA') dispararEventosNativos(elemento);
 }
+
+// =============================================
+// 🆕 CORREÇÃO DE PONTUAÇÃO
+// =============================================
+function processarPontuacao(matches) {
+    if (!matches || matches.length === 0) return matches;
+    return matches.map(match => {
+        const novoMatch = { ...match };
+        const original = match.context.text.substr(match.context.offset, match.context.length);
+        const palavraLimpa = original.replace(/^[.,;:!?¿¡"''()\[\]{}…\-—–\s]+/, '').replace(/[.,;:!?¿¡"''()\[\]{}…\-—–\s]+$/, '');
+        if (palavraLimpa !== original) {
+            const pontuacaoInicio = original.indexOf(palavraLimpa);
+            novoMatch.context = { ...match.context, offset: match.context.offset + pontuacaoInicio, length: palavraLimpa.length };
+        }
+        return novoMatch;
+    });
+}
+
+function verificarPontuacaoComum(texto) {
+    const errosPontuacao = [];
+    const regras = [
+        { regex: /\s+\./g, msg: 'Espaço desnecessário antes do ponto final', replace: '.' },
+        { regex: /\s+,/g, msg: 'Espaço desnecessário antes da vírgula', replace: ',' },
+        { regex: /\.\./g, msg: 'Pontuação duplicada. Use apenas um ponto.', replace: '.' },
+        { regex: /,[a-zA-Zà-úÀ-Ú]/g, msg: 'Falta um espaço após a vírgula', replace: (m) => ', ' + m[1] },
+        { regex: /[!?][a-zA-Zà-úÀ-Ú]/g, msg: 'Falta um espaço após o sinal', replace: (m) => m[0] + ' ' + m[1] }
+    ];
+    regras.forEach(regra => {
+        const matches = texto.match(regra.regex);
+        if (matches) {
+            matches.forEach(match => {
+                const pos = texto.indexOf(match);
+                if (pos >= 0) {
+                    errosPontuacao.push({
+                        context: { text: texto, offset: pos, length: match.length },
+                        message: regra.msg,
+                        replacements: [{ value: typeof regra.replace === 'function' ? regra.replace(match) : regra.replace }],
+                        rule: { category: { name: 'Pontuação' } }
+                    });
+                }
+            });
+        }
+    });
+    return errosPontuacao;
+}
+
+// =============================================
+// 🆕 MODO FOCO
+// =============================================
+function ativarModoFoco() {
+    const bubble = document.getElementById('syntax-mentor-bubble');
+    if (!bubble) return;
+    bubble.style.opacity = '0.2';
+    bubble.style.transition = 'opacity 0.5s ease';
+    bubble.style.pointerEvents = 'none';
+}
+
+function desativarModoFoco() {
+    const bubble = document.getElementById('syntax-mentor-bubble');
+    if (!bubble) return;
+    bubble.style.opacity = '1';
+    bubble.style.pointerEvents = 'auto';
+}
+
+function iniciarTimeoutFoco() {
+    if (!modoFocoAtivo) return;
+    clearTimeout(timeoutFoco);
+    ativarModoFoco();
+    timeoutFoco = setTimeout(() => { ativarModoFoco(); }, 3000);
+}
+
+document.addEventListener('mousemove', (e) => {
+    if (!modoFocoAtivo) return;
+    const bubble = document.getElementById('syntax-mentor-bubble');
+    if (!bubble) return;
+    const bubbleRect = bubble.getBoundingClientRect();
+    const distancia = Math.sqrt(
+        Math.pow(e.clientX - (bubbleRect.left + bubbleRect.width / 2), 2) +
+        Math.pow(e.clientY - (bubbleRect.top + bubbleRect.height / 2), 2)
+    );
+    if (distancia < 200) {
+        desativarModoFoco();
+        clearTimeout(timeoutFoco);
+        timeoutFoco = setTimeout(() => { ativarModoFoco(); }, 3000);
+    }
+});
 
 // =============================================
 // 🔍 SHADOW DOM E IFRAMES (DIGISAC)
@@ -307,16 +446,14 @@ function shadowInputHandler(e) {
     if (smConfig.disabled) return;
     let el = e.target;
     if (el.closest?.('[contenteditable="true"]')) el = el.closest('[contenteditable="true"]');
-    const valido = el.tagName === 'TEXTAREA' || el.isContentEditable || el.getAttribute?.('contenteditable') === 'true' || el.getAttribute?.('role') === 'textbox' || (el.tagName === 'INPUT' && ['text','search','url','email'].includes(el.type));
+    const valido = el.tagName === 'TEXTAREA' || el.isContentEditable || el.getAttribute?.('contenteditable') === 'true' || el.getAttribute?.('role') === 'textbox' || (el.tagName === 'INPUT' && ['text', 'search', 'url', 'email'].includes(el.type));
     if (!valido) return;
     if (el.tagName === 'INPUT' && smConfig.strictMode) return;
-
     usuarioDigitando = true;
     atualizarVisibilidadeBolha();
     if (currentFetchController) { currentFetchController.abort(); currentFetchController = null; }
     filaRequisicoes = []; processandoFila = false;
     clearTimeout(timeoutDigitacao);
-
     timeoutDigitacao = setTimeout(() => {
         usuarioDigitando = false;
         const texto = (el.value || el.textContent || el.innerText || '').trim();
@@ -335,7 +472,7 @@ function tentarInjetarEmIframe(iframe) {
     try {
         const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
         if (iframeDoc) observarElemento(iframeDoc.body);
-    } catch (e) {}
+    } catch (e) { }
 }
 
 let procuraCamposInterval = null;
@@ -351,16 +488,15 @@ function iniciarProcuraAtiva() {
 // =============================================
 function iniciar() {
     if (!isExtensaoAtiva()) { setTimeout(iniciar, 2000); return; }
-
     observarShadowDOM();
     iniciarProcuraAtiva();
 
     storageGetSeguro([
         'language', 'pickyMode', 'speed', 'darkMode', 'blacklist',
-        'apiUrl', 'apiKey', 'strictMode', 'toggleShortcut', 'ignoreShortcut', 
+        'apiUrl', 'apiKey', 'strictMode', 'toggleShortcut', 'ignoreShortcut',
         'corrigirTudoShortcut', 'autoHideBubble', 'modoConfirmacao',
         'modoLeituraGlobal', 'modoLeituraSites', 'modoWhitelist', 'whitelist',
-        'erroMaisComum', 'conquistasNotificadas'
+        'erroMaisComum', 'conquistasNotificadas', 'modoFoco'
     ], (res) => {
         smConfig = { ...smConfig, ...res };
         conquistasNotificadas = res.conquistasNotificadas || {};
@@ -384,8 +520,12 @@ function iniciar() {
             }
             if (changes.conquistasNotificadas) conquistasNotificadas = changes.conquistasNotificadas.newValue || {};
             if (changes.erroMaisComum) erroMaisComumTemp = changes.erroMaisComum.newValue || {};
+            if (changes.modoFoco) {
+                smConfig.modoFoco = changes.modoFoco.newValue;
+                if (!smConfig.modoFoco) { modoFocoAtivo = false; desativarModoFoco(); clearTimeout(timeoutFoco); }
+            }
         });
-    } catch (e) {}
+    } catch (e) { }
 }
 
 // =============================================
@@ -393,9 +533,22 @@ function iniciar() {
 // =============================================
 document.addEventListener('keydown', (e) => {
     if (smConfig.disabled || window !== window.top) return;
+
+    // 🆕 Ctrl+Z - Desfazer última correção
+    if (e.ctrlKey && !e.altKey && !e.shiftKey && e.key.toLowerCase() === 'z') {
+        if (historicoDesfazer.length > 0) {
+            e.preventDefault();
+            e.stopPropagation();
+            desfazerUltimaCorrecao();
+            if (elementoGlobal && textoUltimaVerificacao) verificarTexto(textoUltimaVerificacao, elementoGlobal);
+            return;
+        }
+    }
+
     const scT = smConfig.toggleShortcut || { altKey: true, ctrlKey: false, shiftKey: false, key: 's' };
     const scI = smConfig.ignoreShortcut || { altKey: true, ctrlKey: false, shiftKey: false, key: 'i' };
     const scCT = smConfig.corrigirTudoShortcut || { altKey: true, ctrlKey: false, shiftKey: true, key: 's' };
+
     if (e.altKey === scT.altKey && e.ctrlKey === scT.ctrlKey && e.shiftKey === scT.shiftKey && e.key.toLowerCase() === scT.key) {
         e.preventDefault(); e.stopPropagation();
         if (errosGlobais.length > 0) painelAberto ? fecharPainel() : exibirPainel();
@@ -462,7 +615,7 @@ document.addEventListener('input', (e) => {
     if (smConfig.disabled) return;
     let el = e.target;
     if (el.closest?.('[contenteditable="true"]')) el = el.closest('[contenteditable="true"]');
-    const valido = el.tagName === 'TEXTAREA' || el.isContentEditable || el.getAttribute?.('contenteditable') === 'true' || (el.tagName === 'INPUT' && ['text','search','url','email'].includes(el.type));
+    const valido = el.tagName === 'TEXTAREA' || el.isContentEditable || el.getAttribute?.('contenteditable') === 'true' || (el.tagName === 'INPUT' && ['text', 'search', 'url', 'email'].includes(el.type));
     if (!valido) return;
     if (el.tagName === 'INPUT' && smConfig.strictMode) return;
 
@@ -513,8 +666,13 @@ async function verificarTexto(texto, elemento) {
         const atual = (elemento.value || elemento.textContent || elemento.innerText || '').trim();
         if (atual !== texto) { estaCarregando = false; atualizarEstadoCarregamento(false); return; }
         let dic = [];
-        if (isExtensaoAtiva()) { try { const res = await new Promise(r => chrome.storage.local.get(['dicionario_pessoal'], r)); dic = (res.dicionario_pessoal || []).map(w => w.toLowerCase()); } catch (e) {} }
-        errosGlobais = (data.matches || []).filter(m => {
+        if (isExtensaoAtiva()) { try { const res = await new Promise(r => chrome.storage.local.get(['dicionario_pessoal'], r)); dic = (res.dicionario_pessoal || []).map(w => w.toLowerCase()); } catch (e) { } }
+
+        const matchesProcessados = processarPontuacao(data.matches || []);
+        const errosPontuacaoLocal = verificarPontuacaoComum(texto);
+        const todosMatches = [...matchesProcessados, ...errosPontuacaoLocal];
+
+        errosGlobais = todosMatches.filter(m => {
             if (!m.replacements?.length) return false;
             const o = m.context.text.substr(m.context.offset, m.context.length);
             const ol = o.toLowerCase();
@@ -549,7 +707,7 @@ function aplicarGrifos(erros, el) {
 }
 
 // =============================================
-// 🔧 APLICAÇÃO DE CORREÇÕES (PERSISTENTE)
+// 🔧 APLICAÇÃO DE CORREÇÕES (PERSISTENTE + DESFAZER)
 // =============================================
 function aplicarCorrecao(original, sugestao, el, pularConfirmacao = false) {
     if (!el || !original || !sugestao) return;
@@ -558,14 +716,36 @@ function aplicarCorrecao(original, sugestao, el, pularConfirmacao = false) {
         if (el.tagName === 'TEXTAREA' || el.tagName === 'INPUT') {
             const valorAntigo = el.value;
             el.value = el.value.replace(new RegExp(`(?<![\\p{L}])${esc}(?![\\p{L}])`, 'gu'), sugestao);
-            if (el.value !== valorAntigo) { dispararEventosNativos(el); requestAnimationFrame(() => { if (el.value !== valorAntigo) dispararEventosNativos(el); }); setTimeout(() => { el.blur(); el.focus(); dispararEventosNativos(el); }, 100); }
+            if (el.value !== valorAntigo) {
+                salvarEstadoParaDesfazer(el, original, sugestao);
+                dispararEventosNativos(el);
+                requestAnimationFrame(() => { if (el.value !== valorAntigo) dispararEventosNativos(el); });
+                setTimeout(() => { el.blur(); el.focus(); dispararEventosNativos(el); }, 100);
+            }
         } else if (el.isContentEditable) {
-            if (isSiteRestrito) { el.focus(); try { const doc = el.ownerDocument || document; if (doc.execCommand('find', false, original)) doc.execCommand('insertText', false, sugestao); else el.textContent = (el.textContent || '').replace(new RegExp(esc, 'gi'), sugestao); } catch (e) { el.textContent = (el.textContent || '').replace(new RegExp(esc, 'gi'), sugestao); } atualizarElementoComEventos(el); }
-            else { let html = el.innerHTML; const htmlAntigo = html; const markRegex = new RegExp(`<mark class="sm-highlight">${esc}</mark>`, 'g'); if (markRegex.test(html)) html = html.replace(markRegex, sugestao); else html = html.replace(new RegExp(`(?<!<[^>]*)(?<![\\p{L}])${esc}(?![\\p{L}])(?![^<]*>)`, 'gu'), sugestao); if (html !== htmlAntigo) el.innerHTML = html; atualizarElementoComEventos(el); setTimeout(() => atualizarElementoComEventos(el), 100); }
+            if (isSiteRestrito) {
+                el.focus();
+                try { const doc = el.ownerDocument || document; if (doc.execCommand('find', false, original)) doc.execCommand('insertText', false, sugestao); else el.textContent = (el.textContent || '').replace(new RegExp(esc, 'gi'), sugestao); } catch (e) { el.textContent = (el.textContent || '').replace(new RegExp(esc, 'gi'), sugestao); }
+                atualizarElementoComEventos(el);
+            } else {
+                let html = el.innerHTML; const htmlAntigo = html;
+                const markRegex = new RegExp(`<mark class="sm-highlight">${esc}</mark>`, 'g');
+                if (markRegex.test(html)) html = html.replace(markRegex, sugestao);
+                else html = html.replace(new RegExp(`(?<!<[^>]*)(?<![\\p{L}])${esc}(?![\\p{L}])(?![^<]*>)`, 'gu'), sugestao);
+                if (html !== htmlAntigo) {
+                    salvarEstadoParaDesfazer(el, original, sugestao);
+                    el.innerHTML = html;
+                }
+                atualizarElementoComEventos(el);
+                setTimeout(() => atualizarElementoComEventos(el), 100);
+            }
         }
-        historicoCorrecoes.push({ el, original, sugestao }); if (historicoCorrecoes.length > 50) historicoCorrecoes.shift(); incrementarStats(1);
+        historicoCorrecoes.push({ el, original, sugestao });
+        if (historicoCorrecoes.length > 50) historicoCorrecoes.shift();
+        incrementarStats(1);
     };
-    if (pularConfirmacao) executarCorrecao(); else confirmarCorrecao(original, sugestao, (confirmado) => { if (confirmado) executarCorrecao(); });
+    if (pularConfirmacao) executarCorrecao();
+    else confirmarCorrecao(original, sugestao, (confirmado) => { if (confirmado) executarCorrecao(); });
 }
 
 function incrementarStats(qtd) {
@@ -598,43 +778,81 @@ function ignorarTemporariamente(palavra) {
 // =============================================
 function atualizarInterface() {
     if (smConfig.disabled) return;
+
+    if (smConfig.modoFoco && !painelAberto) {
+        if (!modoFocoAtivo) { modoFocoAtivo = true; iniciarTimeoutFoco(); }
+    } else {
+        modoFocoAtivo = false; desativarModoFoco(); clearTimeout(timeoutFoco);
+    }
+
     let bubble = document.getElementById('syntax-mentor-bubble');
     const total = errosGlobais.filter(e => e.context.text.substr(e.context.offset, e.context.length).trim()).length;
     atualizarBadgeBackground(total);
+
     if (!bubble) {
         bubble = document.createElement('div'); bubble.id = 'syntax-mentor-bubble'; bubble.title = 'SyntaxMentor';
         document.body.appendChild(bubble); tornarArrastavel(bubble);
         bubble.addEventListener('click', () => { if (!isDraggingBubble && !estaCarregando && errosGlobais.length > 0) painelAberto ? fecharPainel() : exibirPainel(); isDraggingBubble = false; });
     }
+
     if (smConfig.darkMode) bubble.classList.add('sm-dark'); else bubble.classList.remove('sm-dark');
     if (bubblePosX) { bubble.style.left = bubblePosX; bubble.style.top = bubblePosY; bubble.style.right = 'auto'; bubble.style.bottom = 'auto'; }
+
     if (estaCarregando && errosGlobais.length > 0) { bubble.style.opacity = '0.6'; bubble.style.pointerEvents = 'auto'; bubble.style.display = 'flex'; }
     else atualizarVisibilidadeBolha();
+
     if (total === 0) { bubble.className = 'sm-bubble-success'; bubble.innerHTML = '<span class="sm-bubble-icon">✓</span>'; if (painelAberto) fecharPainelComSucesso(); }
     else { bubble.className = 'sm-bubble-error'; bubble.innerHTML = `<span class="sm-bubble-icon">${isModoLeitura() ? '👁️' : '✏️'}</span><span class="sm-bubble-badge">${total}</span>`; if (painelAberto) exibirPainel(); }
 }
 
 function exibirPainel() {
+    if (modoFocoAtivo) { desativarModoFoco(); clearTimeout(timeoutFoco); }
     painelAberto = true; indexSugestao = -1;
     let painel = document.getElementById('syntax-mentor-painel');
     if (!painel) { painel = document.createElement('div'); painel.id = 'syntax-mentor-painel'; document.body.appendChild(painel); }
     if (smConfig.darkMode) painel.classList.add('sm-dark'); else painel.classList.remove('sm-dark');
     const mapa = {}; let total = 0;
     errosGlobais.forEach(e => { const o = e.context.text.substr(e.context.offset, e.context.length); if (!o.trim()) return; if (!mapa[o]) mapa[o] = { s: e.replacements[0]?.value || '', c: 0, msg: e.message }; mapa[o].c++; total++; });
+
     let html = `<div id="syntax-mentor-header"><span>${isModoLeitura() ? '👁️ Revisão' : '📝 Sugestões'}</span><button id="btn-fechar-painel">✕</button></div><div id="syntax-mentor-content"><div class="body-cards">`;
     if (Object.keys(mapa).length === 0) html += '<div style="text-align:center;padding:20px;color:#888;">✓ Nenhum erro</div>';
-    else Object.entries(mapa).forEach(([o, info]) => { html += `<div class="erro-card"><p class="erro-msg" title="${info.msg.replace(/"/g,'&quot;')}">Erro: <strong>${o}</strong></p><div class="sugestao-container"><span class="palavra-original">${o}</span><span class="seta">→</span><div class="botoes-acao"><button class="btn-fix-mini" data-o="${o}" data-s="${info.s}">${info.c > 1 ? info.s + ' (' + info.c + 'x)' : (info.s || '[Remover]')}</button><button class="btn-ignorar-sessao" data-o="${o}">↩</button><button class="btn-ignorar" data-o="${o}">+</button></div></div></div>`; });
-    html += `</div><div class="footer-actions"><button id="btn-corrigir-tudo">✨ Corrigir Tudo (${total})</button><button id="btn-ignorar-tudo">Ignorar Tudo</button></div>${ignoradosTemporarios.length ? `<div style="text-align:center;font-size:10px;color:#9ca3af;margin-top:8px;">📋 ${ignoradosTemporarios.length} ignorada(s)</div>` : ''}${isModoLeitura() ? `<div style="text-align:center;font-size:10px;color:#f59e0b;margin-top:4px;">⚠️ Modo Leitura ativo</div>` : ''}<div style="text-align:center;font-size:10px;color:#9ca3af;margin-top:4px;">Alt+Shift+S = corrigir | Botão direito = revisar</div></div>`;
+    else Object.entries(mapa).forEach(([o, info]) => { html += `<div class="erro-card"><p class="erro-msg" title="${info.msg.replace(/"/g, '&quot;')}">Erro: <strong>${o}</strong></p><div class="sugestao-container"><span class="palavra-original">${o}</span><span class="seta">→</span><div class="botoes-acao"><button class="btn-fix-mini" data-o="${o}" data-s="${info.s}">${info.c > 1 ? info.s + ' (' + info.c + 'x)' : (info.s || '[Remover]')}</button><button class="btn-ignorar-sessao" data-o="${o}">↩</button><button class="btn-ignorar" data-o="${o}">+</button></div></div></div>`; });
+    html += `</div><div class="footer-actions"><button id="btn-corrigir-tudo">✨ Corrigir Tudo (${total})</button><button id="btn-ignorar-tudo">Ignorar Tudo</button></div>`;
+
+    // 🆕 Botão Desfazer
+    if (historicoDesfazer.length > 0) {
+        html += `<div style="text-align:center;margin-top:8px;"><button id="btn-desfazer-ultima" style="background:none;border:1px solid #d1d5db;color:#6b7280;padding:6px 14px;border-radius:6px;cursor:pointer;font-size:11px;font-weight:600;transition:all 0.2s;" onmouseover="this.style.background='#f3f4f6';this.style.color='#374151'" onmouseout="this.style.background='none';this.style.color='#6b7280'">↩ Desfazer Última Correção (Ctrl+Z)</button></div>`;
+    }
+
+    html += `${ignoradosTemporarios.length ? `<div style="text-align:center;font-size:10px;color:#9ca3af;margin-top:8px;">📋 ${ignoradosTemporarios.length} ignorada(s)</div>` : ''}${isModoLeitura() ? `<div style="text-align:center;font-size:10px;color:#f59e0b;margin-top:4px;">⚠️ Modo Leitura ativo</div>` : ''}<div style="text-align:center;font-size:10px;color:#9ca3af;margin-top:4px;">Alt+Shift+S = corrigir | Ctrl+Z = desfazer | Botão direito = revisar</div></div>`;
+
     painel.innerHTML = html; tornarArrastavelPainel(painel, document.getElementById('syntax-mentor-header'));
     document.getElementById('btn-fechar-painel').onclick = fecharPainel;
     document.getElementById('btn-corrigir-tudo').onclick = corrigirTudo;
     document.getElementById('btn-ignorar-tudo').onclick = limparTudo;
+
     painel.querySelectorAll('.btn-fix-mini').forEach(b => { b.onclick = () => { aplicarCorrecao(b.dataset.o, b.dataset.s, elementoGlobal); removerErroGlobal(b.dataset.o); }; });
     painel.querySelectorAll('.btn-ignorar-sessao').forEach(b => { b.onclick = () => ignorarTemporariamente(b.dataset.o); });
     painel.querySelectorAll('.btn-ignorar').forEach(b => { b.onclick = async () => { const o = b.dataset.o; if (isExtensaoAtiva()) { const res = await new Promise(r => chrome.storage.local.get(['dicionario_pessoal'], r)); const dic = res.dicionario_pessoal || []; if (!dic.includes(o)) { dic.push(o); storageSetSeguro({ dicionario_pessoal: dic }); } } if (!isSiteRestrito && elementoGlobal?.isContentEditable) { elementoGlobal.innerHTML = elementoGlobal.innerHTML.replace(new RegExp(`<mark class="sm-highlight">${o.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}</mark>`, 'g'), o); atualizarElementoComEventos(elementoGlobal); } removerErroGlobal(o); mostrarFeedback(`"${o}" → dicionário`, 'success'); }; });
+
+    // 🆕 Listener do botão desfazer
+    const btnDesfazer = document.getElementById('btn-desfazer-ultima');
+    if (btnDesfazer) {
+        btnDesfazer.addEventListener('click', () => {
+            desfazerUltimaCorrecao();
+            if (elementoGlobal && textoUltimaVerificacao) verificarTexto(textoUltimaVerificacao, elementoGlobal);
+        });
+    }
 }
 
-function fecharPainel() { document.getElementById('syntax-mentor-painel')?.remove(); painelAberto = false; }
+function fecharPainel() {
+    document.getElementById('syntax-mentor-painel')?.remove();
+    painelAberto = false;
+    if (smConfig.modoFoco && !usuarioDigitando) {
+        setTimeout(() => { modoFocoAtivo = true; iniciarTimeoutFoco(); }, 1000);
+    }
+}
+
 function fecharPainelComSucesso() { const c = document.getElementById('syntax-mentor-content'); if (c) c.innerHTML = '<div style="text-align:center;padding:30px;"><div style="font-size:48px;color:#28a745;">✓</div><p>Tudo limpo!</p></div>'; setTimeout(fecharPainel, 1500); }
 
 // =============================================
