@@ -1,21 +1,19 @@
-<!-- ============================================= -->
-<!-- SyntaxMentor - 2.6.0 - -->
-<!-- ============================================= -->
-
 <!DOCTYPE html>
 <html lang="pt-BR">
+<!-- SyntaxMentor - options-dashboard.html v2.7.0 -->
 <head>
     <meta charset="UTF-8">
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
+    <title>Dashboard - SyntaxMentor Elite</title>
     <link rel="stylesheet" href="css/style.css">
-    <title>SyntaxMentor - Dashboard</title>
 </head>
 <body class="dashboard-page">
 
+    <!-- BARRA LATERAL -->
     <div class="sidebar">
-        <h2 class="logo">✨ SyntaxMentor <span style="font-size: 10px; color: #aaa;">v2.5.0 Elite</span></h2>
+        <h2 class="logo">✨ SyntaxMentor <span style="font-size: 10px; color: #aaa;">v2.7.0 Elite</span></h2>
         <ul class="menu">
             <li><a href="options.html">Geral</a></li>
             <li><a href="options-seguranca.html">Segurança</a></li>
@@ -23,67 +21,133 @@
         </ul>
     </div>
 
-    <div class="main-content fade-in-up">
+    <!-- CONTEÚDO PRINCIPAL -->
+    <div class="main-content">
         <div class="header-titles">
-            <h1>📊 Dashboard de Estatísticas</h1>
+            <h1>📊 Dashboard</h1>
             <p>Acompanhe seu progresso e conquistas com o SyntaxMentor.</p>
         </div>
 
-        <div class="dashboard-hero slide-in">
-            <div class="big-number" id="hero-total">0</div>
-            <div class="label">Total de Erros Corrigidos</div>
-            <div class="nivel" id="hero-nivel">Nível: Iniciante</div>
-        </div>
-
-        <div class="stat-grid-dash stagger-1">
-            <div class="stat-card-dash">
-                <div class="icon-dash">✅</div>
-                <div class="value-dash" id="stat-aceitas">0</div>
-                <div class="label-dash">Correções Aceitas</div>
-            </div>
-            <div class="stat-card-dash">
-                <div class="icon-dash">❌</div>
-                <div class="value-dash" id="stat-recusadas">0</div>
-                <div class="label-dash">Correções Recusadas</div>
-            </div>
-            <div class="stat-card-dash">
-                <div class="icon-dash">📈</div>
-                <div class="value-dash" id="stat-taxa">100%</div>
-                <div class="label-dash">Taxa de Aceitação</div>
-            </div>
-            <div class="stat-card-dash">
-                <div class="icon-dash">📖</div>
-                <div class="value-dash" id="stat-dic">0</div>
-                <div class="label-dash">Palavras no Dicionário</div>
-            </div>
-            <div class="stat-card-dash">
-                <div class="icon-dash">🌐</div>
-                <div class="value-dash" id="stat-idioma">pt-BR</div>
-                <div class="label-dash">Idioma Atual</div>
-            </div>
-            <div class="stat-card-dash">
-                <div class="icon-dash">☁️</div>
-                <div class="value-dash" id="stat-cloud">Desligado</div>
-                <div class="label-dash">Cloud Sync</div>
-            </div>
-        </div>
-
-        <div class="config-card erros-comuns-dash stagger-2">
-            <h3>🔝 Seus Erros Mais Comuns</h3>
-            <div id="lista-erros-comuns">
+        <!-- 🆕 ROW DE RESUMO RÁPIDO -->
+        <div class="quick-stats-row">
+            <div class="quick-stat-card">
+                <div class="quick-stat-icon">📅</div>
+                <div class="quick-stat-info">
+                    <div class="quick-stat-value" id="stat-corrigidas-hoje">0</div>
+                    <div class="quick-stat-label">Correções Hoje</div>
                 </div>
-        </div>
-
-        <div class="config-card stagger-3">
-            <h3>🏆 Conquistas</h3>
-            <div class="conquistas-grid" id="lista-conquistas">
+            </div>
+            <div class="quick-stat-card">
+                <div class="quick-stat-icon">🔥</div>
+                <div class="quick-stat-info">
+                    <div class="quick-stat-value" id="stat-sequencia">0</div>
+                    <div class="quick-stat-label">Dias Seguidos</div>
                 </div>
+            </div>
+            <div class="quick-stat-card">
+                <div class="quick-stat-icon">⭐</div>
+                <div class="quick-stat-info">
+                    <div class="quick-stat-value" id="stat-nivel-curto">Iniciante</div>
+                    <div class="quick-stat-label">Nível Atual</div>
+                </div>
+            </div>
+            <div class="quick-stat-card">
+                <div class="quick-stat-icon">📖</div>
+                <div class="quick-stat-info">
+                    <div class="quick-stat-value" id="stat-dic-curto">0</div>
+                    <div class="quick-stat-label">Dicionário</div>
+                </div>
+            </div>
         </div>
 
+        <!-- 🆕 GRID PRINCIPAL (2 colunas) -->
+        <div class="dashboard-main-grid">
+            
+            <!-- COLUNA ESQUERDA -->
+            <div class="dashboard-col-left">
+                
+                <!-- HERO COMPACTO -->
+                <div class="dashboard-hero-compact">
+                    <div class="hero-ring">
+                        <svg viewBox="0 0 120 120">
+                            <circle cx="60" cy="60" r="54" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="6"/>
+                            <circle cx="60" cy="60" r="54" fill="none" stroke="white" stroke-width="6" 
+                                    stroke-dasharray="339.292" stroke-dashoffset="100" 
+                                    stroke-linecap="round" transform="rotate(-90 60 60)" 
+                                    id="hero-progress-ring"/>
+                        </svg>
+                        <div class="hero-ring-text">
+                            <div class="big-number-mini" id="hero-total-mini">0</div>
+                            <div class="label-mini">Total</div>
+                        </div>
+                    </div>
+                    <div class="hero-info-compact">
+                        <div class="hero-nivel-compact" id="hero-nivel-compact">🟢 Iniciante</div>
+                        <div class="hero-subtitle">Erros Corrigidos</div>
+                        <div class="hero-meta-row">
+                            <span id="stat-idioma-mini">🌐 pt-BR</span>
+                            <span id="stat-cloud-mini">☁️ Desligado</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ERROS MAIS COMUNS -->
+                <div class="config-card card-erros-comuns">
+                    <div class="card-header">
+                        <h3>🔝 Erros Mais Comuns</h3>
+                        <span class="card-badge">Top 5</span>
+                    </div>
+                    <div id="lista-erros-comuns">
+                        <p style="color:#888;text-align:center;padding:20px;">Corrija alguns erros para ver suas estatísticas aqui!</p>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- COLUNA DIREITA -->
+            <div class="dashboard-col-right">
+                
+                <!-- GRID DE ESTATÍSTICAS -->
+                <div class="mini-stat-grid">
+                    <div class="mini-stat-card">
+                        <div class="mini-stat-icon">✅</div>
+                        <div class="mini-stat-value" id="stat-aceitas">0</div>
+                        <div class="mini-stat-label">Aceitas</div>
+                    </div>
+                    <div class="mini-stat-card">
+                        <div class="mini-stat-icon">❌</div>
+                        <div class="mini-stat-value" id="stat-recusadas">0</div>
+                        <div class="mini-stat-label">Recusadas</div>
+                    </div>
+                    <div class="mini-stat-card">
+                        <div class="mini-stat-icon">📈</div>
+                        <div class="mini-stat-value" id="stat-taxa">100%</div>
+                        <div class="mini-stat-label">Taxa</div>
+                    </div>
+                    <div class="mini-stat-card">
+                        <div class="mini-stat-icon">📖</div>
+                        <div class="mini-stat-value" id="stat-dic">0</div>
+                        <div class="mini-stat-label">Palavras</div>
+                    </div>
+                </div>
+
+                <!-- CONQUISTAS -->
+                <div class="config-card card-conquistas">
+                    <div class="card-header">
+                        <h3>🏆 Conquistas</h3>
+                        <span class="card-badge" id="conquistas-desbloqueadas">0/9</span>
+                    </div>
+                    <div class="conquistas-grid" id="lista-conquistas">
+                        <!-- Preenchido via JS -->
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- RODAPÉ -->
         <div class="footer-dash">
-            <p style="color: #9ca3af; font-size: 12px;">
-                Os dados são atualizados automaticamente conforme você usa a extensão.
-            </p>
+            <p>Os dados são atualizados automaticamente conforme você usa a extensão.</p>
         </div>
     </div>
 

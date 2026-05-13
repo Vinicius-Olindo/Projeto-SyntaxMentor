@@ -446,36 +446,150 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // =============================================
-    // 14. DASHBOARD
+    // 14. DASHBOARD (ATUALIZADO)
     // =============================================
     function carregarDashboard(res) {
-        if (!heroTotal) return;
-        const total = res.totalCorrigidas || 0, aceitas = res.totalAceitas || 0, recusadas = res.totalRecusadas || 0;
-        heroTotal.textContent = total.toLocaleString();
+        // Hero Compacto
+        const heroTotalMini = document.getElementById('hero-total-mini');
+        const heroNivelCompact = document.getElementById('hero-nivel-compact');
+        const heroProgressRing = document.getElementById('hero-progress-ring');
+
+        // Quick Stats
+        const statCorrigidasHoje = document.getElementById('stat-corrigidas-hoje');
+        const statSequencia = document.getElementById('stat-sequencia');
+        const statNivelCurto = document.getElementById('stat-nivel-curto');
+        const statDicCurto = document.getElementById('stat-dic-curto');
+        const statIdiomaMini = document.getElementById('stat-idioma-mini');
+        const statCloudMini = document.getElementById('stat-cloud-mini');
+
+        // Mini Stats
+        const statAceitas = document.getElementById('stat-aceitas');
+        const statRecusadas = document.getElementById('stat-recusadas');
+        const statTaxa = document.getElementById('stat-taxa');
+        const statDic = document.getElementById('stat-dic');
+
+        // Conquistas
+        const conquistasDesbloqueadas = document.getElementById('conquistas-desbloqueadas');
+        const listaConquistas = document.getElementById('lista-conquistas');
+        const listaErrosComuns = document.getElementById('lista-erros-comuns');
+
+        if (!heroTotalMini && !listaConquistas) return; // Não está na página do dashboard
+
+        const total = res.totalCorrigidas || 0;
+        const aceitas = res.totalAceitas || 0;
+        const recusadas = res.totalRecusadas || 0;
+        const dicSize = (res.dicionario_pessoal || []).length;
+
+        // Nível
         let nivel = '🟢 Iniciante';
-        if (total >= 1000) nivel = '👑 Lendário'; else if (total >= 500) nivel = '⭐ Mestre'; else if (total >= 100) nivel = '🔥 Avançado'; else if (total >= 10) nivel = '📈 Intermediário';
-        heroNivel.textContent = 'Nível: ' + nivel;
-        statAceitas.textContent = aceitas.toLocaleString();
-        statRecusadas.textContent = recusadas.toLocaleString();
-        statDic.textContent = (res.dicionario_pessoal || []).length.toLocaleString();
-        statIdioma.textContent = res.language || 'pt-BR';
-        statCloud.textContent = res.cloudSync ? '☁️ Ligado' : 'Desligado';
-        statTaxa.textContent = (aceitas + recusadas) > 0 ? Math.round((aceitas / (aceitas + recusadas)) * 100) + '%' : '100%';
+        let nivelCurto = 'Iniciante';
+        let progresso = 0; // 0 a 1
 
-        const erros = res.erroMaisComum || {};
-        const ordenados = Object.entries(erros).sort((a, b) => b[1] - a[1]).slice(0, 6);
-        if (ordenados.length === 0) { listaErrosComuns.innerHTML = '<p style="color:#888;text-align:center;padding:20px;">Corrija alguns erros para ver suas estatísticas aqui!</p>'; }
-        else { const max = ordenados[0][1]; listaErrosComuns.innerHTML = ordenados.map(([p, c]) => `<div class="barra-container-dash"><div class="barra-label-dash"><span>${p}</span><span>${c}x</span></div><div class="barra-dash"><div class="barra-preenchida-dash" style="width:${Math.max(Math.round((c / max) * 100), 10)}%;">${c}x</div></div></div>`).join(''); }
+        if (total >= 1000) { nivel = '👑 Lendário'; nivelCurto = 'Lendário'; progresso = 1; }
+        else if (total >= 500) { nivel = '⭐ Mestre'; nivelCurto = 'Mestre'; progresso = 0.8; }
+        else if (total >= 100) { nivel = '🔥 Avançado'; nivelCurto = 'Avançado'; progresso = 0.6; }
+        else if (total >= 10) { nivel = '📈 Intermediário'; nivelCurto = 'Inter.'; progresso = 0.4; }
+        else { progresso = Math.min(total / 10, 0.2); }
 
-        const conquistas = [
-            { nome: 'Primeira Correção', desbloqueada: total >= 1 }, { nome: '10 Correções', desbloqueada: total >= 10 },
-            { nome: '50 Correções', desbloqueada: total >= 50 }, { nome: '100 Correções', desbloqueada: total >= 100 },
-            { nome: '500 Correções', desbloqueada: total >= 500 }, { nome: '1000 Correções', desbloqueada: total >= 1000 },
-            { nome: '10 Palavras no Dicionário', desbloqueada: (res.dicionario_pessoal || []).length >= 10 },
-            { nome: '50 Palavras no Dicionário', desbloqueada: (res.dicionario_pessoal || []).length >= 50 },
-            { nome: 'Usou Cloud Sync', desbloqueada: res.cloudSync || false }
-        ];
-        listaConquistas.innerHTML = conquistas.map(c => `<div class="conquista-card ${c.desbloqueada ? 'unlock' : 'lock'}"><div class="conquista-icon">${c.desbloqueada ? '🏆' : '🔒'}</div><div class="conquista-nome">${c.nome}</div></div>`).join('');
+        // Hero Compacto
+        if (heroTotalMini) heroTotalMini.textContent = total.toLocaleString();
+        if (heroNivelCompact) heroNivelCompact.textContent = nivel;
+
+        // Anel de progresso
+        if (heroProgressRing) {
+            const circunferencia = 2 * Math.PI * 54;
+            const offset = circunferencia - (progresso * circunferencia);
+            heroProgressRing.style.strokeDasharray = circunferencia;
+            heroProgressRing.style.strokeDashoffset = offset;
+            heroProgressRing.style.transition = 'stroke-dashoffset 1s ease';
+        }
+
+        // Quick Stats
+        if (statNivelCurto) statNivelCurto.textContent = nivelCurto;
+        if (statDicCurto) statDicCurto.textContent = dicSize.toLocaleString();
+        if (statIdiomaMini) statIdiomaMini.textContent = '🌐 ' + (res.language || 'pt-BR');
+        if (statCloudMini) statCloudMini.textContent = res.cloudSync ? '☁️ Ligado' : '☁️ Desligado';
+
+        // Correções hoje (simulado - pode ser melhorado com storage)
+        if (statCorrigidasHoje) {
+            const hoje = new Date().toISOString().split('T')[0];
+            chrome.storage.local.get({ correcoesHoje: {}, dataUltimaCorrecao: '' }, (r) => {
+                const correcoesHoje = r.correcoesHoje || {};
+                statCorrigidasHoje.textContent = (correcoesHoje[hoje] || 0).toLocaleString();
+
+                // Calcula sequência de dias
+                let sequencia = 0;
+                let data = new Date();
+                while (true) {
+                    const chave = data.toISOString().split('T')[0];
+                    if (correcoesHoje[chave] && correcoesHoje[chave] > 0) {
+                        sequencia++;
+                        data.setDate(data.getDate() - 1);
+                    } else if (chave === hoje) {
+                        data.setDate(data.getDate() - 1);
+                    } else {
+                        break;
+                    }
+                }
+                if (statSequencia) statSequencia.textContent = sequencia;
+            });
+        }
+
+        // Mini Stats
+        if (statAceitas) statAceitas.textContent = aceitas.toLocaleString();
+        if (statRecusadas) statRecusadas.textContent = recusadas.toLocaleString();
+        if (statTaxa) statTaxa.textContent = (aceitas + recusadas) > 0 ? Math.round((aceitas / (aceitas + recusadas)) * 100) + '%' : '100%';
+        if (statDic) statDic.textContent = dicSize.toLocaleString();
+
+        // Erros Mais Comuns
+        if (listaErrosComuns) {
+            const erros = res.erroMaisComum || {};
+            const ordenados = Object.entries(erros).sort((a, b) => b[1] - a[1]).slice(0, 5);
+
+            if (ordenados.length === 0) {
+                listaErrosComuns.innerHTML = '<p style="color:#888;text-align:center;padding:20px;">Corrija alguns erros para ver suas estatísticas aqui!</p>';
+            } else {
+                const max = ordenados[0][1];
+                listaErrosComuns.innerHTML = ordenados.map(([palavra, count]) => {
+                    const pct = Math.max(Math.round((count / max) * 100), 10);
+                    return `
+                        <div class="barra-container-dash">
+                            <div class="barra-label-dash">
+                                <span>${palavra}</span>
+                                <span>${count}x</span>
+                            </div>
+                            <div class="barra-dash">
+                                <div class="barra-preenchida-dash" style="width:${pct}%;">${count}x</div>
+                            </div>
+                        </div>`;
+                }).join('');
+            }
+        }
+
+        // Conquistas
+        if (listaConquistas) {
+            const conquistas = [
+                { nome: 'Primeira Correção', desbloqueada: total >= 1 },
+                { nome: '10 Correções', desbloqueada: total >= 10 },
+                { nome: '50 Correções', desbloqueada: total >= 50 },
+                { nome: '100 Correções', desbloqueada: total >= 100 },
+                { nome: '500 Correções', desbloqueada: total >= 500 },
+                { nome: '1000 Correções', desbloqueada: total >= 1000 },
+                { nome: '10 Palavras no Dicionário', desbloqueada: dicSize >= 10 },
+                { nome: '50 Palavras no Dicionário', desbloqueada: dicSize >= 50 },
+                { nome: 'Usou Cloud Sync', desbloqueada: res.cloudSync || false }
+            ];
+
+            const desbloqueadas = conquistas.filter(c => c.desbloqueada).length;
+            if (conquistasDesbloqueadas) conquistasDesbloqueadas.textContent = desbloqueadas + '/9';
+
+            listaConquistas.innerHTML = conquistas.map(c =>
+                `<div class="conquista-card ${c.desbloqueada ? 'unlock' : 'lock'}">
+                    <div class="conquista-icon">${c.desbloqueada ? '🏆' : '🔒'}</div>
+                    <div class="conquista-nome">${c.nome}</div>
+                </div>`
+            ).join('');
+        }
     }
 
     // =============================================
