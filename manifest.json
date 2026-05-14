@@ -49,7 +49,14 @@
     ],
     "web_accessible_resources": [
         {
-            "resources": ["js/content.js", "css/content.css", "welcome.html"],
+            "resources": [
+                "js/content.js", 
+                "css/content.css", 
+                "welcome.html",
+                "js/offline-grammar.js",
+                "js/offline-mode.js",
+                "css/offline-mode.css"
+            ],
             "matches": ["<all_urls>"]
         }
     ]
