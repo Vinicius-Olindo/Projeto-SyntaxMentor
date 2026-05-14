@@ -1,37 +1,516 @@
 // =============================================
-// SyntaxMentor - Live Sync + Corrigir Tudo + Revisar Página
+// SyntaxMentor - popup.js v2.7.1
+// Live Sync + Corrigir Tudo + Revisar Página + Toggle Site
 // =============================================
 
 document.addEventListener('DOMContentLoaded', () => {
+    // =============================================
+    // ELEMENTOS DOM
+    // =============================================
     const wordInput = document.getElementById('word-input');
     const addBtn = document.getElementById('add-btn');
     const wordList = document.getElementById('word-list');
     const linkOpcoes = document.getElementById('link-opcoes');
     const btnCorrigirTudo = document.getElementById('btn-corrigir-tudo');
     const btnRevisarPagina = document.getElementById('btn-revisar-pagina');
+    const toggleSiteActive = document.getElementById('toggle-site-active');
+    const currentSiteLabel = document.getElementById('current-site-label');
+    const siteStatusDot = document.getElementById('site-status-dot');
 
+    // =============================================
+    // VARIÁVEIS DE ESTADO
+    // =============================================
     let currentDictionary = [];
+    let currentTabId = null;
+    let currentHost = null;
+    let isExtensionActive = true;
 
-    function carregarDicionario() { chrome.storage.local.get(['dicionario_pessoal'], (res) => { if (chrome.runtime.lastError) { console.warn('Erro ao carregar dicionário:', chrome.runtime.lastError.message); currentDictionary = []; } else { currentDictionary = res.dicionario_pessoal || []; if (!Array.isArray(currentDictionary)) currentDictionary = []; } renderizarLista(); }); }
-    function carregarTema() { chrome.storage.local.get(['darkMode'], (res) => { if (chrome.runtime.lastError) return; document.body.classList.toggle('dark-mode', res.darkMode); }); }
+    // =============================================
+    // FUNÇÕES AUXILIARES - TABS
+    // =============================================
+    
+    /**
+     * Obtém a aba ativa atual
+     * @returns {Promise<Object|null>}
+     */
+    function getCurrentTab() {
+        return new Promise((resolve) => {
+            chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+                if (chrome.runtime.lastError) {
+                    console.debug('Erro ao obter aba:', chrome.runtime.lastError.message);
+                    resolve(null);
+                    return;
+                }
+                
+                if (tabs[0] && tabs[0].id && tabs[0].url && !tabs[0].url.startsWith('chrome://')) {
+                    resolve(tabs[0]);
+                } else {
+                    resolve(null);
+                }
+            });
+        });
+    }
 
-    function renderizarLista() { if (!wordList) return; wordList.innerHTML = ''; if (currentDictionary.length === 0) { wordList.innerHTML = '<li style="color:#9ca3af;text-align:center;padding:15px;font-size:12px;">📭 Nenhuma palavra adicionada</li>'; return; } currentDictionary.forEach((word, index) => { const li = document.createElement('li'); li.innerHTML = `<span style="flex:1;">${escapeHtml(word)}</span><button class="btn-remove" data-index="${index}" title="Remover">✕</button>`; wordList.appendChild(li); }); document.querySelectorAll('.btn-remove').forEach(btn => { btn.addEventListener('click', (e) => { e.stopPropagation(); const idx = parseInt(e.target.getAttribute('data-index')); if (idx >= 0 && idx < currentDictionary.length) { currentDictionary.splice(idx, 1); salvarDicionario(); } }); }); }
-    function salvarDicionario() { chrome.storage.local.set({ dicionario_pessoal: currentDictionary }, () => { if (chrome.runtime.lastError) return; renderizarLista(); if (wordInput) wordInput.focus(); }); }
+    /**
+     * Envia mensagem para a content script da aba atual
+     * @param {string} action - Ação a ser executada
+     * @param {Object} data - Dados adicionais
+     */
+    function enviarMensagemParaAba(action, data = {}) {
+        if (!currentTabId) return;
+        
+        chrome.tabs.sendMessage(currentTabId, { action, ...data }, () => {
+            if (chrome.runtime.lastError) {
+                // A extensão pode não estar injetada nesta página
+                console.debug('Não foi possível enviar mensagem:', chrome.runtime.lastError.message);
+            }
+        });
+    }
 
-    function adicionarPalavra() { if (!wordInput) return; const word = wordInput.value.trim().toLowerCase(); if (!word) { wordInput.value = ''; return; } if (word.length < 2) { wordInput.style.borderColor = '#e53e3e'; setTimeout(() => { wordInput.style.borderColor = ''; }, 1000); return; } if (!currentDictionary.includes(word)) { currentDictionary.unshift(word); wordInput.value = ''; salvarDicionario(); } else { wordInput.value = ''; wordInput.style.borderColor = '#f59e0b'; setTimeout(() => { wordInput.style.borderColor = ''; }, 1000); } }
+    /**
+     * Envia ação e fecha o popup após confirmação
+     * @param {string} action - Ação a ser executada
+     */
+    function enviarAcaoParaAba(action) {
+        chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+            if (chrome.runtime.lastError) {
+                mostrarFeedbackTemporario('⚠️ Erro ao comunicar com a página');
+                return;
+            }
+            
+            if (tabs[0] && tabs[0].id) {
+                chrome.tabs.sendMessage(tabs[0].id, { action: action }, () => {
+                    if (chrome.runtime.lastError) {
+                        console.warn('Erro:', chrome.runtime.lastError.message);
+                        mostrarFeedbackTemporario('⚠️ Recarregue a página para usar esta função');
+                    } else {
+                        const mensagens = {
+                            'corrigirTudo': '✨ Corrigindo tudo...',
+                            'revisarPaginaInteira': '🔍 Revisando página...'
+                        };
+                        mostrarFeedbackTemporario(mensagens[action] || '✅ Comando enviado!');
+                        setTimeout(() => window.close(), 500);
+                    }
+                });
+            } else {
+                mostrarFeedbackTemporario('⚠️ Nenhuma página válida encontrada');
+            }
+        });
+    }
 
-    function enviarMensagemParaAba(action) { chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => { if (tabs[0] && tabs[0].id) { chrome.tabs.sendMessage(tabs[0].id, { action: action }, () => { if (chrome.runtime.lastError) console.warn('Erro:', chrome.runtime.lastError.message); }); } }); }
+    // =============================================
+    // FUNÇÕES DE FEEDBACK VISUAL
+    // =============================================
+    
+    /**
+     * Mostra feedback temporário no popup
+     * @param {string} mensagem - Mensagem a ser exibida
+     */
+    function mostrarFeedbackTemporario(mensagem) {
+        // Remove feedbacks anteriores
+        const existingFeedback = document.querySelector('.sm-popup-feedback');
+        if (existingFeedback) existingFeedback.remove();
+        
+        const feedback = document.createElement('div');
+        feedback.className = 'sm-popup-feedback';
+        feedback.textContent = mensagem;
+        feedback.style.cssText = `
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #6f42c1;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            z-index: 10000;
+            animation: sm-popup-fadeout 2s forwards;
+            pointer-events: none;
+            white-space: nowrap;
+        `;
+        
+        document.body.appendChild(feedback);
+        
+        setTimeout(() => {
+            if (feedback.parentNode) feedback.remove();
+        }, 2000);
+    }
 
-    if (addBtn) addBtn.addEventListener('click', adicionarPalavra);
-    if (wordInput) wordInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') { e.preventDefault(); adicionarPalavra(); } });
-    if (btnCorrigirTudo) btnCorrigirTudo.addEventListener('click', () => { enviarMensagemParaAba('corrigirTudo'); window.close(); });
-    if (btnRevisarPagina) btnRevisarPagina.addEventListener('click', () => { enviarMensagemParaAba('revisarPaginaInteira'); window.close(); });
-    if (linkOpcoes) { linkOpcoes.addEventListener('click', (e) => { e.preventDefault(); if (chrome.runtime.openOptionsPage) { chrome.runtime.openOptionsPage(); } else { window.open(chrome.runtime.getURL('options.html')); } }); }
+    // =============================================
+    // FUNÇÕES DE STATUS DO SITE
+    // =============================================
+    
+    /**
+     * Carrega o status atual da extensão para o site atual
+     */
+    async function carregarStatusDoSite() {
+        const tab = await getCurrentTab();
+        
+        if (!tab || !tab.id) {
+            if (currentSiteLabel) currentSiteLabel.textContent = 'Página inválida';
+            if (toggleSiteActive) toggleSiteActive.disabled = true;
+            return;
+        }
 
-    chrome.storage.onChanged.addListener((changes, namespace) => { if (namespace !== 'local') return; if (changes.dicionario_pessoal) { currentDictionary = changes.dicionario_pessoal.newValue || []; if (!Array.isArray(currentDictionary)) currentDictionary = []; renderizarLista(); } if (changes.darkMode) { document.body.classList.toggle('dark-mode', changes.darkMode.newValue); } });
+        currentTabId = tab.id;
+        
+        try {
+            currentHost = new URL(tab.url).hostname;
+            if (currentSiteLabel) currentSiteLabel.textContent = currentHost;
+        } catch (e) {
+            if (currentSiteLabel) currentSiteLabel.textContent = 'site desconhecido';
+            currentHost = null;
+        }
 
-    function escapeHtml(texto) { if (!texto) return ''; const div = document.createElement('div'); div.textContent = texto; return div.innerHTML; }
+        if (!currentHost) {
+            if (toggleSiteActive) toggleSiteActive.disabled = true;
+            return;
+        }
 
+        // Verificar status atual da extensão para este site
+        chrome.storage.local.get(
+            ['blacklist', 'disabled', 'modoWhitelist', 'whitelist', 'userBlacklistOverrides'],
+            (res) => {
+                if (chrome.runtime.lastError) return;
+                
+                let isActive = true;
+                
+                // Verificar override do usuário primeiro
+                const userOverrides = res.userBlacklistOverrides || [];
+                if (userOverrides.includes(currentHost)) {
+                    isActive = false;
+                } else if (res.modoWhitelist) {
+                    isActive = (res.whitelist || []).some(d => currentHost.includes(d));
+                } else {
+                    const isBlocked = (res.blacklist || []).some(d => currentHost.includes(d));
+                    isActive = !isBlocked && !res.disabled;
+                }
+                
+                isExtensionActive = isActive;
+                
+                if (toggleSiteActive) {
+                    toggleSiteActive.checked = isActive;
+                    toggleSiteActive.disabled = false;
+                }
+                
+                // Atualizar indicador visual
+                if (siteStatusDot) {
+                    siteStatusDot.className = isActive ? 'status-dot active' : 'status-dot';
+                }
+                
+                // Atualizar tooltip
+                if (toggleSiteActive) {
+                    toggleSiteActive.title = isActive ? 'Desativar neste site' : 'Ativar neste site';
+                }
+            }
+        );
+    }
+
+    /**
+     * Alterna o estado da extensão no site atual
+     * @param {boolean} ativar - true para ativar, false para desativar
+     */
+    async function alternarEstadoSite(ativar) {
+        if (!currentTabId || !currentHost) {
+            mostrarFeedbackTemporario('⚠️ Não foi possível identificar o site atual');
+            return;
+        }
+        
+        const storageKey = `site_override_${currentHost}`;
+        
+        if (!ativar) {
+            // Desativar: adicionar à blacklist de overrides do usuário
+            chrome.storage.local.get(['userBlacklistOverrides'], (res) => {
+                if (chrome.runtime.lastError) {
+                    mostrarFeedbackTemporario('❌ Erro ao salvar preferência');
+                    return;
+                }
+                
+                const overrides = res.userBlacklistOverrides || [];
+                if (!overrides.includes(currentHost)) {
+                    overrides.push(currentHost);
+                    chrome.storage.local.set({ userBlacklistOverrides: overrides }, () => {
+                        if (chrome.runtime.lastError) {
+                            mostrarFeedbackTemporario('❌ Erro ao salvar preferência');
+                            return;
+                        }
+                        enviarMensagemParaAba('toggleSite', { enabled: false, host: currentHost });
+                        atualizarInterfaceAposToggle(false);
+                    });
+                } else {
+                    enviarMensagemParaAba('toggleSite', { enabled: false, host: currentHost });
+                    atualizarInterfaceAposToggle(false);
+                }
+            });
+        } else {
+            // Ativar: remover da blacklist de overrides
+            chrome.storage.local.get(['userBlacklistOverrides'], (res) => {
+                if (chrome.runtime.lastError) {
+                    mostrarFeedbackTemporario('❌ Erro ao salvar preferência');
+                    return;
+                }
+                
+                const overrides = res.userBlacklistOverrides || [];
+                const index = overrides.indexOf(currentHost);
+                if (index > -1) {
+                    overrides.splice(index, 1);
+                    chrome.storage.local.set({ userBlacklistOverrides: overrides }, () => {
+                        if (chrome.runtime.lastError) {
+                            mostrarFeedbackTemporario('❌ Erro ao salvar preferência');
+                            return;
+                        }
+                        enviarMensagemParaAba('toggleSite', { enabled: true, host: currentHost });
+                        atualizarInterfaceAposToggle(true);
+                    });
+                } else {
+                    enviarMensagemParaAba('toggleSite', { enabled: true, host: currentHost });
+                    atualizarInterfaceAposToggle(true);
+                }
+            });
+        }
+    }
+    
+    /**
+     * Atualiza a interface após alternar o estado do site
+     * @param {boolean} ativar - Estado atual
+     */
+    function atualizarInterfaceAposToggle(ativar) {
+        isExtensionActive = ativar;
+        
+        if (toggleSiteActive) {
+            toggleSiteActive.checked = ativar;
+            toggleSiteActive.title = ativar ? 'Desativar neste site' : 'Ativar neste site';
+        }
+        
+        if (siteStatusDot) {
+            siteStatusDot.className = ativar ? 'status-dot active' : 'status-dot';
+        }
+        
+        const mensagem = ativar ? '✅ SyntaxMentor ativado neste site' : '⛔ SyntaxMentor desativado neste site';
+        mostrarFeedbackTemporario(mensagem);
+    }
+
+    // =============================================
+    // FUNÇÕES DO DICIONÁRIO
+    // =============================================
+    
+    /**
+     * Carrega o dicionário pessoal do storage
+     */
+    function carregarDicionario() {
+        chrome.storage.local.get(['dicionario_pessoal'], (res) => {
+            if (chrome.runtime.lastError) {
+                console.warn('Erro ao carregar dicionário:', chrome.runtime.lastError.message);
+                currentDictionary = [];
+            } else {
+                currentDictionary = res.dicionario_pessoal || [];
+                if (!Array.isArray(currentDictionary)) currentDictionary = [];
+            }
+            renderizarLista();
+        });
+    }
+    
+    /**
+     * Carrega o tema (dark mode) do storage
+     */
+    function carregarTema() {
+        chrome.storage.local.get(['darkMode'], (res) => {
+            if (chrome.runtime.lastError) return;
+            document.body.classList.toggle('dark-mode', res.darkMode);
+        });
+    }
+
+    /**
+     * Renderiza a lista de palavras do dicionário
+     */
+    function renderizarLista() {
+        if (!wordList) return;
+        
+        wordList.innerHTML = '';
+        
+        if (currentDictionary.length === 0) {
+            wordList.innerHTML = '<li style="color:#9ca3af;text-align:center;padding:15px;font-size:12px;">📭 Nenhuma palavra adicionada</li>';
+            return;
+        }
+        
+        currentDictionary.forEach((word, index) => {
+            const li = document.createElement('li');
+            li.innerHTML = `
+                <span style="flex:1;word-break:break-word;">${escapeHtml(word)}</span>
+                <button class="btn-remove" data-index="${index}" title="Remover">✕</button>
+            `;
+            wordList.appendChild(li);
+        });
+        
+        // Adicionar event listeners aos botões de remover
+        document.querySelectorAll('.btn-remove').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const idx = parseInt(e.target.getAttribute('data-index'));
+                if (idx >= 0 && idx < currentDictionary.length) {
+                    const palavraRemovida = currentDictionary[idx];
+                    currentDictionary.splice(idx, 1);
+                    salvarDicionario();
+                    mostrarFeedbackTemporario(`🗑️ "${palavraRemovida}" removido`);
+                }
+            });
+        });
+    }
+    
+    /**
+     * Salva o dicionário no storage
+     */
+    function salvarDicionario() {
+        chrome.storage.local.set({ dicionario_pessoal: currentDictionary }, () => {
+            if (chrome.runtime.lastError) return;
+            renderizarLista();
+            if (wordInput) wordInput.focus();
+        });
+    }
+
+    /**
+     * Adiciona uma nova palavra ao dicionário
+     */
+    function adicionarPalavra() {
+        if (!wordInput) return;
+        
+        const word = wordInput.value.trim().toLowerCase();
+        
+        if (!word) {
+            wordInput.value = '';
+            return;
+        }
+        
+        if (word.length < 2) {
+            wordInput.style.borderColor = '#e53e3e';
+            setTimeout(() => {
+                wordInput.style.borderColor = '';
+            }, 1000);
+            mostrarFeedbackTemporario('⚠️ A palavra deve ter pelo menos 2 caracteres');
+            return;
+        }
+        
+        if (!currentDictionary.includes(word)) {
+            currentDictionary.unshift(word);
+            wordInput.value = '';
+            salvarDicionario();
+            mostrarFeedbackTemporario(`✨ "${word}" adicionado ao dicionário`);
+        } else {
+            wordInput.value = '';
+            wordInput.style.borderColor = '#f59e0b';
+            setTimeout(() => {
+                wordInput.style.borderColor = '';
+            }, 1000);
+            mostrarFeedbackTemporario(`⚠️ "${word}" já está no dicionário`);
+        }
+    }
+
+    // =============================================
+    // UTILITÁRIOS
+    // =============================================
+    
+    /**
+     * Escapa caracteres HTML para evitar XSS
+     * @param {string} texto - Texto a ser escapado
+     * @returns {string}
+     */
+    function escapeHtml(texto) {
+        if (!texto) return '';
+        const div = document.createElement('div');
+        div.textContent = texto;
+        return div.innerHTML;
+    }
+
+    // =============================================
+    // EVENT LISTENERS
+    // =============================================
+    
+    if (addBtn) {
+        addBtn.addEventListener('click', adicionarPalavra);
+    }
+    
+    if (wordInput) {
+        wordInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                adicionarPalavra();
+            }
+        });
+    }
+    
+    if (btnCorrigirTudo) {
+        btnCorrigirTudo.addEventListener('click', () => {
+            enviarAcaoParaAba('corrigirTudo');
+        });
+    }
+    
+    if (btnRevisarPagina) {
+        btnRevisarPagina.addEventListener('click', () => {
+            enviarAcaoParaAba('revisarPaginaInteira');
+        });
+    }
+    
+    if (toggleSiteActive) {
+        toggleSiteActive.addEventListener('change', (e) => {
+            alternarEstadoSite(e.target.checked);
+        });
+    }
+    
+    if (linkOpcoes) {
+        linkOpcoes.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (chrome.runtime.openOptionsPage) {
+                chrome.runtime.openOptionsPage();
+            } else {
+                window.open(chrome.runtime.getURL('options.html'));
+            }
+        });
+    }
+
+    // =============================================
+    // STORAGE LISTENERS
+    // =============================================
+    
+    chrome.storage.onChanged.addListener((changes, namespace) => {
+        if (namespace !== 'local') return;
+        
+        if (changes.dicionario_pessoal) {
+            currentDictionary = changes.dicionario_pessoal.newValue || [];
+            if (!Array.isArray(currentDictionary)) currentDictionary = [];
+            renderizarLista();
+        }
+        
+        if (changes.darkMode) {
+            document.body.classList.toggle('dark-mode', changes.darkMode.newValue);
+        }
+        
+        // Se blacklist/whitelist/overrides mudar, recarregar status do site
+        if (changes.blacklist || changes.modoWhitelist || changes.whitelist || changes.userBlacklistOverrides) {
+            carregarStatusDoSite();
+        }
+    });
+
+    // =============================================
+    // INICIALIZAÇÃO
+    // =============================================
+    
     carregarTema();
     carregarDicionario();
+    carregarStatusDoSite();
+    
+    // Adicionar estilo de animação se não existir
+    if (!document.querySelector('#sm-popup-animation-style')) {
+        const style = document.createElement('style');
+        style.id = 'sm-popup-animation-style';
+        style.textContent = `
+            @keyframes sm-popup-fadeout {
+                0% { opacity: 1; transform: translateX(-50%) translateY(0); }
+                70% { opacity: 1; transform: translateX(-50%) translateY(0); }
+                100% { opacity: 0; transform: translateX(-50%) translateY(-20px); }
+            }
+        `;
+        document.head.appendChild(style);
+    }
 });
