@@ -54,8 +54,8 @@
                 "css/content.css", 
                 "welcome.html",
                 "js/offline-grammar.js",
-                "js/offline-mode.js",
-                "css/offline-mode.css"
+                "js/sentiment-analysis.js",
+                "js/export-reports.js"
             ],
             "matches": ["<all_urls>"]
         }
