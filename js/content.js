@@ -2333,6 +2333,8 @@ function fecharPainel() {
             iniciarTimeoutFoco();
         }, 1000);
     }
+
+     adicionarAbaSentimento();
 }
 
 /**
@@ -2776,6 +2778,139 @@ setInterval(async () => {
         console.debug('Extensão reconectada');
     }
 }, 30000);
+
+// =============================================
+// ANÁLISE DE SENTIMENTO
+// =============================================
+
+// Adicionar aba de sentimento no painel
+function adicionarAbaSentimento() {
+    const painel = document.getElementById('syntax-mentor-painel');
+    if (!painel) return;
+    
+    if (document.getElementById('sm-sentiment-tab')) return;
+    
+    const tabs = document.createElement('div');
+    tabs.id = 'sm-sentiment-tabs';
+    tabs.style.cssText = `
+        display: flex;
+        border-bottom: 1px solid #e5e7eb;
+        margin-bottom: 12px;
+    `;
+    
+    tabs.innerHTML = `
+        <button class="sm-tab-btn active" data-tab="grammar">📝 Gramática</button>
+        <button class="sm-tab-btn" data-tab="sentiment">😊 Sentimento</button>
+    `;
+    
+    const header = painel.querySelector('#syntax-mentor-header');
+    if (header) {
+        header.insertAdjacentElement('afterend', tabs);
+    }
+    
+    const content = painel.querySelector('#syntax-mentor-content');
+    const sentimentContent = document.createElement('div');
+    sentimentContent.id = 'sm-sentiment-content';
+    sentimentContent.style.display = 'none';
+    sentimentContent.className = 'body-cards';
+    
+    content.parentNode.insertBefore(sentimentContent, content.nextSibling);
+    
+    tabs.querySelectorAll('.sm-tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            tabs.querySelectorAll('.sm-tab-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            
+            if (btn.dataset.tab === 'grammar') {
+                content.style.display = 'block';
+                sentimentContent.style.display = 'none';
+            } else {
+                content.style.display = 'none';
+                sentimentContent.style.display = 'block';
+                atualizarAnaliseSentimento(sentimentContent);
+            }
+        });
+    });
+}
+
+// Atualizar análise de sentimento
+function atualizarAnaliseSentimento(container) {
+    if (!elementoGlobal) return;
+    
+    const texto = elementoGlobal.value || elementoGlobal.textContent || elementoGlobal.innerText || '';
+    
+    if (texto.length < 10) {
+        container.innerHTML = `
+            <div style="text-align:center;padding:40px;color:#888;">
+                <div style="font-size:48px;margin-bottom:16px;">📝</div>
+                <p>Digite mais texto para analisar o sentimento</p>
+                <p style="font-size:12px;">Mínimo de 10 caracteres</p>
+            </div>
+        `;
+        return;
+    }
+    
+    // Análise simples de sentimento
+    const negativeWords = ['ruim', 'péssimo', 'horrível', 'odeio', 'detesto', 'problema', 'erro', 'falha'];
+    const positiveWords = ['ótimo', 'excelente', 'bom', 'maravilhoso', 'perfeito'];
+    
+    let score = 0;
+    const issues = [];
+    const lowerText = texto.toLowerCase();
+    
+    negativeWords.forEach(word => {
+        if (lowerText.includes(word)) {
+            score -= 0.5;
+            issues.push({
+                word: word,
+                suggestion: word === 'ruim' ? 'insatisfatório' : 
+                           word === 'problema' ? 'desafio' :
+                           word === 'erro' ? 'ajuste' : 'melhorar',
+                message: `Palavra negativa: "${word}"`
+            });
+        }
+    });
+    
+    positiveWords.forEach(word => {
+        if (lowerText.includes(word)) score += 0.3;
+    });
+    
+    let sentiment = score < -0.5 ? 'negativo' : score > 0.3 ? 'positivo' : 'neutro';
+    let sentimentIcon = sentiment === 'negativo' ? '😔' : sentiment === 'positivo' ? '😊' : '😐';
+    let scoreColor = sentiment === 'negativo' ? '#e53e3e' : sentiment === 'positivo' ? '#28a745' : '#6b7280';
+    
+    let html = `
+        <div style="text-align:center;margin-bottom:24px;">
+            <div style="font-size:64px;">${sentimentIcon}</div>
+            <h3 style="margin:8px 0 4px;">Sentimento: ${sentiment}</h3>
+            <p style="color:${scoreColor};font-weight:bold;">Score: ${score}</p>
+        </div>
+    `;
+    
+    if (issues.length > 0) {
+        html += `<div><h4>🔍 Pontos de atenção:</h4>`;
+        issues.forEach(issue => {
+            html += `
+                <div style="background:#f8f9fa;border-radius:8px;padding:12px;margin-bottom:12px;">
+                    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+                        <strong>"${issue.word}"</strong> <span>→</span> 
+                        <span style="color:#28a745;">"${issue.suggestion}"</span>
+                    </div>
+                    <p style="margin:0;font-size:12px;color:#666;">${issue.message}</p>
+                </div>
+            `;
+        });
+        html += `</div>`;
+    } else {
+        html += `
+            <div style="text-align:center;padding:20px;background:#f0fdf4;border-radius:12px;">
+                <p style="color:#166534;">✨ Texto com tom adequado!</p>
+            </div>
+        `;
+    }
+    
+    container.innerHTML = html;
+}
 
 // =============================================
 // INICIALIZAÇÃO
