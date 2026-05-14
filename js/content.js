@@ -1530,18 +1530,83 @@ function atualizarEstadoCarregamento(on) {
  * @param {Array} erros - Lista de erros
  * @param {HTMLElement} el - Elemento a ser modificado
  */
+
 function aplicarGrifos(erros, el) {
     if (!el?.isContentEditable || isSiteRestrito) return;
-
-    let html = el.innerHTML.replace(/<mark class="sm-highlight">(.*?)<\/mark>/gi, '$1');
-    const palavras = [...new Set(erros.map(e => e.context.text.substr(e.context.offset, e.context.length)).filter(Boolean))];
-
-    palavras.forEach(p => {
-        const esc = p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        html = html.replace(new RegExp(`(?<!<[^>]*)${esc}(?![^<]*>)`, 'g'), `<mark class="sm-highlight">$&</mark>`);
+    
+    // Remove grifos existentes primeiro 
+    const marksExistentes = el.querySelectorAll('mark.sm-highlight');
+    marksExistentes.forEach(mark => {
+        const parent = mark.parentNode;
+        const texto = document.createTextNode(mark.textContent);
+        parent.replaceChild(texto, mark);
+        parent.normalize();
     });
-
-    if (el.innerHTML !== html) el.innerHTML = html;
+    
+    if (!erros || erros.length === 0) return;
+    
+    // Extrair palavras únicas para marcar
+    const palavras = [...new Set(erros.map(e => 
+        e.context.text.substr(e.context.offset, e.context.length)
+    ).filter(Boolean))];
+    
+    if (palavras.length === 0) return;
+    
+    // Criar expressão regular para encontrar as palavras
+    const regexPalavras = new RegExp(`\\b(${palavras.map(p => p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})\\b`, 'gi');
+    
+    // Usar TreeWalker para percorrer apenas nós de texto
+    const walker = document.createTreeWalker(
+        el,
+        NodeFilter.SHOW_TEXT,
+        {
+            acceptNode: function(node) {
+                if (node.parentElement?.closest?.('mark.sm-highlight, script, style')) {
+                    return NodeFilter.FILTER_REJECT;
+                }
+                if (node.textContent && node.textContent.trim().length > 0) {
+                    return NodeFilter.FILTER_ACCEPT;
+                }
+                return NodeFilter.FILTER_SKIP;
+            }
+        }
+    );
+    
+    const nodesToReplace = [];
+    while (walker.nextNode()) {
+        nodesToReplace.push(walker.currentNode);
+    }
+    
+    // Processar cada nó de texto
+    nodesToReplace.forEach(node => {
+        const texto = node.textContent;
+        if (!regexPalavras.test(texto)) return;
+        
+        regexPalavras.lastIndex = 0;
+        
+        const fragment = document.createDocumentFragment();
+        let lastIndex = 0;
+        let match;
+        
+        while ((match = regexPalavras.exec(texto)) !== null) {
+            if (match.index > lastIndex) {
+                fragment.appendChild(document.createTextNode(texto.substring(lastIndex, match.index)));
+            }
+            
+            const mark = document.createElement('mark');
+            mark.className = 'sm-highlight';
+            mark.textContent = match[0];
+            fragment.appendChild(mark);
+            
+            lastIndex = match.index + match[0].length;
+        }
+        
+        if (lastIndex < texto.length) {
+            fragment.appendChild(document.createTextNode(texto.substring(lastIndex)));
+        }
+        
+        node.parentNode.replaceChild(fragment, node);
+    });
 }
 
 // =============================================
