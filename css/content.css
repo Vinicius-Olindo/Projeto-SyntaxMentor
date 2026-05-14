@@ -459,3 +459,72 @@ mark.sm-highlight {
         opacity: 0;
     }
 }
+
+/* ============================================
+   FEEDBACK VISUAL DE CORREÇÃO
+   ============================================ */
+
+/* Animação para o feedback flutuante */
+@keyframes sm-feedback-correcao {
+    0% {
+        opacity: 0;
+        transform: translateY(10px) scale(0.8);
+    }
+    20% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+    80% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+    100% {
+        opacity: 0;
+        transform: translateY(-20px) scale(0.8);
+    }
+}
+
+/* Animação para palavras corrigidas no texto */
+.sm-correction-feedback {
+    display: inline-block;
+    animation: sm-correction-highlight 0.5s ease-out;
+}
+
+@keyframes sm-correction-highlight {
+    0% {
+        background-color: #28a745;
+        color: white;
+        transform: scale(1);
+        border-radius: 4px;
+        padding: 0 2px;
+    }
+    50% {
+        background-color: #28a745;
+        color: white;
+        transform: scale(1.05);
+        border-radius: 4px;
+        padding: 0 2px;
+    }
+    100% {
+        background-color: transparent;
+        color: inherit;
+        transform: scale(1);
+    }
+}
+
+/* Efeito de pulsar na bolinha durante correção */
+@keyframes sm-bubble-correction {
+    0% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.2);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+.sm-bubble-correction {
+    animation: sm-bubble-correction 0.3s ease-in-out !important;
+}

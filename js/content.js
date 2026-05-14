@@ -1641,7 +1641,7 @@ async function processarFilaRequisicoes() {
 // =============================================
 
 /**
- * Aplica uma correção no texto
+ * Aplica uma correção no texto com feedback visual
  * @param {string} original - Palavra original com erro
  * @param {string} sugestao - Sugestão de correção
  * @param {HTMLElement} el - Elemento contendo o texto
@@ -1649,15 +1649,19 @@ async function processarFilaRequisicoes() {
  */
 function aplicarCorrecao(original, sugestao, el, pularConfirmacao = false) {
     if (!el || !original || !sugestao) return;
-
+    
     const executarCorrecao = () => {
         const esc = original.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-
+        
         if (el.tagName === 'TEXTAREA' || el.tagName === 'INPUT') {
             const valorAntigo = el.value;
+            const posicao = encontrarPosicaoPalavra(el.value, original);
             el.value = el.value.replace(new RegExp(`(?<![\\p{L}])${esc}(?![\\p{L}])`, 'gu'), sugestao);
-
+            
             if (el.value !== valorAntigo) {
+                // Feedback visual para input/textarea
+                mostrarFeedbackCorrecao(el, posicao, original, sugestao);
+                
                 salvarEstadoParaDesfazer(el, original, sugestao);
                 dispararEventosNativos(el);
                 requestAnimationFrame(() => {
@@ -1687,33 +1691,46 @@ function aplicarCorrecao(original, sugestao, el, pularConfirmacao = false) {
                 let html = el.innerHTML;
                 const htmlAntigo = html;
                 const markRegex = new RegExp(`<mark class="sm-highlight">${esc}</mark>`, 'g');
-
+                
                 if (markRegex.test(html)) {
-                    html = html.replace(markRegex, sugestao);
+                    html = html.replace(markRegex, `<span class="sm-correction-feedback">${sugestao}</span>`);
                 } else {
-                    html = html.replace(new RegExp(`(?<!<[^>]*)(?<![\\p{L}])${esc}(?![\\p{L}])(?![^<]*>)`, 'gu'), sugestao);
+                    html = html.replace(new RegExp(`(?<!<[^>]*)(?<![\\p{L}])${esc}(?![\\p{L}])(?![^<]*>)`, 'gu'), 
+                        `<span class="sm-correction-feedback">${sugestao}</span>`);
                 }
-
+                
                 if (html !== htmlAntigo) {
                     salvarEstadoParaDesfazer(el, original, sugestao);
                     el.innerHTML = html;
+                    
+                    // Remover a classe de animação após 500ms
+                    const elementoCorrigido = el.querySelector('.sm-correction-feedback');
+                    if (elementoCorrigido) {
+                        setTimeout(() => {
+                            const span = elementoCorrigido;
+                            const parent = span.parentNode;
+                            const texto = document.createTextNode(span.textContent);
+                            parent.replaceChild(texto, span);
+                            parent.normalize();
+                        }, 500);
+                    }
                 }
                 atualizarElementoComEventos(el);
                 setTimeout(() => atualizarElementoComEventos(el), 100);
             }
         }
-
+        
         historicoCorrecoes.push({ el, original, sugestao });
         if (historicoCorrecoes.length > 50) historicoCorrecoes.shift();
-
+        
         incrementarStats(1);
-
+        
         if (smConfig.modoAprendizado) {
             const erroEncontrado = errosGlobais.find(e => {
                 const o = e.context.text.substr(e.context.offset, e.context.length);
                 return o === original;
             });
-
+            
             if (erroEncontrado && erroEncontrado.message) {
                 setTimeout(() => {
                     mostrarExplicacaoRegra(original, sugestao, erroEncontrado.message);
@@ -1721,7 +1738,7 @@ function aplicarCorrecao(original, sugestao, el, pularConfirmacao = false) {
             }
         }
     };
-
+    
     if (pularConfirmacao) {
         executarCorrecao();
     } else {
@@ -1732,12 +1749,81 @@ function aplicarCorrecao(original, sugestao, el, pularConfirmacao = false) {
 }
 
 /**
+ * Encontra a posição de uma palavra no texto para feedback visual
+ * @param {string} texto - Texto completo
+ * @param {string} palavra - Palavra a ser encontrada
+ * @returns {number} - Posição da palavra
+ */
+function encontrarPosicaoPalavra(texto, palavra) {
+    const regex = new RegExp(`\\b${palavra.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
+    const match = texto.match(regex);
+    return match ? match.index : -1;
+}
+
+/**
+ * Mostra feedback visual quando uma palavra é corrigida
+ * @param {HTMLElement} elemento - Elemento que contém o texto
+ * @param {number} posicao - Posição da palavra corrigida
+ * @param {string} original - Palavra original
+ * @param {string} sugestao - Sugestão aplicada
+ */
+function mostrarFeedbackCorrecao(elemento, posicao, original, sugestao) {
+    if (!elemento || posicao < 0) return;
+    
+    // Obter as coordenadas do elemento
+    const rect = elemento.getBoundingClientRect();
+    if (rect.width === 0 && rect.height === 0) return;
+    
+    // Criar elemento de feedback flutuante
+    const feedback = document.createElement('div');
+    feedback.className = 'sm-feedback-correcao';
+    feedback.innerHTML = `
+        <span style="text-decoration:line-through;color:#e53e3e;">${escapeHtml(original)}</span>
+        <span style="margin:0 4px;">→</span>
+        <span style="color:#28a745;font-weight:bold;">${escapeHtml(sugestao)}</span>
+    `;
+    
+    feedback.style.cssText = `
+        position: fixed;
+        left: ${rect.left + 10}px;
+        top: ${rect.top - 30}px;
+        background: #1a1a1a;
+        color: white;
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-family: 'Segoe UI', sans-serif;
+        z-index: 2147483647;
+        pointer-events: none;
+        white-space: nowrap;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        animation: sm-feedback-correcao 0.8s ease-out forwards;
+    `;
+    
+    document.body.appendChild(feedback);
+    
+    // Remover após animação
+    setTimeout(() => {
+        if (feedback.parentNode) feedback.remove();
+    }, 800);
+}
+
+/**
  * Incrementa as estatísticas de correção
  * @param {number} qtd - Quantidade a incrementar
  */
 function incrementarStats(qtd) {
     if (!isExtensaoAtiva()) return;
-
+    
+    // Animar a bolinha ao corrigir
+    const bubble = document.getElementById('syntax-mentor-bubble');
+    if (bubble) {
+        bubble.classList.add('sm-bubble-correction');
+        setTimeout(() => {
+            bubble.classList.remove('sm-bubble-correction');
+        }, 300);
+    }
+    
     storageGetSeguro({ totalCorrigidas: 0, dicionario_pessoal: [] }, (res) => {
         const novoTotal = (res.totalCorrigidas || 0) + qtd;
         storageSetSeguro({ totalCorrigidas: novoTotal });
