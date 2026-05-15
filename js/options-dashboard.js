@@ -204,6 +204,57 @@ if (document.body.classList.contains('dashboard-page')) {
             }
         });
     }
+
+    // =============================================
+    // API PÚBLICA - EVENTOS
+    // =============================================
+
+    function configurarApiPublica() {
+        const btnCopiar = document.getElementById('btn-copiar-api-exemplo');
+        const btnDemo = document.getElementById('btn-abrir-demo');
+        const linkDoc = document.getElementById('link-documentacao');
+        
+        // Copiar código exemplo
+        if (btnCopiar) {
+            btnCopiar.addEventListener('click', () => {
+                const codigo = `// SyntaxMentor API - Exemplo de uso
+    const resultado = await SyntaxMentor.correct("texto com erro");
+    console.log(resultado.correctedText);
+
+    // Com configuração
+    const resultado = await SyntaxMentor.correct("Hello world", {
+        language: "en-US",
+        pickyMode: true
+    });
+
+    // Corrigir elemento HTML
+    await SyntaxMentor.correctElement(document.getElementById("meu-texto"));`;
+                
+                navigator.clipboard.writeText(codigo);
+                mostrarNotificacao('✅ Código copiado!', 'success');
+            });
+        }
+        
+        // Abrir demonstração
+        if (btnDemo) {
+            btnDemo.addEventListener('click', () => {
+                // Abrir página de exemplo
+                chrome.tabs.create({ url: chrome.runtime.getURL('examples/api-usage.html') });
+            });
+        }
+        
+        // Link documentação
+        if (linkDoc) {
+            linkDoc.addEventListener('click', (e) => {
+                e.preventDefault();
+                // Abrir documentação online
+                window.open('https://github.com/seu-usuario/syntaxmentor-api', '_blank');
+            });
+        }
+    }
+
+    // Chamar a função
+    configurarApiPublica();
     
     // =============================================
     // INICIALIZAR

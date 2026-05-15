@@ -513,4 +513,12 @@ document.addEventListener('DOMContentLoaded', () => {
         `;
         document.head.appendChild(style);
     }
+    // Link para documentação da API
+    const linkApi = document.getElementById('link-api');
+    if (linkApi) {
+        linkApi.addEventListener('click', (e) => {
+            e.preventDefault();
+            chrome.tabs.create({ url: chrome.runtime.getURL('api-docs.html') });
+        });
+    }
 });

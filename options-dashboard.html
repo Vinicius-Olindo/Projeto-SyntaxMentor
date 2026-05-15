@@ -145,6 +145,46 @@
                 </div>
             </div>
 
+            <!-- Seção API para Desenvolvedores -->
+            <div class="config-card card-api" style="margin-top: 24px;">
+                <div class="card-header">
+                    <h3>🔌 API Pública para Desenvolvedores</h3>
+                    <span class="card-badge">Developer</span>
+                </div>
+                <p class="desc">Integre o corretor do SyntaxMentor no seu próprio site ou aplicação.</p>
+                
+                <div style="background: #f8f9fa; border-radius: 12px; padding: 16px; margin: 16px 0;">
+                    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+                        <span style="font-size: 24px;">📘</span>
+                        <strong style="font-size: 14px;">Exemplo de uso:</strong>
+                    </div>
+                    <pre style="background: #1a1a1a; color: #e5e5e5; padding: 16px; border-radius: 8px; overflow-x: auto; font-size: 12px; margin: 0;">
+                    <code>// Corrigir qualquer texto
+                    const resultado = await SyntaxMentor.correct("texto com erro");
+                    console.log(resultado.correctedText); // "texto sem erro"
+
+                    // Corrigir elemento HTML
+                    await SyntaxMentor.correctElement(document.getElementById("meu-texto"));</code>
+                    </pre>
+                </div>
+                
+                <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                    <button id="btn-copiar-api-exemplo" class="btn-backup-export" style="background: #6f42c1;">
+                        📋 Copiar Código de Exemplo
+                    </button>
+                    <button id="btn-abrir-demo" class="btn-backup-import">
+                        🚀 Abrir Demonstração
+                    </button>
+                </div>
+                
+                <div style="margin-top: 16px; padding: 12px; background: #e8f0fe; border-radius: 8px;">
+                    <p style="font-size: 12px; margin: 0; color: #1a1a1a;">
+                        💡 <strong>Dica para desenvolvedores:</strong> A API está disponível globalmente como <code>window.SyntaxMentor</code>. 
+                        Consulte a <a href="#" id="link-documentacao" style="color: #6f42c1;">documentação completa</a>.
+                    </p>
+                </div>
+            </div>
+
             <!-- RODAPÉ -->
             <div class="footer-dash">
                 <p>Os dados são atualizados automaticamente conforme você usa a extensão.</p>
