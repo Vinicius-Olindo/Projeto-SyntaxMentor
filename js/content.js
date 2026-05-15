@@ -2117,12 +2117,13 @@ function atualizarInterface() {
         document.body.appendChild(bubble);
         tornarArrastavel(bubble);
 
-        bubble.addEventListener('click', () => {
-            if (!isDraggingBubble && !estaCarregando && errosGlobais.length > 0) {
-                painelAberto ? fecharPainel() : exibirPainel();
-            }
-            isDraggingBubble = false;
-        });
+        bubble.addEventListener('click', (e) => {
+        // Só abre o painel se não foi um arrasto
+        if (!isDraggingBubble && !estaCarregando && errosGlobais.length > 0) {
+            painelAberto ? fecharPainel() : exibirPainel();
+        }
+        isDraggingBubble = false;
+    });
     }
 
     if (smConfig.darkMode) {
@@ -2359,40 +2360,67 @@ function fecharPainelComSucesso() {
 // =============================================
 
 /**
- * Torna um elemento arrastável
+ * Torna um elemento arrastável sem interferir na seleção de texto
  * @param {HTMLElement} el - Elemento a ser arrastado
  */
 function tornarArrastavel(el) {
-    let p1, p2, p3, p4;
-
-    el.onmousedown = e => {
-        e.preventDefault();
-        isDraggingBubble = false;
-        p3 = e.clientX;
-        p4 = e.clientY;
-
-        document.onmousemove = e2 => {
-            e2.preventDefault();
+    let startX = 0, startY = 0;
+    let isDragging = false;
+    let hasMoved = false;
+    
+    el.addEventListener('mousedown', (e) => {
+        // Não prevenir default aqui - deixa a seleção de texto funcionar
+        startX = e.clientX;
+        startY = e.clientY;
+        isDragging = true;
+        hasMoved = false;
+        
+        el.style.cursor = 'grabbing';
+        e.stopPropagation(); // Apenas stop propagation, não preventDefault
+    });
+    
+    document.addEventListener('mousemove', (e) => {
+        if (!isDragging) return;
+        
+        const dx = e.clientX - startX;
+        const dy = e.clientY - startY;
+        
+        // Só considera como arrasto se mover mais de 5px
+        if (Math.abs(dx) > 5 || Math.abs(dy) > 5) {
+            hasMoved = true;
             isDraggingBubble = true;
-            p1 = p3 - e2.clientX;
-            p2 = p4 - e2.clientY;
-            p3 = e2.clientX;
-            p4 = e2.clientY;
-
-            el.style.top = (el.offsetTop - p2) + 'px';
-            el.style.left = (el.offsetLeft - p1) + 'px';
+            
+            const left = el.offsetLeft + dx;
+            const top = el.offsetTop + dy;
+            
+            el.style.left = left + 'px';
+            el.style.top = top + 'px';
             el.style.right = 'auto';
             el.style.bottom = 'auto';
-
+            
             bubblePosX = el.style.left;
             bubblePosY = el.style.top;
-        };
-
-        document.onmouseup = () => {
-            document.onmousemove = null;
-            setTimeout(() => isDraggingBubble = false, 100);
-        };
-    };
+            
+            startX = e.clientX;
+            startY = e.clientY;
+        }
+    });
+    
+    document.addEventListener('mouseup', () => {
+        if (isDragging && !hasMoved) {
+            // Foi um clique, não um arrasto
+            // O click será tratado pelo evento click separadamente
+        }
+        
+        isDragging = false;
+        el.style.cursor = 'grab';
+        
+        setTimeout(() => {
+            isDraggingBubble = false;
+        }, 100);
+    });
+    
+    el.style.cursor = 'grab';
 }
 
 /**
@@ -2630,80 +2658,26 @@ function iniciar() {
         setTimeout(iniciar, 2000);
         return;
     }
-
+    
+    // Carregar API Pública
+    carregarPublicAPI();
+    
     observarShadowDOM();
     observarIframes();
+    
+    // ... resto do código existente ...
+}
 
-    storageGetSeguro(
-        [
-            'language', 'pickyMode', 'speed', 'darkMode', 'blacklist',
-            'apiUrl', 'apiKey', 'strictMode', 'toggleShortcut',
-            'ignoreShortcut', 'corrigirTudoShortcut', 'autoHideBubble',
-            'modoConfirmacao', 'modoLeituraGlobal', 'modoLeituraSites',
-            'modoWhitelist', 'whitelist', 'erroMaisComum',
-            'conquistasNotificadas', 'modoFoco', 'modoAprendizado'
-        ],
-        (res) => {
-            smConfig = { ...smConfig, ...res };
-            conquistasNotificadas = res.conquistasNotificadas || {};
-            erroMaisComumTemp = res.erroMaisComum || {};
-
-            const host = window.location.hostname;
-
-            smConfig.disabled = smConfig.modoWhitelist
-                ? !(smConfig.whitelist || []).some(d => host.includes(d))
-                : (smConfig.blacklist || []).some(d => host.includes(d));
-
-            if (smConfig.disabled) resetarBadgeBackground();
-            if (smConfig.darkMode) document.body.classList.add('sm-dark-root');
-        }
-    );
-
-    try {
-        chrome.storage.onChanged.addListener((changes) => {
-            if (changes.darkMode) {
-                smConfig.darkMode = changes.darkMode.newValue;
-                document.body.classList.toggle('sm-dark-root', smConfig.darkMode);
-                atualizarInterface();
-            }
-
-            if (changes.blacklist || changes.modoWhitelist || changes.whitelist) {
-                smConfig.blacklist = changes.blacklist?.newValue || smConfig.blacklist;
-                smConfig.modoWhitelist = changes.modoWhitelist?.newValue ?? smConfig.modoWhitelist;
-                smConfig.whitelist = changes.whitelist?.newValue || smConfig.whitelist;
-
-                const host = window.location.hostname;
-                smConfig.disabled = smConfig.modoWhitelist
-                    ? !(smConfig.whitelist || []).some(d => host.includes(d))
-                    : (smConfig.blacklist || []).some(d => host.includes(d));
-
-                if (smConfig.disabled) resetarBadgeBackground();
-            }
-
-            if (changes.conquistasNotificadas) {
-                conquistasNotificadas = changes.conquistasNotificadas.newValue || {};
-            }
-
-            if (changes.erroMaisComum) {
-                erroMaisComumTemp = changes.erroMaisComum.newValue || {};
-            }
-
-            if (changes.modoFoco) {
-                smConfig.modoFoco = changes.modoFoco.newValue;
-                if (!smConfig.modoFoco) {
-                    modoFocoAtivo = false;
-                    desativarModoFoco();
-                    clearTimeout(timeoutFoco);
-                }
-            }
-
-            if (changes.modoAprendizado) {
-                smConfig.modoAprendizado = changes.modoAprendizado.newValue;
-            }
-        });
-    } catch (e) {
-        console.debug('Erro ao configurar storage listener:', e);
-    }
+/**
+ * Carrega a API Pública no window
+ */
+function carregarPublicAPI() {
+    if (window.SyntaxMentor) return;
+    
+    const script = document.createElement('script');
+    script.src = chrome.runtime.getURL('js/public-api.js');
+    script.onload = () => script.remove();
+    (document.head || document.documentElement).appendChild(script);
 }
 
 // =============================================
@@ -2730,14 +2704,21 @@ function limparObservadores() {
     }
 }
 
-// Registrar cleanup antes da página fechar
+// Registrar cleanup quando a página for fechada ou navegar
 window.addEventListener('beforeunload', () => {
     limparObservadores();
 });
 
-// Também limpar quando a página for descarregada (para navegação SPA)
-window.addEventListener('unload', () => {
+// Usar pagehide em vez de unload (política mais moderna)
+window.addEventListener('pagehide', () => {
     limparObservadores();
+});
+
+// Para navegação SPA (Single Page Application)
+window.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') {
+        limparObservadores();
+    }
 });
 
 // =============================================
