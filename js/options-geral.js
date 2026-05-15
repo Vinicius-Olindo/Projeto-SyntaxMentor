@@ -262,9 +262,12 @@ if (document.body.classList.contains('geral-page')) {
     }
     
     // =============================================
-    // ATALHOS DE TECLADO
+    // ATALHOS DE TECLADO (COMPLETO)
     // =============================================
-    
+
+    let recordingTarget = null;
+    let activeBtn = null;
+
     function iniciarGravacao(botaoElement, configKey) {
         if (activeBtn) cancelarGravacao();
         recordingTarget = configKey;
@@ -272,7 +275,7 @@ if (document.body.classList.contains('geral-page')) {
         activeBtn.textContent = "Pressione a tecla...";
         activeBtn.classList.add('gravando');
     }
-    
+
     function cancelarGravacao() {
         if (!activeBtn) return;
         
@@ -288,8 +291,14 @@ if (document.body.classList.contains('geral-page')) {
         recordingTarget = null;
         activeBtn = null;
     }
-    
+
     function configurarGravacaoAtalhos() {
+        const btnGravarToggle = document.getElementById('btn-gravar-atalho');
+        const btnGravarIgnore = document.getElementById('btn-gravar-ignorar');
+        const btnGravarCorrigirTudo = document.getElementById('btn-gravar-corrigir-tudo');
+        const btnGravarAtivar = document.getElementById('btn-gravar-ativar');
+        const btnGravarDesativar = document.getElementById('btn-gravar-desativar');
+        
         if (btnGravarToggle) {
             btnGravarToggle.addEventListener('click', (e) => {
                 e.preventDefault();
@@ -311,6 +320,22 @@ if (document.body.classList.contains('geral-page')) {
                 e.preventDefault();
                 e.stopPropagation();
                 iniciarGravacao(btnGravarCorrigirTudo, 'corrigirTudoShortcut');
+            });
+        }
+        
+        if (btnGravarAtivar) {
+            btnGravarAtivar.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                iniciarGravacao(btnGravarAtivar, 'ativarShortcut');
+            });
+        }
+        
+        if (btnGravarDesativar) {
+            btnGravarDesativar.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                iniciarGravacao(btnGravarDesativar, 'desativarShortcut');
             });
         }
         
@@ -355,6 +380,29 @@ if (document.body.classList.contains('geral-page')) {
             if (recordingTarget && activeBtn && e.target !== activeBtn) {
                 cancelarGravacao();
             }
+        });
+    }
+
+    // Carregar configurações dos atalhos
+    function carregarAtalhos() {
+        const btnGravarToggle = document.getElementById('btn-gravar-atalho');
+        const btnGravarIgnore = document.getElementById('btn-gravar-ignorar');
+        const btnGravarCorrigirTudo = document.getElementById('btn-gravar-corrigir-tudo');
+        const btnGravarAtivar = document.getElementById('btn-gravar-ativar');
+        const btnGravarDesativar = document.getElementById('btn-gravar-desativar');
+        
+        chrome.storage.local.get({
+            toggleShortcut: { altKey: true, ctrlKey: false, shiftKey: false, key: 's', display: 'Alt + S' },
+            ignoreShortcut: { altKey: true, ctrlKey: false, shiftKey: false, key: 'i', display: 'Alt + I' },
+            corrigirTudoShortcut: { altKey: true, ctrlKey: false, shiftKey: true, key: 's', display: 'Alt + Shift + S' },
+            ativarShortcut: { altKey: true, ctrlKey: false, shiftKey: true, key: 'a', display: 'Alt + Shift + A' },
+            desativarShortcut: { altKey: true, ctrlKey: false, shiftKey: true, key: 'd', display: 'Alt + Shift + D' }
+        }, (res) => {
+            if (btnGravarToggle) btnGravarToggle.textContent = res.toggleShortcut.display;
+            if (btnGravarIgnore) btnGravarIgnore.textContent = res.ignoreShortcut.display;
+            if (btnGravarCorrigirTudo) btnGravarCorrigirTudo.textContent = res.corrigirTudoShortcut.display;
+            if (btnGravarAtivar) btnGravarAtivar.textContent = res.ativarShortcut.display;
+            if (btnGravarDesativar) btnGravarDesativar.textContent = res.desativarShortcut.display;
         });
     }
     
@@ -716,6 +764,35 @@ if (document.body.classList.contains('geral-page')) {
             }
         });
     }
+
+    // Dentro da função carregarConfiguracoesIniciais ou similar
+    // Adicione esta informação na seção de atalhos
+
+    function adicionarInfoAtalhosSite() {
+        const atalhosContainer = document.querySelector('.card-atalhos');
+        if (!atalhosContainer) return;
+        
+        const infoHtml = `
+            <hr class="divisor">
+            <div style="margin-top: 12px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                    <span class="atalho-title">🎯 Ativar no site atual</span>
+                    <kbd class="tecla-kbd">Alt + Shift + A</kbd>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span class="atalho-title">⛔ Desativar no site atual</span>
+                    <kbd class="tecla-kbd">Alt + Shift + D</kbd>
+                </div>
+                <p class="desc" style="margin-top: 8px; font-size: 11px;">
+                    Use esses atalhos para ativar ou desativar o SyntaxMentor rapidamente no site que você está visitando.
+                </p>
+            </div>
+        `;
+        
+        atalhosContainer.insertAdjacentHTML('beforeend', infoHtml);
+    }
+
+    // Chamar a função depois de carregar as configurações
     
     // =============================================
     // INICIALIZAR

@@ -485,4 +485,119 @@ chrome.storage.onChanged.addListener((changes, namespace) => {
     }
 });
 
+// =============================================
+// ATALHOS PARA ATIVAR/DESATIVAR POR SITE
+// =============================================
+
+chrome.commands.onCommand.addListener((command) => {
+    if (command === 'ativar-extensao') {
+        chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+            if (tabs[0] && tabs[0].id && tabs[0].url && !tabs[0].url.startsWith('chrome://')) {
+                try {
+                    const host = new URL(tabs[0].url).hostname;
+                    
+                    // Remover da blacklist de overrides
+                    chrome.storage.local.get(['userBlacklistOverrides'], (res) => {
+                        const overrides = res.userBlacklistOverrides || [];
+                        const index = overrides.indexOf(host);
+                        if (index > -1) {
+                            overrides.splice(index, 1);
+                            chrome.storage.local.set({ userBlacklistOverrides: overrides });
+                        }
+                        
+                        // Enviar mensagem para content script
+                        chrome.tabs.sendMessage(tabs[0].id, {
+                            action: 'toggleSite',
+                            enabled: true,
+                            host: host
+                        }).catch(() => {});
+                        
+                        // Atualizar ícone
+                        verificarIconeParaTab(tabs[0].id);
+                        
+                        // Notificar usuário
+                        chrome.action.setBadgeText({ text: 'ON', tabId: tabs[0].id });
+                        chrome.action.setBadgeBackgroundColor({ color: '#28a745', tabId: tabs[0].id });
+                        setTimeout(() => {
+                            chrome.action.setBadgeText({ text: '', tabId: tabs[0].id });
+                        }, 2000);
+                    });
+                } catch (e) {
+                    console.debug('Erro ao ativar extensão:', e);
+                }
+            }
+        });
+    }
+    
+    if (command === 'desativar-extensao') {
+        chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+            if (tabs[0] && tabs[0].id && tabs[0].url && !tabs[0].url.startsWith('chrome://')) {
+                try {
+                    const host = new URL(tabs[0].url).hostname;
+                    
+                    // Adicionar à blacklist de overrides
+                    chrome.storage.local.get(['userBlacklistOverrides'], (res) => {
+                        const overrides = res.userBlacklistOverrides || [];
+                        if (!overrides.includes(host)) {
+                            overrides.push(host);
+                            chrome.storage.local.set({ userBlacklistOverrides: overrides });
+                        }
+                        
+                        // Enviar mensagem para content script
+                        chrome.tabs.sendMessage(tabs[0].id, {
+                            action: 'toggleSite',
+                            enabled: false,
+                            host: host
+                        }).catch(() => {});
+                        
+                        // Atualizar ícone
+                        verificarIconeParaTab(tabs[0].id);
+                        
+                        // Notificar usuário
+                        chrome.action.setBadgeText({ text: 'OFF', tabId: tabs[0].id });
+                        chrome.action.setBadgeBackgroundColor({ color: '#6b7280', tabId: tabs[0].id });
+                        setTimeout(() => {
+                            chrome.action.setBadgeText({ text: '', tabId: tabs[0].id });
+                        }, 2000);
+                    });
+                } catch (e) {
+                    console.debug('Erro ao desativar extensão:', e);
+                }
+            }
+        });
+    }
+});
+
+// Adicionar no chrome.runtime.onMessage.addListener
+
+// Toggle site global (usado pelos atalhos)
+if (request.action === 'toggleSiteGlobal') {
+    chrome.storage.local.get(['userBlacklistOverrides'], (res) => {
+        const overrides = res.userBlacklistOverrides || [];
+        const host = request.host;
+        
+        if (request.enabled) {
+            // Ativar: remover da lista
+            const index = overrides.indexOf(host);
+            if (index > -1) {
+                overrides.splice(index, 1);
+                chrome.storage.local.set({ userBlacklistOverrides: overrides });
+            }
+        } else {
+            // Desativar: adicionar à lista
+            if (!overrides.includes(host)) {
+                overrides.push(host);
+                chrome.storage.local.set({ userBlacklistOverrides: overrides });
+            }
+        }
+        
+        // Atualizar ícone da aba atual
+        if (sender.tab) {
+            verificarIconeParaTab(sender.tab.id);
+        }
+    });
+    sendResponse({ success: true });
+    return true;
+}
+
 console.log("🚀 SyntaxMentor Background Service Worker v2.7.1 iniciado!");
