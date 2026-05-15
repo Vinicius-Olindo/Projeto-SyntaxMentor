@@ -103,39 +103,34 @@ document.addEventListener('DOMContentLoaded', () => {
     // =============================================
     
     /**
-     * Mostra feedback temporário no popup
+     * Mostra feedback temporário no popup (acima dos links)
      * @param {string} mensagem - Mensagem a ser exibida
+     * @param {string} tipo - Tipo da mensagem (success, error, info)
      */
-    function mostrarFeedbackTemporario(mensagem) {
-        // Remove feedbacks anteriores
-        const existingFeedback = document.querySelector('.sm-popup-feedback');
-        if (existingFeedback) existingFeedback.remove();
+    function mostrarFeedbackPopup(mensagem, tipo) {
+        const msgContainer = document.getElementById('popup-mensagem');
+        if (!msgContainer) return;
         
-        const feedback = document.createElement('div');
-        feedback.className = 'sm-popup-feedback';
-        feedback.textContent = mensagem;
-        feedback.style.cssText = `
-            position: fixed;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: #6f42c1;
-            color: white;
-            padding: 8px 16px;
-            border-radius: 8px;
-            font-size: 12px;
-            font-weight: 600;
-            z-index: 10000;
-            animation: sm-popup-fadeout 2s forwards;
-            pointer-events: none;
-            white-space: nowrap;
-        `;
+        // Cores conforme o tipo
+        const cores = {
+            success: { bg: '#d1fae5', text: '#065f46', icon: '✅' },
+            error: { bg: '#fee2e2', text: '#991b1b', icon: '❌' },
+            info: { bg: '#e0e7ff', text: '#3730a3', icon: 'ℹ️' },
+            warning: { bg: '#fef3c7', text: '#92400e', icon: '⚠️' }
+        };
         
-        document.body.appendChild(feedback);
+        const cor = cores[tipo] || cores.info;
         
-        setTimeout(() => {
-            if (feedback.parentNode) feedback.remove();
-        }, 2000);
+        msgContainer.style.display = 'block';
+        msgContainer.style.backgroundColor = cor.bg;
+        msgContainer.style.color = cor.text;
+        msgContainer.innerHTML = `${cor.icon} ${mensagem}`;
+        
+        // Esconder após 3 segundos
+        clearTimeout(msgContainer._timeout);
+        msgContainer._timeout = setTimeout(() => {
+            msgContainer.style.display = 'none';
+        }, 3000);
     }
 
     // =============================================
@@ -277,20 +272,20 @@ document.addEventListener('DOMContentLoaded', () => {
      * @param {boolean} ativar - Estado atual
      */
     function atualizarInterfaceAposToggle(ativar) {
-        isExtensionActive = ativar;
-        
-        if (toggleSiteActive) {
-            toggleSiteActive.checked = ativar;
-            toggleSiteActive.title = ativar ? 'Desativar neste site' : 'Ativar neste site';
-        }
-        
-        if (siteStatusDot) {
-            siteStatusDot.className = ativar ? 'status-dot active' : 'status-dot';
-        }
-        
-        const mensagem = ativar ? '✅ SyntaxMentor ativado neste site' : '⛔ SyntaxMentor desativado neste site';
-        mostrarFeedbackTemporario(mensagem);
+    isExtensionActive = ativar;
+    
+    if (toggleSiteActive) {
+        toggleSiteActive.checked = ativar;
+        toggleSiteActive.title = ativar ? 'Desativar neste site' : 'Ativar neste site';
     }
+    
+    if (siteStatusDot) {
+        siteStatusDot.className = ativar ? 'status-dot active' : 'status-dot';
+    }
+    
+    const mensagem = ativar ? 'SyntaxMentor ativado neste site' : ' SyntaxMentor desativado neste site';
+    mostrarFeedbackPopup(mensagem, ativar ? 'success' : 'warning');
+}
 
     // =============================================
     // FUNÇÕES DO DICIONÁRIO
