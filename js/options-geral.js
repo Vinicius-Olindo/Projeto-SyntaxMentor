@@ -265,9 +265,6 @@ if (document.body.classList.contains('geral-page')) {
     // ATALHOS DE TECLADO (COMPLETO)
     // =============================================
 
-    let recordingTarget = null;
-    let activeBtn = null;
-
     function iniciarGravacao(botaoElement, configKey) {
         if (activeBtn) cancelarGravacao();
         recordingTarget = configKey;
@@ -708,7 +705,9 @@ if (document.body.classList.contains('geral-page')) {
             dicionario_pessoal: [],
             toggleShortcut: { altKey: true, ctrlKey: false, shiftKey: false, key: 's', display: 'Alt + S' },
             ignoreShortcut: { altKey: true, ctrlKey: false, shiftKey: false, key: 'i', display: 'Alt + I' },
-            corrigirTudoShortcut: { altKey: true, ctrlKey: false, shiftKey: true, key: 's', display: 'Alt + Shift + S' }
+            corrigirTudoShortcut: { altKey: true, ctrlKey: false, shiftKey: true, key: 's', display: 'Alt + Shift + S' },
+            ativarShortcut: { altKey: true, ctrlKey: false, shiftKey: true, key: 'a', display: 'Alt + Shift + A' },
+            desativarShortcut: { altKey: true, ctrlKey: false, shiftKey: true, key: 'd', display: 'Alt + Shift + D' }
         }, (res) => {
             if (elLanguage) elLanguage.value = res.language;
             if (elPickyMode) elPickyMode.checked = res.pickyMode;
@@ -728,9 +727,13 @@ if (document.body.classList.contains('geral-page')) {
             currentDictionary = res.dicionario_pessoal;
             renderizarDicionario();
             
+            const btnGravarAtivar = document.getElementById('btn-gravar-ativar');
+            const btnGravarDesativar = document.getElementById('btn-gravar-desativar');
             if (btnGravarToggle) btnGravarToggle.textContent = res.toggleShortcut.display;
             if (btnGravarIgnore) btnGravarIgnore.textContent = res.ignoreShortcut.display;
             if (btnGravarCorrigirTudo) btnGravarCorrigirTudo.textContent = res.corrigirTudoShortcut.display;
+            if (btnGravarAtivar) btnGravarAtivar.textContent = res.ativarShortcut.display;
+            if (btnGravarDesativar) btnGravarDesativar.textContent = res.desativarShortcut.display;
             
             atualizarStatusGeral();
         });

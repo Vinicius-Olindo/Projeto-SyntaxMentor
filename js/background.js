@@ -7,6 +7,23 @@ let ultimaRequisicao = null;
 let ultimoTimeout = null;
 
 // =============================================
+// UTILITÁRIOS
+// =============================================
+
+/**
+ * Verifica se um host está bloqueado com base nas configurações atuais
+ * @param {string} host - Hostname da aba (ex: 'www.google.com')
+ * @param {Object} res - Objeto com as chaves do storage: blacklist, modoWhitelist, whitelist, userBlacklistOverrides, disabled
+ * @returns {boolean}
+ */
+function isSiteBloqueado(host, res) {
+    const userOverrides = res.userBlacklistOverrides || [];
+    if (userOverrides.includes(host)) return true;
+    if (res.modoWhitelist) return !(res.whitelist || []).some(d => host.includes(d));
+    return (res.blacklist || []).some(d => host.includes(d)) || !!res.disabled;
+}
+
+// =============================================
 // INSTALAÇÃO E INICIALIZAÇÃO
 // =============================================
 
@@ -143,19 +160,8 @@ function verificarIconeParaTab(tabId) {
                 
                 try {
                     const host = new URL(tab.url).hostname;
-                    let bloqueado = false;
                     
-                    // Verificar override do usuário primeiro
-                    const userOverrides = res.userBlacklistOverrides || [];
-                    if (userOverrides.includes(host)) {
-                        bloqueado = true;
-                    } else if (res.modoWhitelist) {
-                        bloqueado = !(res.whitelist || []).some(d => host.includes(d));
-                    } else {
-                        bloqueado = (res.blacklist || []).some(d => host.includes(d)) || res.disabled;
-                    }
-                    
-                    if (bloqueado) {
+                    if (isSiteBloqueado(host, res)) {
                         setIconeDesativado(tabId);
                     } else {
                         resetarBadgeETooltip(tabId);
@@ -348,19 +354,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                 }
                 
                 const host = request.host;
-                let bloqueado = false;
-                
-                // Verificar override do usuário primeiro
-                const userOverrides = res.userBlacklistOverrides || [];
-                if (userOverrides.includes(host)) {
-                    bloqueado = true;
-                } else if (res.modoWhitelist) {
-                    bloqueado = !(res.whitelist || []).some(d => host.includes(d));
-                } else {
-                    bloqueado = (res.blacklist || []).some(d => host.includes(d));
-                }
-                
-                sendResponse({ blocked: bloqueado });
+                sendResponse({ blocked: isSiteBloqueado(host, res) });
             }
         );
         return true;
@@ -397,6 +391,36 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                 host: request.host 
             }).catch(() => {});
         }
+        sendResponse({ success: true });
+        return true;
+    }
+    
+    // Toggle site global (usado pelos atalhos de teclado)
+    if (request.action === 'toggleSiteGlobal') {
+        chrome.storage.local.get(['userBlacklistOverrides'], (res) => {
+            const overrides = res.userBlacklistOverrides || [];
+            const host = request.host;
+            
+            if (request.enabled) {
+                // Ativar: remover da lista
+                const index = overrides.indexOf(host);
+                if (index > -1) {
+                    overrides.splice(index, 1);
+                    chrome.storage.local.set({ userBlacklistOverrides: overrides });
+                }
+            } else {
+                // Desativar: adicionar à lista
+                if (!overrides.includes(host)) {
+                    overrides.push(host);
+                    chrome.storage.local.set({ userBlacklistOverrides: overrides });
+                }
+            }
+            
+            // Atualizar ícone da aba atual
+            if (sender.tab) {
+                verificarIconeParaTab(sender.tab.id);
+            }
+        });
         sendResponse({ success: true });
         return true;
     }
@@ -567,37 +591,5 @@ chrome.commands.onCommand.addListener((command) => {
         });
     }
 });
-
-// Adicionar no chrome.runtime.onMessage.addListener
-
-// Toggle site global (usado pelos atalhos)
-if (request.action === 'toggleSiteGlobal') {
-    chrome.storage.local.get(['userBlacklistOverrides'], (res) => {
-        const overrides = res.userBlacklistOverrides || [];
-        const host = request.host;
-        
-        if (request.enabled) {
-            // Ativar: remover da lista
-            const index = overrides.indexOf(host);
-            if (index > -1) {
-                overrides.splice(index, 1);
-                chrome.storage.local.set({ userBlacklistOverrides: overrides });
-            }
-        } else {
-            // Desativar: adicionar à lista
-            if (!overrides.includes(host)) {
-                overrides.push(host);
-                chrome.storage.local.set({ userBlacklistOverrides: overrides });
-            }
-        }
-        
-        // Atualizar ícone da aba atual
-        if (sender.tab) {
-            verificarIconeParaTab(sender.tab.id);
-        }
-    });
-    sendResponse({ success: true });
-    return true;
-}
 
 console.log("🚀 SyntaxMentor Background Service Worker v2.7.1 iniciado!");

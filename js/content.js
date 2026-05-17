@@ -2367,59 +2367,49 @@ function tornarArrastavel(el) {
     let startX = 0, startY = 0;
     let isDragging = false;
     let hasMoved = false;
-    
+
+    function onMouseMove(e) {
+        if (!isDragging) return;
+
+        const dx = e.clientX - startX;
+        const dy = e.clientY - startY;
+
+        if (Math.abs(dx) > 5 || Math.abs(dy) > 5) {
+            hasMoved = true;
+            isDraggingBubble = true;
+
+            el.style.left = (el.offsetLeft + dx) + 'px';
+            el.style.top  = (el.offsetTop  + dy) + 'px';
+            el.style.right  = 'auto';
+            el.style.bottom = 'auto';
+
+            bubblePosX = el.style.left;
+            bubblePosY = el.style.top;
+
+            startX = e.clientX;
+            startY = e.clientY;
+        }
+    }
+
+    function onMouseUp() {
+        isDragging = false;
+        el.style.cursor = 'grab';
+        document.removeEventListener('mousemove', onMouseMove);
+        document.removeEventListener('mouseup', onMouseUp);
+        setTimeout(() => { isDraggingBubble = false; }, 100);
+    }
+
     el.addEventListener('mousedown', (e) => {
-        // Não prevenir default aqui - deixa a seleção de texto funcionar
+        // Sem preventDefault nem stopPropagation -- nao interfere na selecao de texto da pagina
         startX = e.clientX;
         startY = e.clientY;
         isDragging = true;
         hasMoved = false;
-        
         el.style.cursor = 'grabbing';
-        e.stopPropagation(); // Apenas stop propagation, não preventDefault
+        document.addEventListener('mousemove', onMouseMove);
+        document.addEventListener('mouseup', onMouseUp);
     });
-    
-    document.addEventListener('mousemove', (e) => {
-        if (!isDragging) return;
-        
-        const dx = e.clientX - startX;
-        const dy = e.clientY - startY;
-        
-        // Só considera como arrasto se mover mais de 5px
-        if (Math.abs(dx) > 5 || Math.abs(dy) > 5) {
-            hasMoved = true;
-            isDraggingBubble = true;
-            
-            const left = el.offsetLeft + dx;
-            const top = el.offsetTop + dy;
-            
-            el.style.left = left + 'px';
-            el.style.top = top + 'px';
-            el.style.right = 'auto';
-            el.style.bottom = 'auto';
-            
-            bubblePosX = el.style.left;
-            bubblePosY = el.style.top;
-            
-            startX = e.clientX;
-            startY = e.clientY;
-        }
-    });
-    
-    document.addEventListener('mouseup', () => {
-        if (isDragging && !hasMoved) {
-            // Foi um clique, não um arrasto
-            // O click será tratado pelo evento click separadamente
-        }
-        
-        isDragging = false;
-        el.style.cursor = 'grab';
-        
-        setTimeout(() => {
-            isDraggingBubble = false;
-        }, 100);
-    });
-    
+
     el.style.cursor = 'grab';
 }
 
@@ -2433,26 +2423,27 @@ function tornarArrastavelPainel(painel, handle) {
 
     let p1, p2, p3, p4;
 
-    handle.onmousedown = e => {
+    function onMovePainel(e2) {
+        p1 = p3 - e2.clientX;
+        p2 = p4 - e2.clientY;
+        p3 = e2.clientX;
+        p4 = e2.clientY;
+        painel.style.top  = (painel.offsetTop  - p2) + 'px';
+        painel.style.left = (painel.offsetLeft - p1) + 'px';
+    }
+
+    function onUpPainel() {
+        document.removeEventListener('mousemove', onMovePainel);
+        document.removeEventListener('mouseup', onUpPainel);
+    }
+
+    handle.addEventListener('mousedown', (e) => {
         e.preventDefault();
         p3 = e.clientX;
         p4 = e.clientY;
-
-        document.onmousemove = e2 => {
-            e2.preventDefault();
-            p1 = p3 - e2.clientX;
-            p2 = p4 - e2.clientY;
-            p3 = e2.clientX;
-            p4 = e2.clientY;
-
-            painel.style.top = (painel.offsetTop - p2) + 'px';
-            painel.style.left = (painel.offsetLeft - p1) + 'px';
-        };
-
-        document.onmouseup = () => {
-            document.onmousemove = null;
-        };
-    };
+        document.addEventListener('mousemove', onMovePainel);
+        document.addEventListener('mouseup', onUpPainel);
+    });
 }
 
 // =============================================
@@ -2838,19 +2829,86 @@ if (typeof chrome !== 'undefined' && chrome.runtime) {
 /**
  * Inicializa a extensão na página
  */
+function carregarSmConfig(callback) {
+    storageGetSeguro({
+        language: 'pt-BR',
+        pickyMode: true,
+        speed: 500,
+        darkMode: false,
+        blacklist: [],
+        apiUrl: '',
+        apiKey: '',
+        strictMode: false,
+        disabled: false,
+        autoHideBubble: false,
+        modoConfirmacao: false,
+        modoLeituraGlobal: false,
+        modoLeituraSites: [],
+        modoWhitelist: false,
+        whitelist: [],
+        erroMaisComum: {},
+        modoFoco: false,
+        modoAprendizado: false,
+        userBlacklistOverrides: [],
+        toggleShortcut: { altKey: true, ctrlKey: false, shiftKey: false, key: 's' },
+        ignoreShortcut: { altKey: true, ctrlKey: false, shiftKey: false, key: 'i' },
+        corrigirTudoShortcut: { altKey: true, ctrlKey: false, shiftKey: true, key: 's' },
+        ativarShortcut: { altKey: true, ctrlKey: false, shiftKey: true, key: 'a' },
+        desativarShortcut: { altKey: true, ctrlKey: false, shiftKey: true, key: 'd' }
+    }, (res) => {
+        Object.assign(smConfig, res);
+
+        // Verificar override do usuario para este site
+        const host = window.location.hostname;
+        const overrides = res.userBlacklistOverrides || [];
+        if (overrides.includes(host)) {
+            smConfig.disabled = true;
+        } else if (res.modoWhitelist) {
+            smConfig.disabled = !(res.whitelist || []).some(d => host.includes(d));
+        } else {
+            smConfig.disabled = (res.blacklist || []).some(d => host.includes(d));
+        }
+
+        if (callback) callback();
+    });
+}
+
 function iniciar() {
     if (!isExtensaoAtiva()) {
         setTimeout(iniciar, 2000);
         return;
     }
-    
-    // Carregar API Pública
-    carregarPublicAPI();
-    
-    observarShadowDOM();
-    observarIframes();
-    
-    // ... resto do código existente ...
+
+    carregarSmConfig(() => {
+        // Carregar API Publica
+        carregarPublicAPI();
+
+        observarShadowDOM();
+        observarIframes();
+
+        // Reagir a mudancas de configuracao em tempo real
+        chrome.storage.onChanged.addListener((changes, namespace) => {
+            if (namespace !== 'local') return;
+            const campos = ['language','pickyMode','speed','darkMode','blacklist','apiUrl','apiKey',
+                'strictMode','disabled','autoHideBubble','modoConfirmacao','modoLeituraGlobal',
+                'modoLeituraSites','modoWhitelist','whitelist','modoFoco','modoAprendizado',
+                'userBlacklistOverrides','toggleShortcut','ignoreShortcut','corrigirTudoShortcut',
+                'ativarShortcut','desativarShortcut'];
+            campos.forEach(k => {
+                if (changes[k] !== undefined) smConfig[k] = changes[k].newValue;
+            });
+            // Reavalia se o site esta bloqueado apos mudanca
+            const host = window.location.hostname;
+            const overrides = smConfig.userBlacklistOverrides || [];
+            if (overrides.includes(host)) {
+                smConfig.disabled = true;
+            } else if (smConfig.modoWhitelist) {
+                smConfig.disabled = !(smConfig.whitelist || []).some(d => host.includes(d));
+            } else {
+                smConfig.disabled = (smConfig.blacklist || []).some(d => host.includes(d));
+            }
+        });
+    });
 }
 
 /**

@@ -79,7 +79,7 @@
                 "js/sentiment-analysis.js",
                 "js/export-reports.js",
                 "js/public-api.js",
-                "examples/api-usage.html",
+                "api-usage.html",
                 "api-docs.html"
             ],
             "matches": ["<all_urls>"]

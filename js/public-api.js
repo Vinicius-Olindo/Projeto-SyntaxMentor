@@ -99,12 +99,17 @@
         });
         
         // Texto corrigido (aplica a primeira sugestão de cada erro)
+        // Processa de trás para frente para não deslocar os offsets das correções seguintes
         let correctedText = originalText;
-        corrections.forEach(correction => {
-            if (correction.suggestions.length > 0) {
-                const regex = new RegExp(correction.original, 'g');
-                correctedText = correctedText.replace(regex, correction.suggestions[0]);
-            }
+        const correcoesPorOffset = matches
+            .filter(m => m.replacements && m.replacements.length > 0)
+            .sort((a, b) => b.offset - a.offset);
+
+        correcoesPorOffset.forEach(match => {
+            const inicio = match.offset;
+            const fim = match.offset + match.length;
+            const sugestao = match.replacements[0].value;
+            correctedText = correctedText.slice(0, inicio) + sugestao + correctedText.slice(fim);
         });
         
         return {
@@ -288,13 +293,17 @@
         addToDictionary: function(words) {
             const wordList = Array.isArray(words) ? words : [words];
             
+            const validas = wordList
+                .filter(w => typeof w === 'string')
+                .map(w => w.trim().toLowerCase())
+                .filter(w => w.length > 0 && w.length <= 60 && /^[\p{L}\p{M}'-]+$/u.test(w));
+            
+            if (validas.length === 0) return this;
+            
             chrome.storage.local.get(['dicionario_pessoal'], (res) => {
                 const dic = res.dicionario_pessoal || [];
-                wordList.forEach(word => {
-                    const lowerWord = word.toLowerCase();
-                    if (!dic.includes(lowerWord)) {
-                        dic.push(lowerWord);
-                    }
+                validas.forEach(word => {
+                    if (!dic.includes(word)) dic.push(word);
                 });
                 chrome.storage.local.set({ dicionario_pessoal: dic });
             });
