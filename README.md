@@ -35,13 +35,13 @@ Extensão de correção ortográfica e gramatical para Chrome (Manifest V3), com
 
 ### Atalhos de teclado
 
-| Atalho | Ação |
-|---|---|
-| `Alt+Shift+A` | Ativar a extensão no site atual |
+| Atalho        | Ação                               |
+| ------------- | ---------------------------------- |
+| `Alt+Shift+A` | Ativar a extensão no site atual    |
 | `Alt+Shift+D` | Desativar a extensão no site atual |
-| `Alt+S` | Abrir/fechar painel de correções |
-| `Alt+I` | Ignorar erro selecionado |
-| `Alt+Shift+S` | Corrigir tudo automaticamente |
+| `Alt+S`       | Abrir/fechar painel de correções   |
+| `Alt+I`       | Ignorar erro selecionado           |
+| `Alt+Shift+S` | Corrigir tudo automaticamente      |
 
 ---
 
@@ -70,13 +70,13 @@ O SyntaxMentor expõe uma API global (`window.SyntaxMentor`) para sites que quei
 ```javascript
 // Verificar se a API está disponível
 if (window.SyntaxMentor) {
-
   // Corrigir um texto
-  const resultado = await window.SyntaxMentor.correct('Eu gosto de programaçao');
-  console.log(resultado.correctedText);   // "Eu gosto de programação"
-  console.log(resultado.corrections);     // array de erros encontrados
-  console.log(resultado.totalErrors);     // 1
-
+  const resultado = await window.SyntaxMentor.correct(
+    "Eu gosto de programaçao",
+  );
+  console.log(resultado.correctedText); // "Eu gosto de programação"
+  console.log(resultado.corrections); // array de erros encontrados
+  console.log(resultado.totalErrors); // 1
 }
 ```
 
@@ -84,24 +84,24 @@ if (window.SyntaxMentor) {
 
 ```javascript
 window.SyntaxMentor.configure({
-  language: 'pt-BR',    // idioma (padrão: pt-BR)
-  pickyMode: true,      // modo rigoroso
-  apiUrl: 'https://api.languagetool.org/v2/check'
+  language: "pt-BR", // idioma (padrão: pt-BR)
+  pickyMode: true, // modo rigoroso
+  apiUrl: "https://api.languagetool.org/v2/check",
 });
 ```
 
 ### Corrigir elemento HTML
 
 ```javascript
-const input = document.getElementById('meu-textarea');
+const input = document.getElementById("meu-textarea");
 await window.SyntaxMentor.correctElement(input);
 ```
 
 ### Adicionar palavras ao dicionário
 
 ```javascript
-window.SyntaxMentor.addToDictionary('SyntaxMentor');
-window.SyntaxMentor.addToDictionary(['Digisac', 'Blip']);
+window.SyntaxMentor.addToDictionary("SyntaxMentor");
+window.SyntaxMentor.addToDictionary(["Digisac", "Blip"]);
 ```
 
 ### Estrutura do retorno de `correct()`
@@ -133,8 +133,8 @@ window.SyntaxMentor.addToDictionary(['Digisac', 'Blip']);
 ### Evento de carregamento
 
 ```javascript
-window.addEventListener('syntaxmentor-ready', (e) => {
-  console.log('API pronta, versão:', e.detail.version);
+window.addEventListener("syntaxmentor-ready", (e) => {
+  console.log("API pronta, versão:", e.detail.version);
 });
 ```
 
@@ -189,15 +189,6 @@ npm run test:watch
 # Gerar relatório de cobertura
 npm run test:coverage
 ```
-
----
-
-## Sites suportados com integração especial
-
-- Digisac (`*.digisac.com.br`, `*.digisac.io`)
-- Blip (`*.blip.ai`, `*.take.io`)
-
-Outros sites funcionam normalmente via content script padrão.
 
 ---
 
