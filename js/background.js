@@ -1,7 +1,9 @@
 // =============================================
 // SyntaxMentor - background.js v2.7.1
+// Service Worker com suporte a Toggle Site e Overrides
 // =============================================
 
+const smLog = (...args) => { /* debug only */ };
 let ultimaRequisicao = null;
 let ultimoTimeout = null;
 
@@ -27,7 +29,7 @@ function isSiteBloqueado(host, res) {
 // =============================================
 
 chrome.runtime.onInstalled.addListener((details) => {
-    console.log("✅ SyntaxMentor Elite v2.7.1 instalado!");
+    smLog("✅ SyntaxMentor Elite v2.7.1 instalado!");
     
     if (details.reason === 'install') {
         // Salva data de instalação para badge NEW
@@ -53,7 +55,7 @@ chrome.runtime.onInstalled.addListener((details) => {
     }
     
     if (details.reason === 'update') {
-        console.log("📦 SyntaxMentor atualizado para versão 2.7.1");
+        smLog("📦 SyntaxMentor atualizado para versão 2.7.1");
     }
     
     criarMenuContexto();
@@ -591,4 +593,4 @@ chrome.commands.onCommand.addListener((command) => {
     }
 });
 
-console.log("🚀 SyntaxMentor Background Service Worker v2.7.1 iniciado!");
+smLog("🚀 SyntaxMentor Background Service Worker v2.7.1 iniciado!");

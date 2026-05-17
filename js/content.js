@@ -11,6 +11,10 @@
 
 let timeoutDigitacao = null;
 let errosGlobais = [];
+let dicCache = []; // cache do dicionario pessoal — atualizado via storage.onChanged
+
+// Helper de log — so exibe quando sm_debug=true no localStorage
+const smLog = (...args) => { if (localStorage.getItem('sm_debug') === 'true') smLog('[SM]', ...args); };
 let elementoGlobal = null;
 let painelAberto = false;
 let indexSugestao = -1;
@@ -36,6 +40,8 @@ const sitesSemGrifos = ['mail.google.com', 'linkedin.com', 'docs.google.com', 'n
 const isSiteRestrito = sitesSemGrifos.some(d => window.location.hostname.includes(d));
 
 let ignoradosTemporarios = [];
+let isExtensaoMutando = false; // flag para suprimir MutationObserver durante operacoes internas
+let smTimers = []; // todos os timeouts/intervals para cleanup garantido
 let historicoCorrecoes = [];
 let idiomaSugerido = false;
 let conquistasNotificadas = {};
@@ -426,7 +432,7 @@ function mostrarExplicacaoRegra(original, sugestao, mensagem) {
         dialog.style.color = '#e0e0e0';
     }
 
-    const mensagemLimpa = mensagem.replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const mensagemLimpa = escapeHtml(mensagem);
 
     dialog.innerHTML = `
         <div style="text-align:center;margin-bottom:16px;">
@@ -585,7 +591,7 @@ function dispararEventosNativos(elemento) {
 
     try {
         elemento.setSelectionRange(start, end);
-    } catch (e) {}
+    } catch (e) { console.debug('SyntaxMentor: setSelectionRange nao suportado', e.message); }
 
     const eventos = [
         new Event('input', { bubbles: true }),
@@ -851,8 +857,8 @@ function exibirPainelRevisaoPagina(erros, textosOriginais) {
 
             html += `
                 <div class="erro-card">
-                    <p class="erro-msg" title="${info.msg.replace(/"/g, '&quot;')}">Erro: <strong>${o}</strong></p>
-                    ${preview ? `<p style="font-size:10px;color:#9ca3af;margin:4px 0;font-style:italic;">...${preview.replace(o, '<span style="color:#e53e3e;text-decoration:underline;">' + o + '</span>')}...</p>` : ''}
+                    <p class="erro-msg" title="${escapeHtml(info.msg)}">Erro: <strong>${escapeHtml(o)}</strong></p>
+                    ${preview ? `<p style="font-size:10px;color:#9ca3af;margin:4px 0;font-style:italic;">...${escapeHtml(preview).replace(escapeHtml(o), '<span style="color:#e53e3e;text-decoration:underline;">' + escapeHtml(o) + '</span>')}...</p>` : ''}
                     <div class="sugestao-container">
                         <span class="palavra-original">${o}</span>
                         <span class="seta">→</span>
@@ -1197,6 +1203,7 @@ function observarIframes() {
     if (iframeObserver) return;
 
     iframeObserver = new MutationObserver((mutations) => {
+        if (isExtensaoMutando) return; // ignorar mutacoes causadas pela propria extensao
         mutations.forEach(mutation => {
             mutation.addedNodes.forEach(node => {
                 if (node.nodeType === 1) {
@@ -1457,16 +1464,8 @@ async function verificarTexto(texto, elemento) {
             return;
         }
 
-        // 🔧 CORREÇÃO: Carregar dicionário de forma assíncrona correta
-        let dic = [];
-        if (isExtensaoAtiva()) {
-            await new Promise((resolve) => {
-                storageGetSeguro(['dicionario_pessoal'], (res) => {
-                    dic = (res.dicionario_pessoal || []).map(w => w.toLowerCase());
-                    resolve();
-                });
-            });
-        }
+        // Usar cache em memoria (populado no iniciar() e atualizado via storage.onChanged)
+        const dic = dicCache;
 
         const matchesProcessados = processarPontuacao(data.matches || []);
         const errosPontuacaoLocal = verificarPontuacaoComum(texto);
@@ -1525,7 +1524,11 @@ async function verificarTexto(texto, elemento) {
         } else if (err.message.includes('Timeout')) {
             mensagemErro = '⏱️ Servidor demorou muito para responder - Tente novamente';
         } else if (err.message.includes('Failed to fetch')) {
-            mensagemErro = '🌐 Sem conexão com a internet - Verifique sua rede';
+            mensagemErro = '🌐 Sem conexão - Usando correção offline';
+            // Fallback para verificador offline
+            if (typeof verificarTextoOffline === 'function') {
+                verificarTextoOffline(texto, elemento);
+            }
         }
         
         mostrarFeedback(mensagemErro, 'error');
@@ -1558,8 +1561,10 @@ function atualizarEstadoCarregamento(on) {
 
 function aplicarGrifos(erros, el) {
     if (!el?.isContentEditable || isSiteRestrito) return;
-    
-    // Remove grifos existentes primeiro 
+
+    isExtensaoMutando = true; // suprimir MutationObserver durante manipulacao do DOM
+    try {
+    // Remove grifos existentes primeiro
     const marksExistentes = el.querySelectorAll('mark.sm-highlight');
     marksExistentes.forEach(mark => {
         const parent = mark.parentNode;
@@ -1632,6 +1637,9 @@ function aplicarGrifos(erros, el) {
         
         node.parentNode.replaceChild(fragment, node);
     });
+    } finally {
+        isExtensaoMutando = false; // sempre restaurar, mesmo em caso de erro
+    }
 }
 
 // =============================================
@@ -2866,6 +2874,8 @@ if (typeof chrome !== 'undefined' && chrome.runtime) {
  * Inicializa a extensão na página
  */
 function carregarSmConfig(callback) {
+    // apiKey fica em session storage (nao persiste entre sessoes do navegador)
+    chrome.storage.session.get({ apiKey: '' }, (sess) => {
     storageGetSeguro({
         language: 'pt-BR',
         pickyMode: true,
@@ -2893,6 +2903,7 @@ function carregarSmConfig(callback) {
         desativarShortcut: { altKey: true, ctrlKey: false, shiftKey: true, key: 'd' }
     }, (res) => {
         Object.assign(smConfig, res);
+        dicCache = (res.dicionario_pessoal || []).map(w => w.toLowerCase());
 
         // Verificar override do usuario para este site
         const host = window.location.hostname;
@@ -2905,8 +2916,10 @@ function carregarSmConfig(callback) {
             smConfig.disabled = (res.blacklist || []).some(d => host.includes(d));
         }
 
+        smConfig.apiKey = sess.apiKey || '';
         if (callback) callback();
     });
+    }); // fecha session.get
 }
 
 function iniciar() {
@@ -2933,6 +2946,10 @@ function iniciar() {
             campos.forEach(k => {
                 if (changes[k] !== undefined) smConfig[k] = changes[k].newValue;
             });
+            // Atualizar cache do dicionario pessoal
+            if (changes.dicionario_pessoal !== undefined) {
+                dicCache = (changes.dicionario_pessoal.newValue || []).map(w => w.toLowerCase());
+            }
             // Reavalia se o site esta bloqueado apos mudanca
             const host = window.location.hostname;
             const overrides = smConfig.userBlacklistOverrides || [];
@@ -3156,7 +3173,7 @@ function atualizarAnaliseSentimento(container) {
                         <strong>"${issue.word}"</strong> <span>→</span> 
                         <span style="color:#28a745;">"${issue.suggestion}"</span>
                     </div>
-                    <p style="margin:0;font-size:12px;color:#666;">${issue.message}</p>
+                    <p style="margin:0;font-size:12px;color:#666;">${escapeHtml(issue.message)}</p>
                 </div>
             `;
         });

@@ -43,7 +43,9 @@ if (document.body.classList.contains('seguranca-page')) {
         
         if (!statusApiBadge) return;
         
-        chrome.storage.local.get({ apiKey: '', modoLeituraGlobal: false, cloudSync: false }, (res) => {
+        chrome.storage.session.get({ apiKey: '' }, (sess) => {
+        chrome.storage.local.get({ modoLeituraGlobal: false, cloudSync: false }, (res) => {
+        res.apiKey = sess.apiKey || '';
             if (statusApiBadge) {
                 if (res.apiKey && res.apiKey.trim() !== '') {
                     statusApiBadge.textContent = '✅ Configurada';
@@ -73,7 +75,8 @@ if (document.body.classList.contains('seguranca-page')) {
                     statusCloudBadge.className = 'seguranca-status-value cloud-off';
                 }
             }
-        });
+        }); // fecha local.get
+        }); // fecha session.get
     }
     
     // =============================================
@@ -113,7 +116,9 @@ if (document.body.classList.contains('seguranca-page')) {
                     if (detalhesApi) detalhesApi.style.display = 'block';
                     if (apiInfo) apiInfo.textContent = `Idioma: ${data.language?.name || 'OK'} | ${new URL(url).hostname}`;
                     
-                    chrome.storage.local.set({ apiUrl: url, apiKey: key }, atualizarStatusSeguranca);
+                    chrome.storage.local.set({ apiUrl: url }, () => {
+                    chrome.storage.session.set({ apiKey: key }, atualizarStatusSeguranca);
+                });
                 } else {
                     throw new Error(`HTTP ${resp.status}`);
                 }
