@@ -2984,16 +2984,20 @@ function carregarPublicAPI() {
  * Limpa todos os observadores quando a página for descarregada
  */
 function limparObservadores() {
+    // Cancelar todos os timers pendentes
+    smTimers.forEach(id => clearTimeout(id));
+    smTimers = [];
+
     if (iframeObserver) {
         iframeObserver.disconnect();
         iframeObserver = null;
     }
-    
+
     // Limpar WeakSet (não precisa de cleanup explícito, mas ajuda o GC)
     if (processedIframes) {
         processedIframes = new WeakSet();
     }
-    
+
     if (currentFetchController) {
         currentFetchController.abort();
         currentFetchController = null;
@@ -3104,7 +3108,8 @@ function adicionarAbaSentimento() {
             } else {
                 content.style.display = 'none';
                 sentimentContent.style.display = 'block';
-                atualizarAnaliseSentimento(sentimentContent);
+                sentimentContent.innerHTML = '<div style="text-align:center;padding:40px;color:var(--color-text-secondary)"><div style="font-size:28px;margin-bottom:12px">⏳</div><p style="font-size:13px">Analisando sentimento...</p></div>';
+                requestAnimationFrame(() => atualizarAnaliseSentimento(sentimentContent));
             }
         });
     });

@@ -265,6 +265,47 @@ if (document.body.classList.contains('geral-page')) {
     // ATALHOS DE TECLADO (COMPLETO)
     // =============================================
 
+    // Modal de confirmação inline — substitui confirm() nativo
+    function smConfirm(mensagem, onConfirm) {
+        const existing = document.getElementById('sm-confirm-modal');
+        if (existing) existing.remove();
+
+        const overlay = document.createElement('div');
+        overlay.id = 'sm-confirm-modal';
+        overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.35);z-index:99999;display:flex;align-items:center;justify-content:center';
+
+        const box = document.createElement('div');
+        box.style.cssText = 'background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:24px 28px;max-width:380px;width:90%;box-shadow:0 8px 32px rgba(0,0,0,0.12)';
+
+        const msg = document.createElement('p');
+        msg.style.cssText = 'margin:0 0 20px;font-size:14px;color:var(--color-text-primary);line-height:1.6;white-space:pre-line';
+        msg.textContent = mensagem;
+
+        const btns = document.createElement('div');
+        btns.style.cssText = 'display:flex;gap:10px;justify-content:flex-end';
+
+        const btnCancelar = document.createElement('button');
+        btnCancelar.textContent = 'Cancelar';
+        btnCancelar.style.cssText = 'padding:8px 16px;font-size:13px;cursor:pointer;border-radius:var(--border-radius-md);border:0.5px solid var(--color-border-secondary);background:var(--color-background-secondary);color:var(--color-text-primary)';
+
+        const btnConfirmar = document.createElement('button');
+        btnConfirmar.textContent = 'Confirmar';
+        btnConfirmar.style.cssText = 'padding:8px 16px;font-size:13px;cursor:pointer;border-radius:var(--border-radius-md);border:0.5px solid var(--color-border-danger);background:var(--color-background-danger);color:var(--color-text-danger);font-weight:500';
+
+        const fechar = () => overlay.remove();
+        btnCancelar.addEventListener('click', fechar);
+        btnConfirmar.addEventListener('click', () => { fechar(); onConfirm(); });
+        overlay.addEventListener('click', e => { if (e.target === overlay) fechar(); });
+
+        btns.appendChild(btnCancelar);
+        btns.appendChild(btnConfirmar);
+        box.appendChild(msg);
+        box.appendChild(btns);
+        overlay.appendChild(box);
+        document.body.appendChild(overlay);
+        btnCancelar.focus();
+    }
+
     function iniciarGravacao(botaoElement, configKey) {
         if (activeBtn) cancelarGravacao();
         recordingTarget = configKey;
@@ -535,7 +576,7 @@ if (document.body.classList.contains('geral-page')) {
                                 inputImportar.value = '';
                                 return;
                             }
-                            
+
                             const dadosParaSalvar = {
                                 dicionario_pessoal: dicFinal,
                                 blacklist: blackFinal
@@ -641,14 +682,14 @@ if (document.body.classList.contains('geral-page')) {
                     return;
                 }
                 
-                if (confirm(`⚠️ Tem certeza que deseja remover TODOS os ${currentBlacklist.length} sites bloqueados?\n\nEsta ação não pode ser desfeita.`)) {
+                smConfirm(`⚠️ Tem certeza que deseja remover TODOS os ${currentBlacklist.length} sites bloqueados?\n\nEsta ação não pode ser desfeita.`, () => {
                     currentBlacklist = [];
                     salvarListaStorage(currentBlacklist, 'blacklist', () => {
                         renderizarBlacklist();
                         mostrarNotificacao('🗑️ Todos os sites foram removidos!', 'success');
                         atualizarStatusGeral();
                     });
-                }
+                })
             });
         }
         
@@ -680,14 +721,14 @@ if (document.body.classList.contains('geral-page')) {
                     return;
                 }
                 
-                if (confirm(`⚠️ Tem certeza que deseja remover TODAS as ${currentDictionary.length} palavras do dicionário?\n\nEsta ação não pode ser desfeita.`)) {
+                smConfirm(`⚠️ Tem certeza que deseja remover TODAS as ${currentDictionary.length} palavras do dicionário?\n\nEsta ação não pode ser desfeita.`, () => {
                     currentDictionary = [];
                     salvarListaStorage(currentDictionary, 'dicionario_pessoal', () => {
                         renderizarDicionario();
                         mostrarNotificacao('🗑️ Todas as palavras foram removidas!', 'success');
                         atualizarStatusGeral();
                     });
-                }
+                })
             });
         }
     }

@@ -90,3 +90,5 @@ function verificarTextoOffline(texto, elemento) {
         bubble.title = 'Modo Offline - Correção básica ativa';
     }
 }
+// Expor globalmente para uso no content.js
+window.verificarTextoOffline = verificarTextoOffline;

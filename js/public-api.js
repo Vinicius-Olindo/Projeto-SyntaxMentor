@@ -11,6 +11,25 @@
         console.warn('SyntaxMentor API já está carregada');
         return;
     }
+
+    // Rate limiting — máx 10 chamadas/s e debounce de 300ms
+    let _lastCallTime = 0;
+    let _callCount = 0;
+    let _callWindowStart = Date.now();
+    let _debounceTimer = null;
+
+    function _checkRateLimit() {
+        const now = Date.now();
+        if (now - _callWindowStart > 1000) {
+            _callCount = 0;
+            _callWindowStart = now;
+        }
+        if (_callCount >= 10) {
+            throw new Error('Limite de requisições atingido (10/s). Aguarde um momento.');
+        }
+        _callCount++;
+        _lastCallTime = now;
+    }
     
     // =============================================
     // CONFIGURAÇÃO DA API
@@ -190,7 +209,12 @@
                     reject(new Error('Texto inválido'));
                     return;
                 }
-                
+
+                // Debounce de 300ms + rate limit de 10/s
+                clearTimeout(_debounceTimer);
+                _debounceTimer = setTimeout(() => {
+                    try { _checkRateLimit(); } catch (e) { reject(e); return; }
+
                 const callback = (result) => {
                     if (result.success) {
                         resolve(result);
@@ -204,8 +228,9 @@
                     callback: callback,
                     options: options
                 });
-                
+
                 processQueue();
+                }, 300); // fim debounce
             });
         },
         

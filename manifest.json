@@ -1,8 +1,8 @@
 {
     "manifest_version": 3,
     "name": "SyntaxMentor",
-    "version": "2.7.1",
-    "version_name": "2.7.1 Elite",
+    "version": "2.8.0",
+    "version_name": "2.8.0 Elite",
     "description": "Mentor ortográfico com Cloud Sync, Estatísticas, Auto-Detecção de Idioma e API Pública",
     "icons": {
         "16": "icons/icon16.png",

@@ -124,7 +124,7 @@ document.addEventListener('DOMContentLoaded', () => {
         msgContainer.style.display = 'block';
         msgContainer.style.backgroundColor = cor.bg;
         msgContainer.style.color = cor.text;
-        msgContainer.innerHTML = `${cor.icon} ${mensagem}`;
+        msgContainer.innerHTML = `${cor.icon} ${escapeHtml(mensagem)}`;
         
         // Esconder após 3 segundos
         clearTimeout(msgContainer._timeout);
