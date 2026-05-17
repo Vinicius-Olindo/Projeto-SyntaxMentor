@@ -1,6 +1,5 @@
 // =============================================
 // SyntaxMentor - background.js v2.7.1
-// Service Worker com suporte a Toggle Site e Overrides
 // =============================================
 
 let ultimaRequisicao = null;
