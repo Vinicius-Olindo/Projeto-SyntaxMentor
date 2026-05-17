@@ -1,461 +1,496 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>SyntaxMentor API - Demonstração</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
 
-        body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 40px 20px;
-        }
+      body {
+        font-family:
+          "Inter",
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        padding: 40px 20px;
+      }
 
-        .container {
-            max-width: 900px;
-            margin: 0 auto;
-        }
+      .container {
+        max-width: 900px;
+        margin: 0 auto;
+      }
 
-        /* Header */
-        .header {
-            text-align: center;
-            margin-bottom: 40px;
-        }
+      /* Header */
+      .header {
+        text-align: center;
+        margin-bottom: 40px;
+      }
 
-        .logo {
-            display: inline-flex;
-            align-items: center;
-            gap: 12px;
-            background: rgba(255, 255, 255, 0.95);
-            padding: 12px 28px;
-            border-radius: 60px;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-            margin-bottom: 24px;
-        }
+      .logo {
+        display: inline-flex;
+        align-items: center;
+        gap: 12px;
+        background: rgba(255, 255, 255, 0.95);
+        padding: 12px 28px;
+        border-radius: 60px;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        margin-bottom: 24px;
+      }
 
-        .logo-icon {
-            font-size: 32px;
-        }
+      .logo-icon {
+        font-size: 32px;
+      }
 
-        .logo-text {
-            font-size: 24px;
-            font-weight: 700;
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
+      .logo-text {
+        font-size: 24px;
+        font-weight: 700;
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
 
-        .badge {
-            display: inline-block;
-            background: rgba(255, 255, 255, 0.2);
-            backdrop-filter: blur(10px);
-            padding: 6px 16px;
-            border-radius: 30px;
-            font-size: 12px;
-            font-weight: 500;
-            color: white;
-        }
+      .badge {
+        display: inline-block;
+        background: rgba(255, 255, 255, 0.2);
+        backdrop-filter: blur(10px);
+        padding: 6px 16px;
+        border-radius: 30px;
+        font-size: 12px;
+        font-weight: 500;
+        color: white;
+      }
 
-        .title {
-            font-size: 36px;
-            font-weight: 800;
-            color: white;
-            margin-bottom: 12px;
-        }
+      .title {
+        font-size: 36px;
+        font-weight: 800;
+        color: white;
+        margin-bottom: 12px;
+      }
 
-        .subtitle {
-            font-size: 16px;
-            color: rgba(255, 255, 255, 0.85);
-            margin-bottom: 16px;
-        }
+      .subtitle {
+        font-size: 16px;
+        color: rgba(255, 255, 255, 0.85);
+        margin-bottom: 16px;
+      }
 
-        /* Cards */
+      /* Cards */
+      .card {
+        background: white;
+        border-radius: 24px;
+        padding: 32px;
+        margin-bottom: 24px;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        transition:
+          transform 0.3s ease,
+          box-shadow 0.3s ease;
+      }
+
+      .card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 30px 50px rgba(0, 0, 0, 0.15);
+      }
+
+      .card-header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 24px;
+        padding-bottom: 16px;
+        border-bottom: 2px solid #f0f0f0;
+      }
+
+      .card-icon {
+        font-size: 28px;
+      }
+
+      .card-title {
+        font-size: 20px;
+        font-weight: 700;
+        color: #1a1a1a;
+      }
+
+      .card-desc {
+        font-size: 14px;
+        color: #666;
+        margin-top: 4px;
+      }
+
+      /* Textarea */
+      .textarea-container {
+        margin-bottom: 20px;
+      }
+
+      textarea {
+        width: 100%;
+        height: 180px;
+        padding: 16px;
+        font-family: "Monaco", "Menlo", monospace;
+        font-size: 14px;
+        line-height: 1.6;
+        border: 2px solid #e5e7eb;
+        border-radius: 16px;
+        resize: vertical;
+        transition: all 0.3s ease;
+        background: #fafafa;
+      }
+
+      textarea:focus {
+        outline: none;
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        background: white;
+      }
+
+      /* Botões */
+      .button-group {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 12px 24px;
+        font-size: 14px;
+        font-weight: 600;
+        border: none;
+        border-radius: 40px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        font-family: inherit;
+      }
+
+      .btn-primary {
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        color: white;
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+      }
+
+      .btn-primary:hover:not(:disabled) {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+      }
+
+      .btn-secondary {
+        background: #f3f4f6;
+        color: #4b5563;
+        border: 1px solid #e5e7eb;
+      }
+
+      .btn-secondary:hover {
+        background: #e5e7eb;
+        transform: translateY(-2px);
+      }
+
+      .btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+
+      /* Resultado */
+      .result-area {
+        margin-top: 24px;
+        padding: 20px;
+        background: #f8f9fc;
+        border-radius: 16px;
+        display: none;
+      }
+
+      .result-area.show {
+        display: block;
+        animation: fadeIn 0.3s ease;
+      }
+
+      .result-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 16px;
+        flex-wrap: wrap;
+        gap: 12px;
+      }
+
+      .result-badge {
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 600;
+      }
+
+      .result-badge.success {
+        background: #d1fae5;
+        color: #065f46;
+      }
+
+      .result-badge.error {
+        background: #fee2e2;
+        color: #991b1b;
+      }
+
+      .result-badge.warning {
+        background: #fef3c7;
+        color: #92400e;
+      }
+
+      .stats {
+        display: flex;
+        gap: 20px;
+        margin-bottom: 20px;
+        flex-wrap: wrap;
+      }
+
+      .stat {
+        background: white;
+        padding: 12px 20px;
+        border-radius: 12px;
+        border: 1px solid #e5e7eb;
+      }
+
+      .stat-value {
+        font-size: 28px;
+        font-weight: 800;
+        color: #667eea;
+      }
+
+      .stat-label {
+        font-size: 12px;
+        color: #6b7280;
+        margin-top: 4px;
+      }
+
+      .text-compare {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+        margin-bottom: 20px;
+      }
+
+      .text-box {
+        background: white;
+        padding: 14px;
+        border-radius: 12px;
+        border: 1px solid #e5e7eb;
+        font-size: 13px;
+        line-height: 1.5;
+      }
+
+      .text-box.original {
+        border-left: 4px solid #ef4444;
+      }
+
+      .text-box.corrected {
+        border-left: 4px solid #10b981;
+      }
+
+      .text-box-title {
+        font-weight: 600;
+        margin-bottom: 8px;
+        font-size: 12px;
+        color: #6b7280;
+      }
+
+      .corrections-list {
+        margin-top: 20px;
+      }
+
+      .correction-item {
+        background: white;
+        padding: 12px 16px;
+        margin-bottom: 8px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 12px;
+        border: 1px solid #e5e7eb;
+        transition: all 0.2s;
+      }
+
+      .correction-item:hover {
+        border-color: #667eea;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+      }
+
+      .badge-original {
+        background: #fee2e2;
+        color: #dc2626;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 13px;
+        font-weight: 600;
+        text-decoration: line-through;
+      }
+
+      .arrow {
+        font-size: 16px;
+        color: #9ca3af;
+      }
+
+      .badge-suggestion {
+        background: #d1fae5;
+        color: #059669;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 13px;
+        font-weight: 600;
+      }
+
+      .correction-message {
+        font-size: 11px;
+        color: #9ca3af;
+        margin-left: auto;
+      }
+
+      /* Footer */
+      .footer {
+        text-align: center;
+        padding: 24px;
+        color: rgba(255, 255, 255, 0.7);
+        font-size: 12px;
+      }
+
+      .footer a {
+        color: white;
+        text-decoration: none;
+      }
+
+      /* Loading */
+      .loading {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        padding: 20px;
+      }
+
+      .spinner {
+        width: 20px;
+        height: 20px;
+        border: 3px solid #e5e7eb;
+        border-top-color: #667eea;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+      }
+
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      /* Responsivo */
+      @media (max-width: 640px) {
         .card {
-            background: white;
-            border-radius: 24px;
-            padding: 32px;
-            margin-bottom: 24px;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
+          padding: 20px;
         }
-
-        .card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 30px 50px rgba(0, 0, 0, 0.15);
-        }
-
-        .card-header {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            margin-bottom: 24px;
-            padding-bottom: 16px;
-            border-bottom: 2px solid #f0f0f0;
-        }
-
-        .card-icon {
-            font-size: 28px;
-        }
-
-        .card-title {
-            font-size: 20px;
-            font-weight: 700;
-            color: #1a1a1a;
-        }
-
-        .card-desc {
-            font-size: 14px;
-            color: #666;
-            margin-top: 4px;
-        }
-
-        /* Textarea */
-        .textarea-container {
-            margin-bottom: 20px;
-        }
-
-        textarea {
-            width: 100%;
-            height: 180px;
-            padding: 16px;
-            font-family: 'Monaco', 'Menlo', monospace;
-            font-size: 14px;
-            line-height: 1.6;
-            border: 2px solid #e5e7eb;
-            border-radius: 16px;
-            resize: vertical;
-            transition: all 0.3s ease;
-            background: #fafafa;
-        }
-
-        textarea:focus {
-            outline: none;
-            border-color: #667eea;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-            background: white;
-        }
-
-        /* Botões */
-        .button-group {
-            display: flex;
-            gap: 12px;
-            flex-wrap: wrap;
-        }
-
-        .btn {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            padding: 12px 24px;
-            font-size: 14px;
-            font-weight: 600;
-            border: none;
-            border-radius: 40px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            font-family: inherit;
-        }
-
-        .btn-primary {
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            color: white;
-            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
-        }
-
-        .btn-primary:hover:not(:disabled) {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
-        }
-
-        .btn-secondary {
-            background: #f3f4f6;
-            color: #4b5563;
-            border: 1px solid #e5e7eb;
-        }
-
-        .btn-secondary:hover {
-            background: #e5e7eb;
-            transform: translateY(-2px);
-        }
-
-        .btn:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-        }
-
-        /* Resultado */
-        .result-area {
-            margin-top: 24px;
-            padding: 20px;
-            background: #f8f9fc;
-            border-radius: 16px;
-            display: none;
-        }
-
-        .result-area.show {
-            display: block;
-            animation: fadeIn 0.3s ease;
-        }
-
-        .result-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 16px;
-            flex-wrap: wrap;
-            gap: 12px;
-        }
-
-        .result-badge {
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 600;
-        }
-
-        .result-badge.success {
-            background: #d1fae5;
-            color: #065f46;
-        }
-
-        .result-badge.error {
-            background: #fee2e2;
-            color: #991b1b;
-        }
-
-        .result-badge.warning {
-            background: #fef3c7;
-            color: #92400e;
-        }
-
-        .stats {
-            display: flex;
-            gap: 20px;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
-        }
-
-        .stat {
-            background: white;
-            padding: 12px 20px;
-            border-radius: 12px;
-            border: 1px solid #e5e7eb;
-        }
-
-        .stat-value {
-            font-size: 28px;
-            font-weight: 800;
-            color: #667eea;
-        }
-
-        .stat-label {
-            font-size: 12px;
-            color: #6b7280;
-            margin-top: 4px;
-        }
-
         .text-compare {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 16px;
-            margin-bottom: 20px;
+          grid-template-columns: 1fr;
         }
-
-        .text-box {
-            background: white;
-            padding: 14px;
-            border-radius: 12px;
-            border: 1px solid #e5e7eb;
-            font-size: 13px;
-            line-height: 1.5;
+        .title {
+          font-size: 28px;
         }
-
-        .text-box.original {
-            border-left: 4px solid #ef4444;
+        .button-group {
+          justify-content: center;
         }
-
-        .text-box.corrected {
-            border-left: 4px solid #10b981;
-        }
-
-        .text-box-title {
-            font-weight: 600;
-            margin-bottom: 8px;
-            font-size: 12px;
-            color: #6b7280;
-        }
-
-        .corrections-list {
-            margin-top: 20px;
-        }
-
-        .correction-item {
-            background: white;
-            padding: 12px 16px;
-            margin-bottom: 8px;
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 12px;
-            border: 1px solid #e5e7eb;
-            transition: all 0.2s;
-        }
-
-        .correction-item:hover {
-            border-color: #667eea;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-        }
-
-        .badge-original {
-            background: #fee2e2;
-            color: #dc2626;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 13px;
-            font-weight: 600;
-            text-decoration: line-through;
-        }
-
-        .arrow {
-            font-size: 16px;
-            color: #9ca3af;
-        }
-
-        .badge-suggestion {
-            background: #d1fae5;
-            color: #059669;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 13px;
-            font-weight: 600;
-        }
-
-        .correction-message {
-            font-size: 11px;
-            color: #9ca3af;
-            margin-left: auto;
-        }
-
-        /* Footer */
-        .footer {
-            text-align: center;
-            padding: 24px;
-            color: rgba(255, 255, 255, 0.7);
-            font-size: 12px;
-        }
-
-        .footer a {
-            color: white;
-            text-decoration: none;
-        }
-
-        /* Loading */
-        .loading {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 12px;
-            padding: 20px;
-        }
-
-        .spinner {
-            width: 20px;
-            height: 20px;
-            border: 3px solid #e5e7eb;
-            border-top-color: #667eea;
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        /* Responsivo */
-        @media (max-width: 640px) {
-            .card {
-                padding: 20px;
-            }
-            .text-compare {
-                grid-template-columns: 1fr;
-            }
-            .title {
-                font-size: 28px;
-            }
-            .button-group {
-                justify-content: center;
-            }
-        }
+      }
     </style>
-</head>
-<body>
+  </head>
+  <body>
     <div class="container">
-        <!-- Header -->
-        <div class="header">
-            <div class="logo">
-                <span class="logo-icon">✨</span>
-                <span class="logo-text">SyntaxMentor</span>
+      <!-- Header -->
+      <div class="header">
+        <div class="logo">
+          <span class="logo-icon">✨</span>
+          <span class="logo-text">SyntaxMentor</span>
+        </div>
+        <div class="badge">API Pública v2.7.1</div>
+        <h1 class="title">Corretor Ortográfico Inteligente</h1>
+        <p class="subtitle">
+          Teste a API do SyntaxMentor — correção ortográfica e gramatical em
+          tempo real
+        </p>
+      </div>
+
+      <!-- Card Principal -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-icon">📝</span>
+          <div>
+            <div class="card-title">Testar Correção</div>
+            <div class="card-desc">
+              Digite ou cole um texto com erros para testar a API
             </div>
-            <div class="badge">API Pública v2.7.1</div>
-            <h1 class="title">Corretor Ortográfico Inteligente</h1>
-            <p class="subtitle">Teste a API do SyntaxMentor — correção ortográfica e gramatical em tempo real</p>
+          </div>
         </div>
 
-        <!-- Card Principal -->
-        <div class="card">
-            <div class="card-header">
-                <span class="card-icon">📝</span>
-                <div>
-                    <div class="card-title">Testar Correção</div>
-                    <div class="card-desc">Digite ou cole um texto com erros para testar a API</div>
-                </div>
-            </div>
-
-            <div class="textarea-container">
-                <textarea id="texto" placeholder='Exemplo: "Este é um testo com erro de ortografia. Preciso testa a extensão direita."'></textarea>
-            </div>
-
-            <div class="button-group">
-                <button class="btn btn-primary" id="btnCorrigir">
-                    <span>🔍</span> Corrigir Texto
-                </button>
-                <button class="btn btn-secondary" id="btnLimpar">
-                    <span>🗑️</span> Limpar
-                </button>
-                <button class="btn btn-secondary" id="btnExemplo">
-                    <span>📋</span> Carregar Exemplo
-                </button>
-            </div>
-
-            <!-- Resultado -->
-            <div id="resultado" class="result-area"></div>
+        <div class="textarea-container">
+          <textarea
+            id="texto"
+            placeholder='Exemplo: "Este é um testo com erro de ortografia. Preciso testa a extensão direita."'
+          ></textarea>
         </div>
 
-        <!-- Info Card -->
-        <div class="card">
-            <div class="card-header">
-                <span class="card-icon">💡</span>
-                <div>
-                    <div class="card-title">Como usar a API</div>
-                    <div class="card-desc">Integre o SyntaxMentor no seu próprio site</div>
-                </div>
-            </div>
+        <div class="button-group">
+          <button class="btn btn-primary" id="btnCorrigir">
+            <span>🔍</span> Corrigir Texto
+          </button>
+          <button class="btn btn-secondary" id="btnLimpar">
+            <span>🗑️</span> Limpar
+          </button>
+          <button class="btn btn-secondary" id="btnExemplo">
+            <span>📋</span> Carregar Exemplo
+          </button>
+        </div>
 
-            <pre style="background:#1a1a1a; color:#e5e5e5; padding:16px; border-radius:12px; overflow-x:auto; font-size:12px; margin-bottom:16px;">
+        <!-- Resultado -->
+        <div id="resultado" class="result-area"></div>
+      </div>
+
+      <!-- Info Card -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-icon">💡</span>
+          <div>
+            <div class="card-title">Como usar a API</div>
+            <div class="card-desc">
+              Integre o SyntaxMentor no seu próprio site
+            </div>
+          </div>
+        </div>
+
+        <pre
+          style="
+            background: #1a1a1a;
+            color: #e5e5e5;
+            padding: 16px;
+            border-radius: 12px;
+            overflow-x: auto;
+            font-size: 12px;
+            margin-bottom: 16px;
+          "
+        >
 <code>// Correção simples
 const resultado = await SyntaxMentor.correct("texto com erro");
 
@@ -469,202 +504,19 @@ const resultado = await SyntaxMentor.correct("Hello world", {
 await SyntaxMentor.correctElement(document.getElementById("meu-texto"));</code>
             </pre>
 
-            <div class="button-group">
-                <button class="btn btn-secondary" id="btnCopiarCodigo">
-                    <span>📋</span> Copiar Código de Exemplo
-                </button>
-            </div>
+        <div class="button-group">
+          <button class="btn btn-secondary" id="btnCopiarCodigo">
+            <span>📋</span> Copiar Código de Exemplo
+          </button>
         </div>
+      </div>
 
-        <!-- Footer -->
-        <div class="footer">
-            <p>SyntaxMentor API — Disponível para uso gratuito em qualquer site</p>
-        </div>
+      <!-- Footer -->
+      <div class="footer">
+        <p>SyntaxMentor API — Disponível para uso gratuito em qualquer site</p>
+      </div>
     </div>
 
-    <script>
-        // Elementos
-        const textoEl = document.getElementById('texto');
-        const btnCorrigir = document.getElementById('btnCorrigir');
-        const btnLimpar = document.getElementById('btnLimpar');
-        const btnExemplo = document.getElementById('btnExemplo');
-        const btnCopiarCodigo = document.getElementById('btnCopiarCodigo');
-        const resultadoEl = document.getElementById('resultado');
-
-        // Texto de exemplo
-        const textoExemplo = `Eu to fazendo um texto maior agora, cheiu de errus de ortografia pra testa uma extensão direita. As palavras tão tudo trocadas, faltando letra e as ves com letra a mais também. Nao sei si isso ta suficient, mais vo continua escrevendo coizas sem muito sentido, misturando pontuacao errada, acentu faltando e umas frase meio confuza pra fica bem bagunsadu e dificiu de le.`;
-
-        // Carregar exemplo
-        btnExemplo.addEventListener('click', () => {
-            textoEl.value = textoExemplo;
-            resultadoEl.classList.remove('show');
-        });
-
-        // Limpar
-        btnLimpar.addEventListener('click', () => {
-            textoEl.value = '';
-            resultadoEl.classList.remove('show');
-        });
-
-        // Copiar código
-        btnCopiarCodigo.addEventListener('click', () => {
-            const codigo = `// Correção simples
-const resultado = await SyntaxMentor.correct("texto com erro");
-
-// Com configuração
-const resultado = await SyntaxMentor.correct("Hello world", {
-    language: "en-US",
-    pickyMode: true
-});`;
-            navigator.clipboard.writeText(codigo);
-            
-            const originalText = btnCopiarCodigo.innerHTML;
-            btnCopiarCodigo.innerHTML = '<span>✅</span> Copiado!';
-            setTimeout(() => {
-                btnCopiarCodigo.innerHTML = originalText;
-            }, 2000);
-        });
-
-        // Corrigir texto
-        async function corrigirTexto() {
-            const texto = textoEl.value.trim();
-            
-            if (!texto) {
-                mostrarErro('Digite um texto para corrigir');
-                return;
-            }
-
-            // Mostrar loading
-            resultadoEl.innerHTML = `
-                <div class="loading">
-                    <div class="spinner"></div>
-                    <span>Analisando texto com LanguageTool...</span>
-                </div>
-            `;
-            resultadoEl.classList.add('show');
-            
-            btnCorrigir.disabled = true;
-            btnCorrigir.innerHTML = '<span>⏳</span> Processando...';
-
-            try {
-                // Aguardar API carregar
-                if (!window.SyntaxMentor) {
-                    await new Promise(resolve => {
-                        window.addEventListener('syntaxmentor-ready', resolve);
-                        setTimeout(resolve, 3000);
-                    });
-                }
-
-                if (!window.SyntaxMentor) {
-                    throw new Error('API não disponível. Certifique-se de que a extensão está instalada.');
-                }
-
-                // Chamar API
-                const resultado = await window.SyntaxMentor.correct(texto, {
-                    language: 'pt-BR',
-                    pickyMode: true
-                });
-
-                if (resultado.success) {
-                    mostrarResultado(resultado);
-                } else {
-                    mostrarErro(resultado.error);
-                }
-            } catch (error) {
-                mostrarErro(error.message);
-            } finally {
-                btnCorrigir.disabled = false;
-                btnCorrigir.innerHTML = '<span>🔍</span> Corrigir Texto';
-            }
-        }
-
-        function mostrarResultado(resultado) {
-            const temCorrecoes = resultado.corrections.length > 0;
-            
-            let html = `
-                <div class="result-header">
-                    <div>
-                        <span class="result-badge ${temCorrecoes ? 'warning' : 'success'}">
-                            ${temCorrecoes ? '⚠️ ' + resultado.corrections.length + ' correções encontradas' : '✅ Nenhum erro encontrado'}
-                        </span>
-                    </div>
-                </div>
-            `;
-
-            if (temCorrecoes) {
-                html += `
-                    <div class="stats">
-                        <div class="stat">
-                            <div class="stat-value">${resultado.corrections.length}</div>
-                            <div class="stat-label">Correções</div>
-                        </div>
-                        <div class="stat">
-                            <div class="stat-value">${resultado.text.length}</div>
-                            <div class="stat-label">Caracteres</div>
-                        </div>
-                    </div>
-
-                    <div class="text-compare">
-                        <div class="text-box original">
-                            <div class="text-box-title">📄 Original</div>
-                            <div>${escapeHtml(resultado.text)}</div>
-                        </div>
-                        <div class="text-box corrected">
-                            <div class="text-box-title">✨ Corrigido</div>
-                            <div>${escapeHtml(resultado.correctedText)}</div>
-                        </div>
-                    </div>
-
-                    <div class="corrections-list">
-                        <strong style="font-size: 13px;">📋 Detalhe das correções:</strong>
-                        ${resultado.corrections.map(c => `
-                            <div class="correction-item">
-                                <span class="badge-original">${escapeHtml(c.original)}</span>
-                                <span class="arrow">→</span>
-                                <span class="badge-suggestion">${escapeHtml(c.suggestions[0] || '[remover]')}</span>
-                                <span class="correction-message">💡 ${escapeHtml(c.message)}</span>
-                            </div>
-                        `).join('')}
-                    </div>
-                `;
-            } else {
-                html += `
-                    <div style="text-align: center; padding: 40px 20px;">
-                        <div style="font-size: 48px; margin-bottom: 16px;">✨</div>
-                        <p style="color: #065f46; font-weight: 500;">Parabéns! Seu texto está correto!</p>
-                        <p style="font-size: 12px; color: #6b7280; margin-top: 8px;">Nenhum erro ortográfico ou gramatical encontrado.</p>
-                    </div>
-                `;
-            }
-
-            resultadoEl.innerHTML = html;
-        }
-
-        function mostrarErro(mensagem) {
-            resultadoEl.innerHTML = `
-                <div style="text-align: center; padding: 20px;">
-                    <div class="result-badge error" style="display: inline-block;">❌ Erro</div>
-                    <p style="color: #991b1b; margin-top: 16px;">${escapeHtml(mensagem)}</p>
-                    <p style="font-size: 12px; color: #6b7280; margin-top: 8px;">Verifique se a extensão SyntaxMentor está instalada e ativa.</p>
-                </div>
-            `;
-        }
-
-        function escapeHtml(texto) {
-            if (!texto) return '';
-            const div = document.createElement('div');
-            div.textContent = texto;
-            return div.innerHTML;
-        }
-
-        btnCorrigir.addEventListener('click', corrigirTexto);
-        
-        // Ctrl+Enter para corrigir
-        textoEl.addEventListener('keydown', (e) => {
-            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
-                corrigirTexto();
-            }
-        });
-    </script>
-</body>
+    <script src="js/api-usage.js"></script>
+  </body>
 </html>

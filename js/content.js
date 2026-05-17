@@ -1,5 +1,8 @@
 // =============================================
-// SyntaxMentor - content.js v2.7.1
+// SyntaxMentor - content.js v2.7.1 Elite
+// Shadow DOM + Digisac + Fila Inteligente + Correção Persistente
+// Ctrl+Z + Revisão de Página + Modo Aprendizado + Toggle Site
+// Tratamento de Erro Robusto em Todas as Mensagens
 // =============================================
 
 // =============================================
@@ -660,11 +663,14 @@ function processarPontuacao(matches) {
         const original = match.context.text.substr(match.context.offset, match.context.length);
         const palavraLimpa = original.replace(/^[.,;:!?¿¡"''()\[\]{}…\-—–\s]+/, '').replace(/[.,;:!?¿¡"''()\[\]{}…\-—–\s]+$/, '');
 
-        if (palavraLimpa !== original) {
+        if (palavraLimpa !== original && palavraLimpa.length > 0) {
             const pontuacaoInicio = original.indexOf(palavraLimpa);
+            const novoOffset = match.context.offset + pontuacaoInicio;
+            novoMatch.offset = (match.offset || 0) + pontuacaoInicio; // sincronizar offset principal
+            novoMatch.length = palavraLimpa.length;                   // sincronizar length principal
             novoMatch.context = {
                 ...match.context,
-                offset: match.context.offset + pontuacaoInicio,
+                offset: novoOffset,
                 length: palavraLimpa.length
             };
         }
@@ -682,27 +688,30 @@ function verificarPontuacaoComum(texto) {
     const errosPontuacao = [];
 
     const regras = [
-        { regex: /\s+\./g, msg: 'Espaço desnecessário antes do ponto final', replace: '.' },
-        { regex: /\s+,/g, msg: 'Espaço desnecessário antes da vírgula', replace: ',' },
-        { regex: /\.\./g, msg: 'Pontuação duplicada. Use apenas um ponto.', replace: '.' },
+        // Espaco antes de pontuacao (exceto reticencias)
+        { regex: /\s+(?=[.,;:](?!\.{2}))/g, msg: 'Espaço desnecessário antes da pontuação', replace: '' },
+        // Ponto duplo que nao seja reticencias (...) nem URLs (http://)
+        { regex: /(?<!\.)\.{2}(?!\.)/g, msg: 'Pontuação duplicada. Use apenas um ponto ou reticencias (...).',  replace: '.' },
         { regex: /,([a-zA-Zà-úÀ-Ú])/g, msg: 'Falta um espaço após a vírgula', replace: (m, p1) => ', ' + p1 },
         { regex: /([!?])([a-zA-Zà-úÀ-Ú])/g, msg: 'Falta um espaço após o sinal', replace: (m, p1, p2) => p1 + ' ' + p2 }
     ];
 
     regras.forEach(regra => {
-        const matches = texto.match(regra.regex);
-        if (matches) {
-            matches.forEach(match => {
-                const pos = texto.indexOf(match);
-                if (pos >= 0) {
-                    errosPontuacao.push({
-                        context: { text: texto, offset: pos, length: match.length },
-                        message: regra.msg,
-                        replacements: [{ value: typeof regra.replace === 'function' ? regra.replace(match) : regra.replace }],
-                        rule: { category: { name: 'Pontuação' } }
-                    });
-                }
+        // Usar exec para capturar posicao exata de CADA ocorrencia (nao so a primeira)
+        const re = new RegExp(regra.regex.source, regra.regex.flags.includes('g') ? regra.regex.flags : regra.regex.flags + 'g');
+        let match;
+        while ((match = re.exec(texto)) !== null) {
+            const pos = match.index;
+            const len = match[0].length;
+            const corrigido = typeof regra.replace === 'function' ? regra.replace(match[0], ...match.slice(1)) : regra.replace;
+            errosPontuacao.push({
+                context: { text: texto, offset: pos, length: len },
+                message: regra.msg,
+                replacements: [{ value: corrigido }],
+                rule: { id: 'LOCAL_PUNCTUATION', category: { name: 'Pontuação' } }
             });
+            // Evitar loop infinito em match de comprimento zero
+            if (len === 0) re.lastIndex++;
         }
     });
 
@@ -1463,17 +1472,36 @@ async function verificarTexto(texto, elemento) {
         const errosPontuacaoLocal = verificarPontuacaoComum(texto);
         const todosMatches = [...matchesProcessados, ...errosPontuacaoLocal];
 
+        // Regras da API que geram muitos falsos positivos em textos informais
+        const REGRAS_IGNORADAS = new Set([
+            'UPPERCASE_SENTENCE_START',   // flagra siglas e nomes proprios no inicio
+            'PUNCTUATION_PARAGRAPH_END',  // estilo opinativo sobre ponto final
+            'DOUBLE_PUNCTUATION',         // confunde com reticencias
+            'COMMA_PARENTHESIS_WHITESPACE',
+            'EN_QUOTES',
+            'DASH_RULE',
+        ]);
+
         errosGlobais = todosMatches.filter(m => {
             if (!m.replacements?.length) return false;
 
+            // Ignorar regras que geram falsos positivos
+            const ruleId = m.rule?.id || '';
+            if (REGRAS_IGNORADAS.has(ruleId)) return false;
+
             const o = m.context.text.substr(m.context.offset, m.context.length);
+            if (!o.trim()) return false; // ignorar erros sem texto valido
             const ol = o.toLowerCase();
 
-            if (o.trim() && !ol.match(/^[0-9]+$/)) {
+            // Ignorar numeros puros e URLs
+            if (ol.match(/^[0-9]+$/) || ol.match(/^https?:\/\//)) return false;
+
+            if (o.trim()) {
                 erroMaisComumTemp[ol] = (erroMaisComumTemp[ol] || 0) + 1;
                 storageSetSeguro({ erroMaisComum: erroMaisComumTemp });
             }
 
+            // Dicionario: normalizar para lowercase na comparacao (ja normalizado no carregamento)
             return !dic.includes(ol) && !ignoradosTemporarios.includes(ol);
         });
 
@@ -1706,6 +1734,7 @@ function aplicarCorrecao(original, sugestao, el, pularConfirmacao = false) {
                         setTimeout(() => {
                             const span = elementoCorrigido;
                             const parent = span.parentNode;
+                            if (!parent) return; // span já foi removido do DOM
                             const texto = document.createTextNode(span.textContent);
                             parent.replaceChild(texto, span);
                             parent.normalize();
@@ -1719,6 +1748,18 @@ function aplicarCorrecao(original, sugestao, el, pularConfirmacao = false) {
         
         historicoCorrecoes.push({ el, original, sugestao });
         if (historicoCorrecoes.length > 50) historicoCorrecoes.shift();
+
+        // Remover o erro corrigido imediatamente da lista e ignorar a palavra
+        // temporariamente para que a re-verificação não a reporte novamente
+        removerErroGlobal(original);
+        const olOriginal = original.toLowerCase();
+        if (!ignoradosTemporarios.includes(olOriginal)) {
+            ignoradosTemporarios.push(olOriginal);
+            // Remover do ignorados após 5s (tempo suficiente para re-verificação passar)
+            setTimeout(() => {
+                ignoradosTemporarios = ignoradosTemporarios.filter(p => p !== olOriginal);
+            }, 5000);
+        }
         
         incrementarStats(1);
         
@@ -2583,7 +2624,6 @@ document.addEventListener('keydown', (e) => {
         if (bubble) bubble.style.display = 'flex';
         
         mostrarFeedback('✅ SyntaxMentor ATIVADO neste site', 'success');
-        mostrarNotificacaoTemp('ATIVADO', '#28a745');
         atualizarBadgeBackground(errosGlobais.length);
         return;
     }
@@ -2622,11 +2662,10 @@ document.addEventListener('keydown', (e) => {
         if (bubble) bubble.style.display = 'none';
         
         mostrarFeedback('⛔ SyntaxMentor DESATIVADO neste site', 'info');
-        mostrarNotificacaoTemp('DESATIVADO', '#6b7280');
         resetarBadgeBackground();
         return;
     }
-});
+}, true); // capture: true — recebe o evento antes dos listeners do site
 
 /**
  * Mostra notificação temporária na tela (para atalhos)

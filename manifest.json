@@ -79,6 +79,7 @@
                 "js/sentiment-analysis.js",
                 "js/export-reports.js",
                 "js/public-api.js",
+                "js/api-usage.js",
                 "api-usage.html",
                 "api-docs.html"
             ],

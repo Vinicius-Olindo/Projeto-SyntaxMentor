@@ -239,7 +239,7 @@ if (document.body.classList.contains('dashboard-page')) {
         if (btnDemo) {
             btnDemo.addEventListener('click', () => {
                 // Abrir página de exemplo
-                chrome.tabs.create({ url: chrome.runtime.getURL('examples/api-usage.html') });
+                chrome.tabs.create({ url: chrome.runtime.getURL('api-usage.html') });
             });
         }
         

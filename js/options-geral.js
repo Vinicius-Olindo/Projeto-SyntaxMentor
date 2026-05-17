@@ -359,7 +359,9 @@ if (document.body.classList.contains('geral-page')) {
             
             if (!e.ctrlKey && !e.altKey && !e.shiftKey) {
                 shortcut.altKey = true;
-                shortcut.display = "Alt + " + e.key.toUpperCase();
+                shortcut.ctrlKey = false;
+                shortcut.shiftKey = false;
+                shortcut.display = 'Alt + ' + e.key.toUpperCase();
             }
             
             chrome.storage.local.set({ [recordingTarget]: shortcut }, () => {
@@ -802,7 +804,22 @@ if (document.body.classList.contains('geral-page')) {
     // =============================================
     
     function iniciarPaginaGeral() {
-        carregarConfiguracoesIniciais();
+        // Migração: corrigir atalhos gravados sem modificador onde altKey ficou false
+        const keysAtalhos = ['toggleShortcut','ignoreShortcut','corrigirTudoShortcut','ativarShortcut','desativarShortcut'];
+        chrome.storage.local.get(keysAtalhos, (res) => {
+            const correcoes = {};
+            keysAtalhos.forEach(k => {
+                const s = res[k];
+                if (s && !s.altKey && !s.ctrlKey && !s.shiftKey) {
+                    correcoes[k] = { ...s, altKey: true, display: 'Alt + ' + s.key.toUpperCase() };
+                }
+            });
+            if (Object.keys(correcoes).length > 0) {
+                chrome.storage.local.set(correcoes, () => carregarConfiguracoesIniciais());
+            } else {
+                carregarConfiguracoesIniciais();
+            }
+        });
         configurarEventosRealtime();
         configurarSalvar();
         configurarGravacaoAtalhos();
