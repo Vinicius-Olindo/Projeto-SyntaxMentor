@@ -63,7 +63,7 @@ chrome.runtime.onInstalled.addListener((details) => {
 
 chrome.runtime.onStartup.addListener(() => {
     // Verifica se ainda está no período NEW
-    chrome.storage.local.get({ dataInstalacao: 0 }, (res) => {
+    chrome.storage.local.get({ dataInstalacao: 0, cloudSync: false }, (res) => {
         if (res.dataInstalacao) {
             const dias = (Date.now() - res.dataInstalacao) / (1000 * 60 * 60 * 24);
             if (dias < 7) {
@@ -71,8 +71,34 @@ chrome.runtime.onStartup.addListener(() => {
                 chrome.action.setBadgeBackgroundColor({ color: '#6f42c1' });
             }
         }
+
+        // Restaurar dados do storage.sync se cloudSync estiver ativo
+        if (res.cloudSync) {
+            chrome.storage.sync.get(null, (syncData) => {
+                if (chrome.runtime.lastError || !syncData || Object.keys(syncData).length === 0) return;
+                chrome.storage.local.set(syncData);
+            });
+        }
     });
     criarMenuContexto();
+});
+
+// Listener para manter sync atualizado quando dados locais mudarem
+chrome.storage.onChanged.addListener((changes, namespace) => {
+    if (namespace !== 'local') return;
+    const CAMPOS_SYNC = ['dicionario_pessoal','blacklist','language','pickyMode',
+        'toggleShortcut','ignoreShortcut','corrigirTudoShortcut',
+        'ativarShortcut','desativarShortcut','modoWhitelist','whitelist'];
+    const temCampoSync = CAMPOS_SYNC.some(k => changes[k] !== undefined);
+    if (!temCampoSync) return;
+    chrome.storage.local.get({ cloudSync: false }, (res) => {
+        if (!res.cloudSync) return;
+        const atualizacoes = {};
+        CAMPOS_SYNC.forEach(k => {
+            if (changes[k] !== undefined) atualizacoes[k] = changes[k].newValue;
+        });
+        chrome.storage.sync.set(atualizacoes);
+    });
 });
 
 // =============================================

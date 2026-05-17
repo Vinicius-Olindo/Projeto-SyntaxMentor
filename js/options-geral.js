@@ -571,25 +571,20 @@ if (document.body.classList.contains('geral-page')) {
                             }
                             msg += "Deseja confirmar?";
                             
-                            if (!window.confirm(msg)) {
-                                mostrarNotificacao('❌ Importação cancelada', 'info');
-                                inputImportar.value = '';
-                                return;
-                            }
-
+                            smConfirm(msg, () => {
                             const dadosParaSalvar = {
                                 dicionario_pessoal: dicFinal,
                                 blacklist: blackFinal
                             };
-                            
+
                             if (idiomaImportado) dadosParaSalvar.language = idiomaImportado;
-                            
+
                             chrome.storage.local.set(dadosParaSalvar, () => {
                                 if (chrome.runtime.lastError) {
                                     mostrarNotificacao('❌ Erro ao guardar', 'error');
                                     return;
                                 }
-                                
+
                                 mostrarNotificacao('✅ Importação concluída!', 'success');
                                 currentDictionary = dicFinal;
                                 currentBlacklist = blackFinal;
@@ -598,8 +593,9 @@ if (document.body.classList.contains('geral-page')) {
                                 if (idiomaImportado && elLanguage) elLanguage.value = idiomaImportado;
                                 atualizarStatusGeral();
                                 inputImportar.value = '';
-                            });
-                        });
+                            }); // fecha chrome.storage.local.set
+                            }); // fecha smConfirm
+                        }); // fecha chrome.storage.local.get
                     } catch (err) {
                         mostrarNotificacao('❌ Erro ao processar', 'error');
                         inputImportar.value = '';

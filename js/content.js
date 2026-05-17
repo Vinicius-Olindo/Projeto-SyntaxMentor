@@ -546,16 +546,26 @@ function confirmarCorrecao(original, sugestao, callback) {
     btnConfirm.onclick = () => {
         overlay.remove();
         callback(true);
-        storageGetSeguro({ totalAceitas: 0 }, (res) => {
+        storageGetSeguro({ totalAceitas: 0, estatisticasPorSite: {} }, (res) => {
             storageSetSeguro({ totalAceitas: (res.totalAceitas || 0) + 1 });
+            const host = window.location.hostname;
+            const porSite = res.estatisticasPorSite || {};
+            if (!porSite[host]) porSite[host] = { erros: {}, corrigidas: 0, aceitas: 0, recusadas: 0 };
+            porSite[host].aceitas = (porSite[host].aceitas || 0) + 1;
+            storageSetSeguro({ estatisticasPorSite: porSite });
         });
     };
 
     btnCancel.onclick = () => {
         overlay.remove();
         callback(false);
-        storageGetSeguro({ totalRecusadas: 0 }, (res) => {
+        storageGetSeguro({ totalRecusadas: 0, estatisticasPorSite: {} }, (res) => {
             storageSetSeguro({ totalRecusadas: (res.totalRecusadas || 0) + 1 });
+            const host = window.location.hostname;
+            const porSite = res.estatisticasPorSite || {};
+            if (!porSite[host]) porSite[host] = { erros: {}, corrigidas: 0, aceitas: 0, recusadas: 0 };
+            porSite[host].recusadas = (porSite[host].recusadas || 0) + 1;
+            storageSetSeguro({ estatisticasPorSite: porSite });
         });
     };
 
@@ -1430,6 +1440,13 @@ async function verificarTexto(texto, elemento) {
 
     if (smConfig.pickyMode) params.set('level', 'picky');
 
+    // Perfil de voz: prioriza pontuação e capitalização, ignora erros de digitação
+    if (elemento._smModoVoz) {
+        params.set('enabledRules', 'UPPERCASE_SENTENCE_START,PUNCTUATION_PARAGRAPH_END,COMMA_PARENTHESIS_WHITESPACE,PT_QUESTION_MARK');
+        params.set('enabledOnly', 'false');
+        params.set('disabledCategories', 'TYPOS');
+    }
+
     const headers = { 'Content-Type': 'application/x-www-form-urlencoded' };
     if (smConfig.apiKey?.trim()) headers['Authorization'] = `Bearer ${smConfig.apiKey.trim()}`;
 
@@ -1497,7 +1514,16 @@ async function verificarTexto(texto, elemento) {
 
             if (o.trim()) {
                 erroMaisComumTemp[ol] = (erroMaisComumTemp[ol] || 0) + 1;
-                storageSetSeguro({ erroMaisComum: erroMaisComumTemp });
+                // Registrar também por site
+                const host = window.location.hostname;
+                storageGetSeguro({ erroMaisComum: {}, estatisticasPorSite: {} }, (res) => {
+                    const global = res.erroMaisComum || {};
+                    global[ol] = (global[ol] || 0) + 1;
+                    const porSite = res.estatisticasPorSite || {};
+                    if (!porSite[host]) porSite[host] = { erros: {}, corrigidas: 0, aceitas: 0, recusadas: 0 };
+                    porSite[host].erros[ol] = (porSite[host].erros[ol] || 0) + 1;
+                    storageSetSeguro({ erroMaisComum: global, estatisticasPorSite: porSite });
+                });
             }
 
             // Dicionario: normalizar para lowercase na comparacao (ja normalizado no carregamento)
@@ -2760,6 +2786,10 @@ document.addEventListener('input', (e) => {
     if (!valido) return;
     if (el.tagName === 'INPUT' && smConfig.strictMode) return;
 
+    // Detectar input de voz — aplica perfil específico para transcrição
+    const isVoz = e.inputType === 'insertFromSpeech' || e.inputType === 'insertFromVoice';
+    el._smModoVoz = isVoz;
+
     usuarioDigitando = true;
     atualizarVisibilidadeBolha();
 
@@ -3082,34 +3112,81 @@ function adicionarAbaSentimento() {
     tabs.innerHTML = `
         <button class="sm-tab-btn active" data-tab="grammar">📝 Gramática</button>
         <button class="sm-tab-btn" data-tab="sentiment">😊 Sentimento</button>
+        <button class="sm-tab-btn" data-tab="historico">🕓 Histórico</button>
     `;
-    
+
     const header = painel.querySelector('#syntax-mentor-header');
-    if (header) {
-        header.insertAdjacentElement('afterend', tabs);
-    }
-    
+    if (header) header.insertAdjacentElement('afterend', tabs);
+
     const content = painel.querySelector('#syntax-mentor-content');
     const sentimentContent = document.createElement('div');
     sentimentContent.id = 'sm-sentiment-content';
     sentimentContent.style.display = 'none';
     sentimentContent.className = 'body-cards';
-    
+    const historicoContent = document.createElement('div');
+    historicoContent.id = 'sm-historico-content';
+    historicoContent.style.display = 'none';
+    historicoContent.className = 'body-cards';
     content.parentNode.insertBefore(sentimentContent, content.nextSibling);
-    
+    content.parentNode.insertBefore(historicoContent, sentimentContent.nextSibling);
+
+    function renderizarHistorico() {
+        if (historicoCorrecoes.length === 0) {
+            historicoContent.innerHTML = `<div style="text-align:center;padding:40px;color:var(--color-text-secondary)"><div style="font-size:36px;margin-bottom:12px">📭</div><p style="font-size:13px">Nenhuma correção feita ainda nesta sessão.</p></div>`;
+            return;
+        }
+        historicoContent.innerHTML = historicoCorrecoes.slice().reverse().map((item, idx) => {
+            const realIdx = historicoCorrecoes.length - 1 - idx;
+            const hora = new Date(item.timestamp).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            return `<div style="background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:10px 12px;margin-bottom:8px;font-size:13px">
+                <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+                    <div style="display:flex;align-items:center;gap:6px;flex:1;min-width:0">
+                        <span style="color:var(--color-text-danger);text-decoration:line-through;max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(item.original)}</span>
+                        <span style="color:var(--color-text-tertiary)">→</span>
+                        <span style="color:var(--color-text-success);max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(item.sugestao)}</span>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
+                        <span style="font-size:11px;color:var(--color-text-tertiary)">${hora}</span>
+                        <button data-idx="${realIdx}" class="sm-btn-reverter" style="font-size:11px;padding:3px 8px;border-radius:var(--border-radius-sm);border:0.5px solid var(--color-border-secondary);background:var(--color-background-primary);color:var(--color-text-primary);cursor:pointer">↩ Reverter</button>
+                    </div>
+                </div>
+            </div>`;
+        }).join('');
+        historicoContent.querySelectorAll('.sm-btn-reverter').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const idx = parseInt(btn.dataset.idx);
+                const item = historicoCorrecoes[idx];
+                if (!item || !item.el) return;
+                const el = item.el;
+                if (el.value !== undefined) {
+                    el.value = el.value.replace(item.sugestao, item.original);
+                } else {
+                    el.textContent = el.textContent.replace(item.sugestao, item.original);
+                }
+                dispararEventosNativos(el);
+                historicoCorrecoes.splice(idx, 1);
+                renderizarHistorico();
+                mostrarFeedback(`↩ Revertido: "${item.sugestao}" → "${item.original}"`, 'info');
+            });
+        });
+    }
+
     tabs.querySelectorAll('.sm-tab-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             tabs.querySelectorAll('.sm-tab-btn').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
-            
+            content.style.display = 'none';
+            sentimentContent.style.display = 'none';
+            historicoContent.style.display = 'none';
             if (btn.dataset.tab === 'grammar') {
                 content.style.display = 'block';
-                sentimentContent.style.display = 'none';
-            } else {
-                content.style.display = 'none';
+            } else if (btn.dataset.tab === 'sentiment') {
                 sentimentContent.style.display = 'block';
                 sentimentContent.innerHTML = '<div style="text-align:center;padding:40px;color:var(--color-text-secondary)"><div style="font-size:28px;margin-bottom:12px">⏳</div><p style="font-size:13px">Analisando sentimento...</p></div>';
                 requestAnimationFrame(() => atualizarAnaliseSentimento(sentimentContent));
+            } else {
+                historicoContent.style.display = 'block';
+                renderizarHistorico();
             }
         });
     });
@@ -3118,79 +3195,93 @@ function adicionarAbaSentimento() {
 // Atualizar análise de sentimento
 function atualizarAnaliseSentimento(container) {
     if (!elementoGlobal) return;
-    
+
     const texto = elementoGlobal.value || elementoGlobal.textContent || elementoGlobal.innerText || '';
-    
+
     if (texto.length < 10) {
         container.innerHTML = `
-            <div style="text-align:center;padding:40px;color:#888;">
+            <div style="text-align:center;padding:40px;color:var(--color-text-secondary);">
                 <div style="font-size:48px;margin-bottom:16px;">📝</div>
                 <p>Digite mais texto para analisar o sentimento</p>
                 <p style="font-size:12px;">Mínimo de 10 caracteres</p>
-            </div>
-        `;
+            </div>`;
         return;
     }
-    
-    // Análise simples de sentimento
-    const negativeWords = ['ruim', 'péssimo', 'horrível', 'odeio', 'detesto', 'problema', 'erro', 'falha'];
-    const positiveWords = ['ótimo', 'excelente', 'bom', 'maravilhoso', 'perfeito'];
-    
+
+    // Análise com detecção de negação e intensificadores
+    const NEGATIVOS = {
+        'ruim':{ score:-0.5, sug:'insatisfatório' }, 'péssimo':{ score:-1, sug:'aquém do esperado' },
+        'horrível':{ score:-1, sug:'não ideal' }, 'odeio':{ score:-0.8, sug:'tenho ressalvas sobre' },
+        'detesto':{ score:-0.8, sug:'prefiro não' }, 'problema':{ score:-0.4, sug:'desafio' },
+        'impossível':{ score:-0.8, sug:'desafiador' }, 'nunca':{ score:-0.3, sug:'ainda não' },
+        'falha':{ score:-0.6, sug:'ponto a melhorar' }, 'péssima':{ score:-1, sug:'aquém do esperado' }
+    };
+    const POSITIVOS = {
+        'ótimo':0.6, 'excelente':0.8, 'maravilhoso':0.8, 'perfeito':0.7,
+        'incrível':0.7, 'fantástico':0.7, 'bom':0.3, 'boa':0.3, 'adorei':0.7, 'adoro':0.5
+    };
+    const INTENSIFICADORES = ['muito', 'extremamente', 'super', 'bem', 'bastante', 'tão'];
+    const NEGACOES = ['não', 'nunca', 'jamais', 'nem', 'nenhum', 'nada'];
+
+    const tokens = texto.toLowerCase().split(/\s+/);
     let score = 0;
     const issues = [];
-    const lowerText = texto.toLowerCase();
-    
-    negativeWords.forEach(word => {
-        if (lowerText.includes(word)) {
-            score -= 0.5;
-            issues.push({
-                word: word,
-                suggestion: word === 'ruim' ? 'insatisfatório' : 
-                           word === 'problema' ? 'desafio' :
-                           word === 'erro' ? 'ajuste' : 'melhorar',
-                message: `Palavra negativa: "${word}"`
-            });
+
+    tokens.forEach((token, i) => {
+        const limpo = token.replace(/[^a-záéíóúãõâêîôûç]/g, '');
+        const prevToken = i > 0 ? tokens[i-1].replace(/\W/g,'') : '';
+        const prev2Token = i > 1 ? tokens[i-2].replace(/\W/g,'') : '';
+        const negado = NEGACOES.includes(prevToken) || NEGACOES.includes(prev2Token);
+        const intensificado = INTENSIFICADORES.includes(prevToken) ? 1.5 : 1;
+
+        if (NEGATIVOS[limpo]) {
+            const s = negado ? -NEGATIVOS[limpo].score * 0.7 : NEGATIVOS[limpo].score * intensificado;
+            score += s;
+            if (!negado) issues.push({ palavra: limpo, sug: NEGATIVOS[limpo].sug, tipo: 'negativo' });
+        }
+        if (POSITIVOS[limpo]) {
+            score += negado ? -POSITIVOS[limpo] * 0.7 : POSITIVOS[limpo] * intensificado;
         }
     });
-    
-    positiveWords.forEach(word => {
-        if (lowerText.includes(word)) score += 0.3;
-    });
-    
-    let sentiment = score < -0.5 ? 'negativo' : score > 0.3 ? 'positivo' : 'neutro';
-    let sentimentIcon = sentiment === 'negativo' ? '😔' : sentiment === 'positivo' ? '😊' : '😐';
-    let scoreColor = sentiment === 'negativo' ? '#e53e3e' : sentiment === 'positivo' ? '#28a745' : '#6b7280';
-    
+
+    // Normalizar score
+    const scoreNorm = Math.max(-1, Math.min(1, score / Math.max(tokens.length / 10, 1)));
+    const pct = Math.round((scoreNorm + 1) / 2 * 100);
+
+    let label, icon, cor;
+    if (scoreNorm < -0.4)      { label = 'Negativo';          icon = '😔'; cor = 'var(--color-text-danger)'; }
+    else if (scoreNorm < -0.1) { label = 'Levemente negativo'; icon = '😕'; cor = 'var(--color-text-warning)'; }
+    else if (scoreNorm < 0.15) { label = 'Neutro';            icon = '😐'; cor = 'var(--color-text-secondary)'; }
+    else if (scoreNorm < 0.5)  { label = 'Levemente positivo'; icon = '🙂'; cor = 'var(--color-text-success)'; }
+    else                       { label = 'Positivo';           icon = '😊'; cor = 'var(--color-text-success)'; }
+
     let html = `
-        <div style="text-align:center;margin-bottom:24px;">
-            <div style="font-size:64px;">${sentimentIcon}</div>
-            <h3 style="margin:8px 0 4px;">Sentimento: ${sentiment}</h3>
-            <p style="color:${scoreColor};font-weight:bold;">Score: ${score}</p>
-        </div>
-    `;
-    
+        <div style="text-align:center;margin-bottom:20px;">
+            <div style="font-size:52px;margin-bottom:8px;">${icon}</div>
+            <p style="font-size:16px;font-weight:500;margin:0 0 4px;color:${cor}">${label}</p>
+            <div style="height:8px;background:var(--color-background-secondary);border-radius:4px;margin:12px 20px 0;overflow:hidden">
+                <div style="height:100%;width:${pct}%;background:${cor};border-radius:4px;transition:width .4s"></div>
+            </div>
+            <p style="font-size:11px;color:var(--color-text-tertiary);margin:6px 0 0">${pct}% positivo</p>
+        </div>`;
+
     if (issues.length > 0) {
-        html += `<div><h4>🔍 Pontos de atenção:</h4>`;
-        issues.forEach(issue => {
+        html += `<div style="font-size:13px;font-weight:500;margin-bottom:8px;color:var(--color-text-primary)">Pontos de atenção</div>`;
+        issues.slice(0, 5).forEach(issue => {
             html += `
-                <div style="background:#f8f9fa;border-radius:8px;padding:12px;margin-bottom:12px;">
-                    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
-                        <strong>"${issue.word}"</strong> <span>→</span> 
-                        <span style="color:#28a745;">"${issue.suggestion}"</span>
-                    </div>
-                    <p style="margin:0;font-size:12px;color:#666;">${escapeHtml(issue.message)}</p>
-                </div>
-            `;
+                <div style="background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:10px 12px;margin-bottom:8px;display:flex;align-items:center;gap:8px;font-size:13px;">
+                    <span style="color:var(--color-text-danger)">"${escapeHtml(issue.palavra)}"</span>
+                    <span style="color:var(--color-text-tertiary)">→</span>
+                    <span style="color:var(--color-text-success)">"${escapeHtml(issue.sug)}"</span>
+                </div>`;
         });
-        html += `</div>`;
     } else {
         html += `
-            <div style="text-align:center;padding:20px;background:#f0fdf4;border-radius:12px;">
-                <p style="color:#166534;">✨ Texto com tom adequado!</p>
-            </div>
-        `;
+            <div style="text-align:center;padding:16px;background:var(--color-background-success);border-radius:var(--border-radius-md);">
+                <p style="color:var(--color-text-success);margin:0;font-size:13px;">✨ Texto com tom adequado!</p>
+            </div>`;
     }
-    
+
     container.innerHTML = html;
 }
 

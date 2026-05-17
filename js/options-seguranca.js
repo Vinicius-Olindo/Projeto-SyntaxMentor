@@ -240,20 +240,24 @@ if (document.body.classList.contains('seguranca-page')) {
     
     function configurarSalvar() {
         if (!btnSalvar) return;
-        
+
         btnSalvar.addEventListener('click', () => {
-            chrome.storage.local.set({
-                apiUrl: elApiUrl?.value?.trim() || '',
-                apiKey: elApiKey?.value?.trim() || '',
-                modoConfirmacao: elModoConfirmacao?.checked || false,
-                modoLeituraGlobal: elModoLeituraGlobal?.checked || false,
-                modoFoco: elModoFoco?.checked || false,
-                modoAprendizado: elModoAprendizado?.checked || false,
-                modoWhitelist: elModoWhitelist?.checked || false,
-                cloudSync: elCloudSync?.checked || false
-            }, () => {
-                mostrarNotificacao('✓ Guardado com sucesso!', 'success');
-                atualizarStatusSeguranca();
+            const apiKey = elApiKey?.value?.trim() || '';
+
+            // apiKey fica em session storage (nao persiste entre sessoes)
+            chrome.storage.session.set({ apiKey }, () => {
+                chrome.storage.local.set({
+                    apiUrl: elApiUrl?.value?.trim() || '',
+                    modoConfirmacao: elModoConfirmacao?.checked || false,
+                    modoLeituraGlobal: elModoLeituraGlobal?.checked || false,
+                    modoFoco: elModoFoco?.checked || false,
+                    modoAprendizado: elModoAprendizado?.checked || false,
+                    modoWhitelist: elModoWhitelist?.checked || false,
+                    cloudSync: elCloudSync?.checked || false
+                }, () => {
+                    mostrarNotificacao('✓ Guardado com sucesso!', 'success');
+                    atualizarStatusSeguranca();
+                });
             });
         });
     }
@@ -295,7 +299,26 @@ if (document.body.classList.contains('seguranca-page')) {
         
         if (elCloudSync) {
             elCloudSync.addEventListener('change', (e) => {
-                chrome.storage.local.set({ cloudSync: e.target.checked }, atualizarStatusSeguranca);
+                const ativo = e.target.checked;
+                chrome.storage.local.set({ cloudSync: ativo }, atualizarStatusSeguranca);
+
+                if (ativo) {
+                    // Enviar dados locais para o storage.sync
+                    chrome.storage.local.get([
+                        'dicionario_pessoal', 'blacklist', 'language', 'pickyMode',
+                        'toggleShortcut', 'ignoreShortcut', 'corrigirTudoShortcut',
+                        'ativarShortcut', 'desativarShortcut', 'modoWhitelist', 'whitelist'
+                    ], (res) => {
+                        chrome.storage.sync.set(res, () => {
+                            if (chrome.runtime.lastError) {
+                                console.warn('SyntaxMentor: erro ao sincronizar:', chrome.runtime.lastError.message);
+                            }
+                        });
+                    });
+                } else {
+                    // Limpar dados do storage.sync ao desativar
+                    chrome.storage.sync.clear();
+                }
             });
         }
     }
@@ -305,9 +328,9 @@ if (document.body.classList.contains('seguranca-page')) {
     // =============================================
     
     function carregarConfiguracoesIniciais() {
+        chrome.storage.session.get({ apiKey: '' }, (sess) => {
         chrome.storage.local.get({
             apiUrl: '',
-            apiKey: '',
             modoConfirmacao: false,
             modoLeituraGlobal: false,
             modoLeituraSites: [],
@@ -318,22 +341,23 @@ if (document.body.classList.contains('seguranca-page')) {
             modoAprendizado: false
         }, (res) => {
             if (elApiUrl) elApiUrl.value = res.apiUrl || '';
-            if (elApiKey) elApiKey.value = res.apiKey || '';
+            if (elApiKey) elApiKey.value = sess.apiKey || '';
             if (elModoConfirmacao) elModoConfirmacao.checked = res.modoConfirmacao || false;
             if (elModoLeituraGlobal) elModoLeituraGlobal.checked = res.modoLeituraGlobal || false;
             if (elModoFoco) elModoFoco.checked = res.modoFoco || false;
             if (elModoAprendizado) elModoAprendizado.checked = res.modoAprendizado || false;
             if (elModoWhitelist) elModoWhitelist.checked = res.modoWhitelist || false;
             if (elCloudSync) elCloudSync.checked = res.cloudSync || false;
-            
+
             currentModoLeitura = res.modoLeituraSites || [];
             renderizarModoLeitura();
-            
+
             currentWhitelist = res.whitelist || [];
             renderizarWhitelist();
-            
+
             atualizarStatusSeguranca();
-        });
+        }); // fecha local.get
+        }); // fecha session.get
     }
     
     // =============================================

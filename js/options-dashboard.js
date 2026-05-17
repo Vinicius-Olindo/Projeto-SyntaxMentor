@@ -170,11 +170,61 @@ if (document.body.classList.contains('dashboard-page')) {
             dicionario_pessoal: [],
             language: 'pt-BR',
             erroMaisComum: {},
+            estatisticasPorSite: {},
             cloudSync: false,
             modoLeituraGlobal: false
         }, (res) => {
             carregarDashboard(res);
+            renderizarEstatisticasPorSite(res.estatisticasPorSite || {});
         });
+    }
+
+    function renderizarEstatisticasPorSite(porSite) {
+        const container = document.getElementById('stats-por-site');
+        if (!container) return;
+
+        const sites = Object.entries(porSite)
+            .map(([host, data]) => ({
+                host,
+                total: Object.values(data.erros || {}).reduce((a, b) => a + b, 0),
+                aceitas: data.aceitas || 0,
+                recusadas: data.recusadas || 0
+            }))
+            .filter(s => s.total > 0)
+            .sort((a, b) => b.total - a.total)
+            .slice(0, 10);
+
+        if (sites.length === 0) {
+            container.innerHTML = '<p style="color:var(--color-text-tertiary);font-size:13px;text-align:center;padding:20px 0">Nenhum dado ainda. Use a extensão em alguns sites para ver as estatísticas.</p>';
+            return;
+        }
+
+        const maxTotal = sites[0].total;
+        container.innerHTML = sites.map(s => {
+            const taxa = s.aceitas + s.recusadas > 0
+                ? Math.round((s.aceitas / (s.aceitas + s.recusadas)) * 100)
+                : null;
+            const barWidth = Math.round((s.total / maxTotal) * 100);
+            return `
+                <div style="margin-bottom:14px">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+                        <span style="font-size:13px;font-weight:500;color:var(--color-text-primary)">${escapeHtml(s.host)}</span>
+                        <div style="display:flex;gap:8px;align-items:center">
+                            ${taxa !== null ? `<span style="font-size:11px;color:var(--color-text-success)">${taxa}% aceitas</span>` : ''}
+                            <span style="font-size:12px;color:var(--color-text-tertiary)">${s.total} erros</span>
+                        </div>
+                    </div>
+                    <div style="height:6px;background:var(--color-background-secondary);border-radius:3px;overflow:hidden">
+                        <div style="height:100%;width:${barWidth}%;background:var(--color-text-info);border-radius:3px;transition:width .3s"></div>
+                    </div>
+                </div>`;
+        }).join('');
+    }
+
+    function escapeHtml(texto) {
+        const d = document.createElement('div');
+        d.textContent = texto;
+        return d.innerHTML;
     }
     
     // =============================================
