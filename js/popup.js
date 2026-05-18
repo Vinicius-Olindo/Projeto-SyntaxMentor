@@ -494,6 +494,58 @@ document.addEventListener('DOMContentLoaded', () => {
     carregarTema();
     carregarDicionario();
     carregarStatusDoSite();
+    carregarErrosAtivos();
+
+    /**
+     * Carrega os erros ativos do content.js e exibe preview no popup
+     */
+    function carregarErrosAtivos() {
+        const container = document.getElementById('popup-erros-preview');
+        if (!container) return;
+
+        getCurrentTab().then(tab => {
+            if (!tab) return;
+            chrome.tabs.sendMessage(tab.id, { action: 'getErrosAtivos' }, (res) => {
+                if (chrome.runtime.lastError || !res || !res.erros || res.erros.length === 0) {
+                    container.style.display = 'none';
+                    return;
+                }
+
+                const erros = res.erros.slice(0, 5);
+                container.style.display = 'block';
+                container.innerHTML = `
+                    <div style="padding:8px 14px 4px;font-size:11px;font-weight:500;color:#6b7280;text-transform:uppercase;letter-spacing:.04em">
+                        ${res.erros.length} erro${res.erros.length > 1 ? 's' : ''} encontrado${res.erros.length > 1 ? 's' : ''}
+                    </div>
+                    ${erros.map(e => `
+                        <div class="sm-erro-item" data-original="${escapeHtml(e.original)}" data-sugestao="${escapeHtml(e.sugestao)}" style="display:flex;align-items:center;justify-content:space-between;padding:6px 14px;gap:8px;cursor:pointer;border-top:0.5px solid rgba(0,0,0,.06)">
+                            <div style="display:flex;align-items:center;gap:6px;min-width:0">
+                                <span style="color:#e53e3e;text-decoration:line-through;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100px">${escapeHtml(e.original)}</span>
+                                <span style="color:#9ca3af;font-size:12px">→</span>
+                                <span style="color:#28a745;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100px">${escapeHtml(e.sugestao)}</span>
+                            </div>
+                            <button class="sm-btn-aplicar" data-original="${escapeHtml(e.original)}" data-sugestao="${escapeHtml(e.sugestao)}" style="flex-shrink:0;font-size:11px;padding:3px 8px;border-radius:4px;border:0.5px solid #6f42c1;background:transparent;color:#6f42c1;cursor:pointer;font-weight:500">Aplicar</button>
+                        </div>
+                    `).join('')}
+                    ${res.erros.length > 5 ? `<div style="padding:4px 14px 8px;font-size:11px;color:#9ca3af">+${res.erros.length - 5} mais no painel</div>` : ''}
+                `;
+
+                container.querySelectorAll('.sm-btn-aplicar').forEach(btn => {
+                    btn.addEventListener('click', (ev) => {
+                        ev.stopPropagation();
+                        const original = btn.dataset.original;
+                        const sugestao = btn.dataset.sugestao;
+                        chrome.tabs.sendMessage(tab.id, { action: 'aplicarCorrecaoPopup', original, sugestao }, () => {
+                            btn.closest('.sm-erro-item').style.opacity = '0.4';
+                            btn.textContent = '✓';
+                            btn.disabled = true;
+                            setTimeout(carregarErrosAtivos, 800);
+                        });
+                    });
+                });
+            });
+        });
+    }
     
     // Adicionar estilo de animação se não existir
     if (!document.querySelector('#sm-popup-animation-style')) {

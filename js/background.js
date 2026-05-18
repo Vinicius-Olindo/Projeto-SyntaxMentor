@@ -617,6 +617,19 @@ chrome.commands.onCommand.addListener((command) => {
             }
         });
     }
+
+    // Enviar ação para o content script da aba ativa
+    function enviarParaAbaAtiva(action) {
+        chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+            if (tabs[0]?.id && tabs[0]?.url && !tabs[0].url.startsWith('chrome://')) {
+                chrome.tabs.sendMessage(tabs[0].id, { action }).catch(() => {});
+            }
+        });
+    }
+
+    if (command === 'abrir-painel')  enviarParaAbaAtiva('togglePainel');
+    if (command === 'corrigir-tudo') enviarParaAbaAtiva('corrigirTudo');
+    if (command === 'ignorar-erro')  enviarParaAbaAtiva('ignorarErroAtual');
 });
 
 smLog("🚀 SyntaxMentor Background Service Worker v2.7.1 iniciado!");

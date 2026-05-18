@@ -1,50 +1,59 @@
 <!-- ============================================= -->
 <!-- SyntaxMentor - 2.7.0 - -->
 <!-- ============================================= -->
- 
-<!DOCTYPE html>
+
+<!doctype html>
 <html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <link rel="stylesheet" href="css/popup.css">
-</head>
-<body>
-    <div class="header">
-        SyntaxMentor
-    </div>
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="stylesheet" href="css/popup.css" />
+  </head>
+  <body>
+    <div class="header">SyntaxMentor</div>
 
     <div class="quick-action-bar" id="quick-action-bar">
-        <div class="site-info">
-            <span class="status-dot" id="site-status-dot"></span>
-            <span id="current-site-label" class="site-name">...</span>
-        </div>
-        <label class="switch-mini" title="Ativar/Desativar neste site">
-            <input type="checkbox" id="toggle-site-active">
-            <span class="slider-mini"></span>
-        </label>
+      <div class="site-info">
+        <span class="status-dot" id="site-status-dot"></span>
+        <span id="current-site-label" class="site-name">...</span>
+      </div>
+      <label class="switch-mini" title="Ativar/Desativar neste site">
+        <input type="checkbox" id="toggle-site-active" />
+        <span class="slider-mini"></span>
+      </label>
     </div>
 
     <div class="content">
-        <div class="input-container">
-            <input type="text" id="word-input" placeholder="Ignorar palavra...">
-            <button id="add-btn" title="Adicionar ao Dicionário">+</button>
-        </div>
-        <ul id="word-list">
-            </ul>
+      <div class="input-container">
+        <input type="text" id="word-input" placeholder="Ignorar palavra..." />
+        <button id="add-btn" title="Adicionar ao Dicionário">+</button>
+      </div>
+      <ul id="word-list"></ul>
     </div>
 
     <!-- Container para mensagens de feedback -->
-    <div id="popup-mensagem" style="display: none; margin: 10px 15px; padding: 10px; border-radius: 8px; font-size: 12px; text-align: center;">
-    </div>
+    <div
+      id="popup-mensagem"
+      style="
+        display: none;
+        margin: 10px 15px;
+        padding: 10px;
+        border-radius: 8px;
+        font-size: 12px;
+        text-align: center;
+      "
+    ></div>
+
+    <!-- Preview dos erros ativos -->
+    <div id="popup-erros-preview" style="display: none; margin: 0 0 4px"></div>
 
     <a href="#" id="link-opcoes" class="elite-footer-link">
-    <span class="link-text">⚙️ Configurações Avançadas</span>
+      <span class="link-text">⚙️ Configurações Avançadas</span>
     </a>
 
     <a href="#" id="link-api" class="elite-footer-link">
-        <span class="link-text">🔌 API para Desenvolvedores</span>
+      <span class="link-text">🔌 API para Desenvolvedores</span>
     </a>
 
     <script src="js/popup.js"></script>
-</body>
+  </body>
 </html>

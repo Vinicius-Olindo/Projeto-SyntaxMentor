@@ -399,81 +399,61 @@ function desfazerUltimaCorrecao() {
  * @param {string} sugestao - Sugestão de correção
  * @param {string} mensagem - Mensagem explicativa
  */
-function mostrarExplicacaoRegra(original, sugestao, mensagem) {
+function mostrarExplicacaoRegra(original, sugestao, mensagem, erroObj) {
     if (!smConfig.modoAprendizado || !mensagem || mensagem.length < 10) return;
+
+    const categoria = erroObj?.rule?.category?.name || '';
+    const urls = erroObj?.rule?.urls || [];
+    const linkRef = urls.length > 0 ? urls[0].value : null;
 
     const overlay = document.createElement('div');
     overlay.style.cssText = `
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0,0,0,0.4);
-        z-index: 2147483646;
-        display: flex;
-        align-items: center;
-        justify-content: center;
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0,0,0,0.4); z-index: 2147483646;
+        display: flex; align-items: center; justify-content: center;
         font-family: 'Segoe UI', system-ui, sans-serif;
     `;
 
     const dialog = document.createElement('div');
     dialog.style.cssText = `
-        background: white;
-        border-radius: 16px;
-        padding: 28px;
-        max-width: 480px;
-        width: 90%;
+        background: ${smConfig.darkMode ? '#1a1a1a' : 'white'};
+        color: ${smConfig.darkMode ? '#e0e0e0' : 'inherit'};
+        border-radius: 16px; padding: 28px; max-width: 480px; width: 90%;
         box-shadow: 0 20px 60px rgba(0,0,0,0.3);
     `;
 
-    if (smConfig.darkMode) {
-        dialog.style.background = '#1a1a1a';
-        dialog.style.color = '#e0e0e0';
-    }
-
     const mensagemLimpa = escapeHtml(mensagem);
+    const catBadge = categoria ? `<span style="display:inline-block;background:#ede9fe;color:#5b21b6;font-size:11px;font-weight:500;padding:2px 8px;border-radius:4px;margin-bottom:12px">${escapeHtml(categoria)}</span>` : '';
+    const linkHtml = linkRef ? `<a href="${escapeHtml(linkRef)}" target="_blank" style="font-size:12px;color:#6f42c1;text-decoration:none">📖 Saiba mais</a>` : '';
 
     dialog.innerHTML = `
         <div style="text-align:center;margin-bottom:16px;">
             <div style="font-size:40px;margin-bottom:8px;">📚</div>
-            <h3 style="margin:0;font-size:18px;">Por que corrigir?</h3>
+            <h3 style="margin:0 0 6px;font-size:18px;">Por que corrigir?</h3>
+            ${catBadge}
         </div>
-        <div style="background:#f8f9fa;border-radius:12px;padding:16px;margin-bottom:16px;text-align:center;">
+        <div style="background:${smConfig.darkMode ? '#2a2a2a' : '#f8f9fa'};border-radius:12px;padding:16px;margin-bottom:16px;text-align:center;">
             <span style="color:#e53e3e;text-decoration:line-through;font-size:18px;font-weight:600;">${escapeHtml(original)}</span>
             <span style="margin:0 10px;color:#9ca3af;">→</span>
             <span style="color:#28a745;font-size:18px;font-weight:600;">${escapeHtml(sugestao)}</span>
         </div>
-        <div style="background:#fef3c7;border-radius:10px;padding:14px;margin-bottom:16px;">
-            <p style="margin:0;font-size:13px;line-height:1.6;color:#92400e;">💡 ${mensagemLimpa}</p>
+        <div style="background:${smConfig.darkMode ? '#3b2e1a' : '#fef3c7'};border-radius:10px;padding:14px;margin-bottom:16px;">
+            <p style="margin:0 0 6px;font-size:13px;line-height:1.6;color:${smConfig.darkMode ? '#fcd34d' : '#92400e'};">💡 ${mensagemLimpa}</p>
+            ${sugestao ? `<p style="margin:0;font-size:12px;color:${smConfig.darkMode ? '#a3a3a3' : '#6b7280'}">✏️ Exemplo: "<em>${escapeHtml(sugestao)}</em>"</p>` : ''}
         </div>
-        <div style="display:flex;gap:8px;justify-content:flex-end;">
-            <button class="sm-dlg-cancel" style="background:#f3f4f6;border:1px solid #d1d5db;color:#374151;padding:8px 16px;border-radius:6px;cursor:pointer;font-weight:600;">Entendi</button>
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+            ${linkHtml}
+            <button class="sm-dlg-cancel" style="background:#f3f4f6;border:1px solid #d1d5db;color:#374151;padding:8px 16px;border-radius:6px;cursor:pointer;font-weight:600;margin-left:auto">Entendi ✓</button>
         </div>
     `;
-
-    if (smConfig.darkMode) {
-        const boxOriginal = dialog.querySelector('div:nth-child(2)');
-        const boxExplicacao = dialog.querySelector('div:nth-child(3)');
-        if (boxOriginal) boxOriginal.style.background = '#2a2a2a';
-        if (boxExplicacao) {
-            boxExplicacao.style.background = '#3b2e1a';
-            const p = boxExplicacao.querySelector('p');
-            if (p) p.style.color = '#fbbf24';
-        }
-    }
 
     overlay.appendChild(dialog);
     document.body.appendChild(overlay);
 
-    dialog.querySelector('.sm-dlg-cancel').onclick = () => overlay.remove();
-    overlay.onclick = (e) => {
-        if (e.target === overlay) overlay.remove();
-    };
-
-    setTimeout(() => {
-        if (overlay.parentNode) overlay.remove();
-    }, 8000);
+    const fechar = () => overlay.remove();
+    dialog.querySelector('.sm-dlg-cancel')?.addEventListener('click', fechar);
+    overlay.addEventListener('click', e => { if (e.target === overlay) fechar(); });
+    setTimeout(fechar, 12000);
 }
 
 // =============================================
@@ -1805,7 +1785,7 @@ function aplicarCorrecao(original, sugestao, el, pularConfirmacao = false) {
             
             if (erroEncontrado && erroEncontrado.message) {
                 setTimeout(() => {
-                    mostrarExplicacaoRegra(original, sugestao, erroEncontrado.message);
+                    mostrarExplicacaoRegra(original, sugestao, erroEncontrado.message, erroEncontrado);
                 }, 300);
             }
         }
@@ -1886,19 +1866,34 @@ function mostrarFeedbackCorrecao(elemento, posicao, original, sugestao) {
  */
 function incrementarStats(qtd) {
     if (!isExtensaoAtiva()) return;
-    
+
     // Animar a bolinha ao corrigir
     const bubble = document.getElementById('syntax-mentor-bubble');
     if (bubble) {
         bubble.classList.add('sm-bubble-correction');
-        setTimeout(() => {
-            bubble.classList.remove('sm-bubble-correction');
-        }, 300);
+        setTimeout(() => bubble.classList.remove('sm-bubble-correction'), 300);
     }
-    
-    storageGetSeguro({ totalCorrigidas: 0, dicionario_pessoal: [] }, (res) => {
+
+    storageGetSeguro({ totalCorrigidas: 0, dicionario_pessoal: [], lastUseDate: '', streakDias: 0, correcoesHoje: 0 }, (res) => {
         const novoTotal = (res.totalCorrigidas || 0) + qtd;
-        storageSetSeguro({ totalCorrigidas: novoTotal });
+
+        // Atualizar streak
+        const hoje = new Date().toISOString().split('T')[0];
+        const ontem = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+        let streak = res.streakDias || 0;
+        let correcoesHoje = res.correcoesHoje || 0;
+
+        if (res.lastUseDate === hoje) {
+            correcoesHoje += qtd; // mesmo dia
+        } else if (res.lastUseDate === ontem) {
+            streak += 1; // dia consecutivo
+            correcoesHoje = qtd;
+        } else {
+            streak = 1; // sequência quebrada — reinicia
+            correcoesHoje = qtd;
+        }
+
+        storageSetSeguro({ totalCorrigidas: novoTotal, lastUseDate: hoje, streakDias: streak, correcoesHoje });
         verificarConquistas(novoTotal, (res.dicionario_pessoal || []).length);
     });
 }
@@ -2842,22 +2837,105 @@ document.addEventListener('input', (e) => {
 
 if (typeof chrome !== 'undefined' && chrome.runtime) {
     chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+        if (request.action === 'togglePainel') {
+            if (painelAberto) fecharPainel(); else exibirPainel();
+            sendResponse({ success: true });
+            return true;
+        }
+
+        if (request.action === 'ignorarErroAtual') {
+            if (errosGlobais.length > 0) {
+                const primeiro = errosGlobais[0];
+                const palavra = primeiro.context.text.substr(primeiro.context.offset, primeiro.context.length);
+                ignorarTemporariamente(palavra);
+            }
+            sendResponse({ success: true });
+            return true;
+        }
+
+        if (request.action === 'getErrosAtivos') {
+            const erros = errosGlobais.slice(0, 10).map(e => ({
+                original: e.context.text.substr(e.context.offset, e.context.length),
+                sugestao: e.replacements?.[0]?.value || '',
+                message: e.message || ''
+            })).filter(e => e.original && e.sugestao && e.original !== e.sugestao);
+            sendResponse({ erros, total: erros.length });
+            return true;
+        }
+
+        if (request.action === 'aplicarCorrecaoPopup') {
+            const { original, sugestao } = request;
+            if (elementoGlobal && original && sugestao) {
+                aplicarCorrecao(original, sugestao, elementoGlobal, true);
+            }
+            sendResponse({ success: true });
+            return true;
+        }
+
         if (request.action === 'revisarSelecao' && request.texto) {
+            const texto = request.texto.trim();
+            const sel = window.getSelection();
+            const range = sel && sel.rangeCount > 0 ? sel.getRangeAt(0).getBoundingClientRect() : null;
+
+            // Criar elemento temporário para verificação
             const div = document.createElement('div');
             div.contentEditable = 'true';
             div.style.cssText = 'position:fixed;left:-9999px;top:-9999px;';
-            div.textContent = request.texto;
+            div.textContent = texto;
             document.body.appendChild(div);
 
-            textoUltimaVerificacao = request.texto;
+            textoUltimaVerificacao = texto;
             elementoGlobal = div;
 
-            verificarTexto(request.texto, div);
+            // Mostrar tooltip de loading próxima à seleção
+            const tooltip = document.createElement('div');
+            tooltip.id = 'sm-selecao-tooltip';
+            tooltip.style.cssText = `
+                position:fixed;z-index:2147483647;background:#1a1a2e;color:#fff;
+                border-radius:10px;padding:12px 16px;font-size:13px;
+                font-family:'Segoe UI',system-ui,sans-serif;max-width:320px;
+                box-shadow:0 8px 32px rgba(0,0,0,.25);
+                top:${range ? Math.max(10, range.top - 80) : 100}px;
+                left:${range ? Math.min(window.innerWidth - 340, range.left) : 100}px;
+            `;
+            tooltip.innerHTML = '<div style="text-align:center;padding:4px">⏳ Verificando seleção...</div>';
+            document.body.appendChild(tooltip);
 
-            setTimeout(() => {
-                if (errosGlobais.length > 0) exibirPainel();
+            verificarTexto(texto, div).then(() => {
                 document.body.removeChild(div);
-            }, 1500);
+                if (errosGlobais.length === 0) {
+                    tooltip.innerHTML = '<div style="text-align:center;color:#4ade80">✅ Nenhum erro encontrado!</div>';
+                    setTimeout(() => tooltip.remove(), 2500);
+                    return;
+                }
+                // Exibir erros na tooltip
+                const itens = errosGlobais.slice(0, 4).map(e => {
+                    const orig = e.context.text.substr(e.context.offset, e.context.length);
+                    const sug = e.replacements?.[0]?.value || '';
+                    return orig && sug ? `
+                        <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-top:1px solid rgba(255,255,255,.1)">
+                            <span style="color:#f87171;text-decoration:line-through">${escapeHtml(orig)}</span>
+                            <span style="color:#9ca3af">→</span>
+                            <span style="color:#4ade80">${escapeHtml(sug)}</span>
+                        </div>` : '';
+                }).filter(Boolean).join('');
+
+                tooltip.innerHTML = `
+                    <div style="font-size:11px;font-weight:500;color:#a78bfa;margin-bottom:4px">${errosGlobais.length} ERRO${errosGlobais.length > 1 ? 'S' : ''} ENCONTRADO${errosGlobais.length > 1 ? 'S' : ''}</div>
+                    ${itens}
+                    <div style="margin-top:8px;text-align:right">
+                        <button id="sm-tooltip-fechar" style="background:rgba(255,255,255,.1);border:none;color:#fff;padding:4px 10px;border-radius:4px;cursor:pointer;font-size:12px">Fechar</button>
+                        <button id="sm-tooltip-abrir" style="background:#6f42c1;border:none;color:#fff;padding:4px 10px;border-radius:4px;cursor:pointer;font-size:12px;margin-left:6px">Ver no painel</button>
+                    </div>`;
+
+                tooltip.querySelector('#sm-tooltip-fechar')?.addEventListener('click', () => tooltip.remove());
+                tooltip.querySelector('#sm-tooltip-abrir')?.addEventListener('click', () => { tooltip.remove(); exibirPainel(); });
+                setTimeout(() => tooltip.remove(), 8000);
+            }).catch(() => {
+                document.body.removeChild(div);
+                tooltip.remove();
+            });
+
             sendResponse({ success: true });
             return true;
         }

@@ -172,11 +172,61 @@ if (document.body.classList.contains('dashboard-page')) {
             erroMaisComum: {},
             estatisticasPorSite: {},
             cloudSync: false,
-            modoLeituraGlobal: false
+            modoLeituraGlobal: false,
+            streakDias: 0,
+            correcoesHoje: 0,
+            lastUseDate: ''
         }, (res) => {
             carregarDashboard(res);
             renderizarEstatisticasPorSite(res.estatisticasPorSite || {});
+            renderizarStreak(res);
         });
+    }
+
+    function renderizarStreak(res) {
+        const container = document.getElementById('sm-streak-card');
+        if (!container) return;
+
+        const streak = res.streakDias || 0;
+        const hoje = res.correcoesHoje || 0;
+        const meta = 10; // meta diária fixa de 10 correções
+        const pct = Math.min(100, Math.round((hoje / meta) * 100));
+
+        const emoji = streak >= 30 ? '🔥🔥🔥' : streak >= 7 ? '🔥🔥' : streak >= 1 ? '🔥' : '💤';
+
+        // Gerar calendário dos últimos 7 dias
+        const dias = [];
+        for (let i = 6; i >= 0; i--) {
+            const d = new Date(Date.now() - i * 86400000);
+            const label = d.toLocaleDateString('pt-BR', { weekday: 'short' }).slice(0, 3);
+            const isHoje = i === 0;
+            const ativo = i === 0 ? hoje > 0 : streak > i; // estimativa simplificada
+            dias.push({ label, isHoje, ativo });
+        }
+
+        container.innerHTML = `
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+                <div>
+                    <div style="font-size:28px;font-weight:600;line-height:1">${emoji} ${streak}</div>
+                    <div style="font-size:12px;color:var(--color-text-tertiary);margin-top:2px">dia${streak !== 1 ? 's' : ''} consecutivo${streak !== 1 ? 's' : ''}</div>
+                </div>
+                <div style="text-align:right">
+                    <div style="font-size:20px;font-weight:500">${hoje}<span style="font-size:12px;color:var(--color-text-tertiary)">/${meta}</span></div>
+                    <div style="font-size:12px;color:var(--color-text-tertiary)">correções hoje</div>
+                </div>
+            </div>
+            <div style="height:6px;background:var(--color-background-secondary);border-radius:3px;margin-bottom:14px;overflow:hidden">
+                <div style="height:100%;width:${pct}%;background:#f97316;border-radius:3px;transition:width .4s"></div>
+            </div>
+            <div style="display:flex;justify-content:space-between;gap:4px">
+                ${dias.map(d => `
+                    <div style="flex:1;text-align:center">
+                        <div style="width:28px;height:28px;border-radius:6px;margin:0 auto 4px;background:${d.ativo ? '#f97316' : 'var(--color-background-secondary)'};opacity:${d.isHoje ? 1 : 0.7}"></div>
+                        <div style="font-size:10px;color:var(--color-text-tertiary)">${d.label}</div>
+                    </div>
+                `).join('')}
+            </div>
+        `;
     }
 
     function renderizarEstatisticasPorSite(porSite) {
