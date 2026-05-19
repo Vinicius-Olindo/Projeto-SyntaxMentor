@@ -1233,43 +1233,72 @@ function observarIframes() {
  * @param {string} texto - Texto para análise
  */
 async function verificarIdioma(texto) {
-    if (idiomaSugerido || texto.length < 30) return;
+    if (texto.length < 30) return;
 
-    try {
-        const response = await new Promise((resolve) => {
-            if (!isExtensaoAtiva()) {
-                resolve(null);
-                return;
-            }
-            enviarMensagemSegura({ action: 'detectLanguage', text: texto.substring(0, 500) }, resolve);
-        });
+    const host = window.location.hostname;
 
-        if (response?.success && response.language) {
+    // Verificar se já há preferência salva para este site
+    storageGetSeguro({ idiomasPorSite: {} }, (res) => {
+        const prefs = res.idiomasPorSite || {};
+        if (prefs[host] && prefs[host] !== smConfig.language) {
+            smConfig.language = prefs[host];
+            storageSetSeguro({ language: prefs[host] });
+            return;
+        }
+
+        if (idiomaSugerido) return;
+
+        enviarMensagemSegura({ action: 'detectLanguage', text: texto.substring(0, 500) }, (response) => {
+            if (!response?.success || !response.language) return;
+
             const idiomaDetectado = response.language;
             const idiomaAtual = smConfig.language;
+            if (idiomaDetectado === idiomaAtual) return;
 
-            if (idiomaDetectado !== idiomaAtual) {
-                const nomes = {
-                    'pt-BR': 'Português',
-                    'en-US': 'Inglês',
-                    'es': 'Espanhol',
-                    'fr': 'Francês',
-                    'de': 'Alemão',
-                    'it': 'Italiano'
-                };
+            const nomes = {
+                'pt-BR': 'Português', 'en-US': 'Inglês', 'es': 'Espanhol',
+                'fr': 'Francês', 'de': 'Alemão', 'it': 'Italiano'
+            };
 
-                mostrarSugestaoIdioma(
-                    `Parece que está escrevendo em ${nomes[idiomaDetectado] || idiomaDetectado}.`,
-                    `Mudar de ${nomes[idiomaAtual] || idiomaAtual}?`,
-                    idiomaDetectado
-                );
+            // Criar toast de sugestão com opção "Sempre neste site"
+            const toast = document.createElement('div');
+            toast.style.cssText = `
+                position:fixed;bottom:80px;right:20px;z-index:2147483647;
+                background:#1a1a2e;color:#fff;border-radius:10px;padding:14px 16px;
+                font-size:13px;font-family:'Segoe UI',system-ui,sans-serif;
+                max-width:280px;box-shadow:0 8px 24px rgba(0,0,0,.25);
+            `;
+            toast.innerHTML = `
+                <p style="margin:0 0 10px;line-height:1.5">Texto em <strong>${nomes[idiomaDetectado] || idiomaDetectado}</strong> detectado. Mudar o corretor?</p>
+                <div style="display:flex;gap:6px;flex-wrap:wrap">
+                    <button id="sm-lang-sim" style="padding:5px 10px;border-radius:5px;border:none;background:#6f42c1;color:#fff;cursor:pointer;font-size:12px">Sim</button>
+                    <button id="sm-lang-sempre" style="padding:5px 10px;border-radius:5px;border:none;background:#28a745;color:#fff;cursor:pointer;font-size:12px">Sempre neste site</button>
+                    <button id="sm-lang-nao" style="padding:5px 10px;border-radius:5px;border:none;background:rgba(255,255,255,.15);color:#fff;cursor:pointer;font-size:12px">Não</button>
+                </div>
+            `;
+            document.body.appendChild(toast);
+            idiomaSugerido = true;
 
-                idiomaSugerido = true;
-            }
-        }
-    } catch (e) {
-        console.debug('Erro ao detectar idioma:', e);
-    }
+            const aplicar = (salvarSite) => {
+                smConfig.language = idiomaDetectado;
+                storageSetSeguro({ language: idiomaDetectado });
+                if (salvarSite) {
+                    storageGetSeguro({ idiomasPorSite: {} }, (r) => {
+                        const p = r.idiomasPorSite || {};
+                        p[host] = idiomaDetectado;
+                        storageSetSeguro({ idiomasPorSite: p });
+                    });
+                }
+                toast.remove();
+                mostrarFeedback(`Idioma alterado para ${nomes[idiomaDetectado] || idiomaDetectado}`, 'success');
+            };
+
+            toast.querySelector('#sm-lang-sim')?.addEventListener('click', () => aplicar(false));
+            toast.querySelector('#sm-lang-sempre')?.addEventListener('click', () => aplicar(true));
+            toast.querySelector('#sm-lang-nao')?.addEventListener('click', () => toast.remove());
+            setTimeout(() => toast.remove(), 12000);
+        });
+    });
 }
 
 /**
@@ -1894,6 +1923,14 @@ function incrementarStats(qtd) {
         }
 
         storageSetSeguro({ totalCorrigidas: novoTotal, lastUseDate: hoje, streakDias: streak, correcoesHoje });
+
+        // Registrar correções de voz separadamente para conquistas
+        if (elementoGlobal?._smModoVoz) {
+            storageGetSeguro({ correcoesVoz: 0 }, (rv) => {
+                storageSetSeguro({ correcoesVoz: (rv.correcoesVoz || 0) + qtd });
+            });
+        }
+
         verificarConquistas(novoTotal, (res.dicionario_pessoal || []).length);
     });
 }
@@ -2058,31 +2095,49 @@ function confirmarCorrecaoEmLote(correcoes) {
  * @param {number} dicSize - Tamanho do dicionário pessoal
  */
 function verificarConquistas(totalCorrigidas, dicSize) {
-    const conquistas = [
-        { id: 'primeira', nome: '🏆 Primeira Correção!', condicao: totalCorrigidas >= 1 },
-        { id: '10correcoes', nome: '⭐ 10 Correções!', condicao: totalCorrigidas >= 10 },
-        { id: '50correcoes', nome: '🔥 50 Correções!', condicao: totalCorrigidas >= 50 },
-        { id: '100correcoes', nome: '💎 100 Correções!', condicao: totalCorrigidas >= 100 },
-        { id: '500correcoes', nome: '👑 500 Correções!', condicao: totalCorrigidas >= 500 },
-        { id: '1000correcoes', nome: '🌟 1000 Correções! Lendário!', condicao: totalCorrigidas >= 1000 },
-        { id: '10dic', nome: '📖 10 Palavras no Dicionário!', condicao: dicSize >= 10 }
-    ];
+    storageGetSeguro({
+        streakDias: 0,
+        totalAceitas: 0,
+        totalRecusadas: 0,
+        estatisticasPorSite: {},
+        correcoesVoz: 0
+    }, (extra) => {
+        const streak = extra.streakDias || 0;
+        const aceitas = extra.totalAceitas || 0;
+        const recusadas = extra.totalRecusadas || 0;
+        const taxa = aceitas + recusadas > 0 ? Math.round((aceitas / (aceitas + recusadas)) * 100) : 0;
+        const sitesUsados = Object.keys(extra.estatisticasPorSite || {}).length;
+        const correcoesVoz = extra.correcoesVoz || 0;
 
-    const novasConquistas = conquistas.filter(c => c.condicao && !conquistasNotificadas[c.id]);
+        const conquistas = [
+            { id: 'primeira',       nome: '🏆 Primeira Correção!',              condicao: totalCorrigidas >= 1 },
+            { id: '10correcoes',    nome: '⭐ 10 Correções!',                   condicao: totalCorrigidas >= 10 },
+            { id: '50correcoes',    nome: '🔥 50 Correções!',                   condicao: totalCorrigidas >= 50 },
+            { id: '100correcoes',   nome: '💎 100 Correções!',                  condicao: totalCorrigidas >= 100 },
+            { id: '500correcoes',   nome: '👑 500 Correções!',                  condicao: totalCorrigidas >= 500 },
+            { id: '1000correcoes',  nome: '🌟 1000 Correções! Lendário!',       condicao: totalCorrigidas >= 1000 },
+            { id: '10dic',          nome: '📖 10 Palavras no Dicionário!',      condicao: dicSize >= 10 },
+            { id: 'streak3',        nome: '📅 3 Dias Seguidos!',                condicao: streak >= 3 },
+            { id: 'streak7',        nome: '🗓️ 7 Dias Seguidos!',               condicao: streak >= 7 },
+            { id: 'streak30',       nome: '🔥 30 Dias Seguidos! Imparável!',    condicao: streak >= 30 },
+            { id: 'taxa90',         nome: '🎯 90% de Aceitação!',               condicao: taxa >= 90 && totalCorrigidas >= 20 },
+            { id: '5sites',         nome: '🌐 Usado em 5 Sites!',               condicao: sitesUsados >= 5 },
+            { id: '10sites',        nome: '🗺️ Explorador — 10 Sites!',         condicao: sitesUsados >= 10 },
+            { id: 'primeiravoz',    nome: '🎤 Primeira Correção de Voz!',       condicao: correcoesVoz >= 1 },
+            { id: '10voz',          nome: '🎙️ 10 Correções de Voz!',           condicao: correcoesVoz >= 10 },
+        ];
 
-    if (novasConquistas.length > 0) {
-        novasConquistas.forEach(c => { conquistasNotificadas[c.id] = true; });
+        const novasConquistas = conquistas.filter(c => c.condicao && !conquistasNotificadas[c.id]);
 
-        if (isExtensaoAtiva()) {
-            storageSetSeguro({ conquistasNotificadas });
+        if (novasConquistas.length > 0) {
+            novasConquistas.forEach(c => { conquistasNotificadas[c.id] = true; });
+            if (isExtensaoAtiva()) storageSetSeguro({ conquistasNotificadas });
+            mostrarNotificacaoConquista(novasConquistas[novasConquistas.length - 1].nome);
+            if (novasConquistas.length > 1) {
+                setTimeout(() => mostrarNotificacaoConquista(`🎉 +${novasConquistas.length - 1} conquista(s)!`), 3500);
+            }
         }
-
-        mostrarNotificacaoConquista(novasConquistas[novasConquistas.length - 1].nome);
-
-        if (novasConquistas.length > 1) {
-            setTimeout(() => mostrarNotificacaoConquista(`🎉 +${novasConquistas.length - 1} conquista(s)!`), 3500);
-        }
-    }
+    });
 }
 
 /**
@@ -2274,6 +2329,7 @@ function exibirPainel() {
     let html = `
         <div id="syntax-mentor-header">
             <span>${isModoLeitura() ? '👁️ Revisão' : '📝 Sugestões'}</span>
+            <div id="sm-nivel-painel" style="font-size:11px;color:rgba(255,255,255,.7);flex:1;text-align:center"></div>
             <button id="btn-fechar-painel">✕</button>
         </div>
         <div id="syntax-mentor-content">
@@ -2306,6 +2362,11 @@ function exibirPainel() {
     html += `
             </div>
             <div class="footer-actions">
+                <div style="display:flex;gap:4px;margin-bottom:6px">
+                    <button id="btn-erro-prev" style="flex:1;font-size:12px;padding:5px" title="Erro anterior">⬆ Anterior</button>
+                    <span id="sm-nav-contador" style="font-size:11px;color:var(--color-text-tertiary);display:flex;align-items:center;padding:0 6px;white-space:nowrap">— / ${total}</span>
+                    <button id="btn-erro-next" style="flex:1;font-size:12px;padding:5px" title="Próximo erro">Próximo ⬇</button>
+                </div>
                 <button id="btn-corrigir-tudo">✨ Corrigir Tudo (${total})</button>
                 <button id="btn-ignorar-tudo">Ignorar Tudo</button>
             </div>
@@ -2336,8 +2397,60 @@ function exibirPainel() {
     painel.innerHTML = html;
     tornarArrastavelPainel(painel, document.getElementById('syntax-mentor-header'));
 
+    // Popular nível no header
+    storageGetSeguro({ totalCorrigidas: 0 }, (res) => {
+        const t = res.totalCorrigidas || 0;
+        const el = document.getElementById('sm-nivel-painel');
+        if (!el) return;
+        let icone, nome, proximo;
+        if (t >= 1000)     { icone = '👑'; nome = 'Lendário';     proximo = null; }
+        else if (t >= 500) { icone = '⭐'; nome = 'Mestre';       proximo = 1000; }
+        else if (t >= 100) { icone = '🔥'; nome = 'Avançado';     proximo = 500; }
+        else if (t >= 10)  { icone = '📈'; nome = 'Intermediário'; proximo = 100; }
+        else               { icone = '🌱'; nome = 'Iniciante';    proximo = 10; }
+        const pct = proximo ? Math.round((t / proximo) * 100) : 100;
+        el.innerHTML = `${icone} ${nome} <span style="opacity:.55;font-size:10px">${proximo ? `${t}/${proximo}` : 'MAX'}</span>`;
+        el.title = `Nível: ${nome} — ${pct}% para o próximo`;
+    });
+
     document.getElementById('btn-fechar-painel').onclick = fecharPainel;
     document.getElementById('btn-corrigir-tudo').onclick = corrigirTudo;
+
+    // Navegação entre erros
+    let erroNavIdx = -1;
+    const errosNavegaveis = errosGlobais.filter(e => e.context.text.substr(e.context.offset, e.context.length).trim());
+
+    function navegarParaErro(idx) {
+        if (errosNavegaveis.length === 0) return;
+        erroNavIdx = (idx + errosNavegaveis.length) % errosNavegaveis.length;
+        const erro = errosNavegaveis[erroNavIdx];
+        const palavra = erro.context.text.substr(erro.context.offset, erro.context.length);
+
+        // Atualizar contador
+        const contador = document.getElementById('sm-nav-contador');
+        if (contador) contador.textContent = `${erroNavIdx + 1} / ${errosNavegaveis.length}`;
+
+        // Scroll e destaque no DOM
+        const marks = document.querySelectorAll(`mark.sm-highlight`);
+        marks.forEach(m => m.style.outline = '');
+        marks.forEach(m => {
+            if (m.textContent === palavra) {
+                m.style.outline = '2px solid #f97316';
+                m.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        });
+
+        // Destacar card correspondente no painel
+        document.querySelectorAll('.erro-card').forEach(card => {
+            const strong = card.querySelector('strong');
+            card.style.background = strong?.textContent === palavra
+                ? 'var(--color-background-warning)'
+                : '';
+        });
+    }
+
+    document.getElementById('btn-erro-next')?.addEventListener('click', () => navegarParaErro(erroNavIdx + 1));
+    document.getElementById('btn-erro-prev')?.addEventListener('click', () => navegarParaErro(erroNavIdx - 1));
     document.getElementById('btn-ignorar-tudo').onclick = limparTudo;
 
     painel.querySelectorAll('.btn-fix-mini').forEach(b => {
