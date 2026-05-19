@@ -541,13 +541,13 @@ chrome.storage.onChanged.addListener((changes, namespace) => {
 // =============================================
 
 chrome.commands.onCommand.addListener((command) => {
+    // Ativar extensão
     if (command === 'ativar-extensao') {
         chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
             if (tabs[0] && tabs[0].id && tabs[0].url && !tabs[0].url.startsWith('chrome://')) {
                 try {
                     const host = new URL(tabs[0].url).hostname;
                     
-                    // Remover da blacklist de overrides
                     chrome.storage.local.get(['userBlacklistOverrides'], (res) => {
                         const overrides = res.userBlacklistOverrides || [];
                         const index = overrides.indexOf(host);
@@ -556,17 +556,14 @@ chrome.commands.onCommand.addListener((command) => {
                             chrome.storage.local.set({ userBlacklistOverrides: overrides });
                         }
                         
-                        // Enviar mensagem para content script
                         chrome.tabs.sendMessage(tabs[0].id, {
                             action: 'toggleSite',
                             enabled: true,
                             host: host
                         }).catch(() => {});
                         
-                        // Atualizar ícone
                         verificarIconeParaTab(tabs[0].id);
                         
-                        // Notificar usuário
                         chrome.action.setBadgeText({ text: 'ON', tabId: tabs[0].id });
                         chrome.action.setBadgeBackgroundColor({ color: '#28a745', tabId: tabs[0].id });
                         setTimeout(() => {
@@ -580,13 +577,13 @@ chrome.commands.onCommand.addListener((command) => {
         });
     }
     
+    // Desativar extensão
     if (command === 'desativar-extensao') {
         chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
             if (tabs[0] && tabs[0].id && tabs[0].url && !tabs[0].url.startsWith('chrome://')) {
                 try {
                     const host = new URL(tabs[0].url).hostname;
                     
-                    // Adicionar à blacklist de overrides
                     chrome.storage.local.get(['userBlacklistOverrides'], (res) => {
                         const overrides = res.userBlacklistOverrides || [];
                         if (!overrides.includes(host)) {
@@ -594,17 +591,14 @@ chrome.commands.onCommand.addListener((command) => {
                             chrome.storage.local.set({ userBlacklistOverrides: overrides });
                         }
                         
-                        // Enviar mensagem para content script
                         chrome.tabs.sendMessage(tabs[0].id, {
                             action: 'toggleSite',
                             enabled: false,
                             host: host
                         }).catch(() => {});
                         
-                        // Atualizar ícone
                         verificarIconeParaTab(tabs[0].id);
                         
-                        // Notificar usuário
                         chrome.action.setBadgeText({ text: 'OFF', tabId: tabs[0].id });
                         chrome.action.setBadgeBackgroundColor({ color: '#6b7280', tabId: tabs[0].id });
                         setTimeout(() => {
@@ -618,18 +612,23 @@ chrome.commands.onCommand.addListener((command) => {
         });
     }
 
-    // Enviar ação para o content script da aba ativa
-    function enviarParaAbaAtiva(action) {
+    // Abrir/fechar painel
+    if (command === 'abrir-painel') {
         chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
             if (tabs[0]?.id && tabs[0]?.url && !tabs[0].url.startsWith('chrome://')) {
-                chrome.tabs.sendMessage(tabs[0].id, { action }).catch(() => {});
+                chrome.tabs.sendMessage(tabs[0].id, { action: 'togglePainel' }).catch(() => {});
             }
         });
     }
-
-    if (command === 'abrir-painel')  enviarParaAbaAtiva('togglePainel');
-    if (command === 'corrigir-tudo') enviarParaAbaAtiva('corrigirTudo');
-    if (command === 'ignorar-erro')  enviarParaAbaAtiva('ignorarErroAtual');
+    
+    // Corrigir tudo
+    if (command === 'corrigir-tudo') {
+        chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+            if (tabs[0]?.id && tabs[0]?.url && !tabs[0].url.startsWith('chrome://')) {
+                chrome.tabs.sendMessage(tabs[0].id, { action: 'corrigirTudo' }).catch(() => {});
+            }
+        });
+    }
 });
 
 smLog("🚀 SyntaxMentor Background Service Worker v2.7.1 iniciado!");

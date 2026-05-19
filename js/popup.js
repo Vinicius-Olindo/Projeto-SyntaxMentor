@@ -72,32 +72,31 @@ document.addEventListener('DOMContentLoaded', () => {
      * @param {string} action - Ação a ser executada
      */
     function enviarAcaoParaAba(action) {
-        chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-            if (chrome.runtime.lastError) {
-                mostrarFeedbackTemporario('⚠️ Erro ao comunicar com a página');
-                return;
-            }
-            
-            if (tabs[0] && tabs[0].id) {
-                chrome.tabs.sendMessage(tabs[0].id, { action: action }, () => {
-                    if (chrome.runtime.lastError) {
-                        console.warn('Erro:', chrome.runtime.lastError.message);
-                        mostrarFeedbackTemporario('⚠️ Recarregue a página para usar esta função');
-                    } else {
-                        const mensagens = {
-                            'corrigirTudo': '✨ Corrigindo tudo...',
-                            'revisarPaginaInteira': '🔍 Revisando página...'
-                        };
-                        mostrarFeedbackTemporario(mensagens[action] || '✅ Comando enviado!');
-                        setTimeout(() => window.close(), 500);
-                    }
-                });
-            } else {
-                mostrarFeedbackTemporario('⚠️ Nenhuma página válida encontrada');
-            }
-        });
-    }
-
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+        if (chrome.runtime.lastError) {
+            mostrarFeedbackPopup('Erro ao comunicar com a página', 'error');
+            return;
+        }
+        
+        if (tabs[0] && tabs[0].id) {
+            chrome.tabs.sendMessage(tabs[0].id, { action: action }, () => {
+                if (chrome.runtime.lastError) {
+                    console.warn('Erro:', chrome.runtime.lastError.message);
+                    mostrarFeedbackPopup('Recarregue a página para usar esta função', 'warning');
+                } else {
+                    const mensagens = {
+                        'corrigirTudo': 'Corrigindo tudo...',
+                        'revisarPaginaInteira': 'Revisando página...'
+                    };
+                    mostrarFeedbackPopup(mensagens[action] || 'Comando enviado!', 'success');
+                    setTimeout(() => window.close(), 500);
+                }
+            });
+        } else {
+            mostrarFeedbackPopup('Nenhuma página válida encontrada', 'error');
+        }
+    });
+}
     // =============================================
     // FUNÇÕES DE FEEDBACK VISUAL
     // =============================================
@@ -383,7 +382,7 @@ document.addEventListener('DOMContentLoaded', () => {
             setTimeout(() => {
                 wordInput.style.borderColor = '';
             }, 1000);
-            mostrarFeedbackTemporario('⚠️ A palavra deve ter pelo menos 2 caracteres');
+            mostrarFeedbackPopup('A palavra deve ter pelo menos 2 caracteres', 'warning');
             return;
         }
         
@@ -391,14 +390,14 @@ document.addEventListener('DOMContentLoaded', () => {
             currentDictionary.unshift(word);
             wordInput.value = '';
             salvarDicionario();
-            mostrarFeedbackTemporario(`✨ "${word}" adicionado ao dicionário`);
+            mostrarFeedbackPopup(`"${word}" adicionado ao dicionário`, 'success');
         } else {
             wordInput.value = '';
             wordInput.style.borderColor = '#f59e0b';
             setTimeout(() => {
                 wordInput.style.borderColor = '';
             }, 1000);
-            mostrarFeedbackTemporario(`⚠️ "${word}" já está no dicionário`);
+            mostrarFeedbackPopup(`"${word}" já está no dicionário`, 'warning');
         }
     }
 

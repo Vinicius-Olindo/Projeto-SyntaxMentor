@@ -24,6 +24,16 @@
         "https://*.take.io/*"
     ],
     "commands": {
+        "abrir-painel": {
+            "suggested_key": {
+                "default": "Alt+S",
+                "windows": "Alt+S",
+                "mac": "Alt+S",
+                "chromeos": "Alt+S",
+                "linux": "Alt+S"
+            },
+            "description": "Abrir/fechar painel de correções"
+        },
         "ativar-extensao": {
             "suggested_key": {
                 "default": "Alt+Shift+A",
@@ -44,16 +54,6 @@
             },
             "description": "Desativar SyntaxMentor no site atual"
         },
-        "abrir-painel": {
-            "suggested_key": {
-                "default": "Alt+S",
-                "windows": "Alt+S",
-                "mac": "Alt+S",
-                "chromeos": "Alt+S",
-                "linux": "Alt+S"
-            },
-            "description": "Abrir/fechar painel de correções"
-        },
         "corrigir-tudo": {
             "suggested_key": {
                 "default": "Alt+Shift+S",
@@ -63,16 +63,6 @@
                 "linux": "Alt+Shift+S"
             },
             "description": "Corrigir todos os erros automaticamente"
-        },
-        "ignorar-erro": {
-            "suggested_key": {
-                "default": "Alt+I",
-                "windows": "Alt+I",
-                "mac": "Alt+I",
-                "chromeos": "Alt+I",
-                "linux": "Alt+I"
-            },
-            "description": "Ignorar erro selecionado"
         }
     },
     "action": {

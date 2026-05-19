@@ -2515,7 +2515,7 @@ function fecharPainel() {
         }, 1000);
     }
 
-     adicionarAbaSentimento();
+    //adicionarAbaSentimento();
 }
 
 /**
@@ -2731,82 +2731,82 @@ document.addEventListener('keydown', (e) => {
     }
     
     // 2.4 ATIVAR extensão no site atual
-    if (e.altKey === ativarShortcut.altKey && 
-        e.ctrlKey === ativarShortcut.ctrlKey && 
-        e.shiftKey === ativarShortcut.shiftKey && 
-        e.key.toLowerCase() === ativarShortcut.key) {
-        e.preventDefault();
-        e.stopPropagation();
-        
-        // Se já estiver ativa, não faz nada
-        if (!smConfig.disabled) {
-            mostrarFeedback('✅ SyntaxMentor já está ATIVADO neste site', 'info');
-            return;
-        }
-        
-        smConfig.disabled = false;
-        
-        enviarMensagemSegura({ 
-            action: 'toggleSiteGlobal', 
-            enabled: true,
-            host: window.location.hostname 
-        });
-        
-        const campoAtivo = document.activeElement;
-        if (campoAtivo && (campoAtivo.tagName === 'TEXTAREA' || campoAtivo.tagName === 'INPUT' || campoAtivo.isContentEditable)) {
-            const texto = campoAtivo.value || campoAtivo.textContent || campoAtivo.innerText || '';
-            if (texto.trim().length > 1) {
-                textoUltimaVerificacao = texto;
-                elementoGlobal = campoAtivo;
-                verificarTexto(texto, campoAtivo);
-            }
-        }
-        
-        const bubble = document.getElementById('syntax-mentor-bubble');
-        if (bubble) bubble.style.display = 'flex';
-        
-        mostrarFeedback('✅ SyntaxMentor ATIVADO neste site', 'success');
-        atualizarBadgeBackground(errosGlobais.length);
+if (e.altKey === ativarShortcut.altKey && 
+    e.ctrlKey === ativarShortcut.ctrlKey && 
+    e.shiftKey === ativarShortcut.shiftKey && 
+    e.key.toLowerCase() === ativarShortcut.key) {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (!smConfig.disabled) {
+        mostrarFeedback('✅ SyntaxMentor já está ATIVADO neste site', 'info');
         return;
     }
     
-    // 2.5 DESATIVAR extensão no site atual
-    if (e.altKey === desativarShortcut.altKey && 
-        e.ctrlKey === desativarShortcut.ctrlKey && 
-        e.shiftKey === desativarShortcut.shiftKey && 
-        e.key.toLowerCase() === desativarShortcut.key) {
-        e.preventDefault();
-        e.stopPropagation();
-        
-        // Se já estiver desativada, não faz nada
-        if (smConfig.disabled) {
-            mostrarFeedback('⛔ SyntaxMentor já está DESATIVADO neste site', 'info');
-            return;
+    smConfig.disabled = false;
+    
+    enviarMensagemSegura({ 
+        action: 'toggleSiteGlobal', 
+        enabled: true,
+        host: window.location.hostname 
+    });
+    
+    const campoAtivo = document.activeElement;
+    if (campoAtivo && (campoAtivo.tagName === 'TEXTAREA' || campoAtivo.tagName === 'INPUT' || campoAtivo.isContentEditable)) {
+        const texto = campoAtivo.value || campoAtivo.textContent || campoAtivo.innerText || '';
+        if (texto.trim().length > 1) {
+            textoUltimaVerificacao = texto;
+            elementoGlobal = campoAtivo;
+            verificarTexto(texto, campoAtivo);
         }
-        
-        smConfig.disabled = true;
-        
-        enviarMensagemSegura({ 
-            action: 'toggleSiteGlobal', 
-            enabled: false,
-            host: window.location.hostname 
-        });
-        
-        if (elementoGlobal && elementoGlobal.isContentEditable && !isSiteRestrito) {
-            elementoGlobal.innerHTML = elementoGlobal.innerHTML.replace(/<mark class="sm-highlight">(.*?)<\/mark>/gi, '$1');
-            atualizarElementoComEventos(elementoGlobal);
-        }
-        
-        errosGlobais = [];
-        fecharPainel();
-        
-        const bubble = document.getElementById('syntax-mentor-bubble');
-        if (bubble) bubble.style.display = 'none';
-        
-        mostrarFeedback('⛔ SyntaxMentor DESATIVADO neste site', 'info');
-        resetarBadgeBackground();
+    }
+    
+    const bubble = document.getElementById('syntax-mentor-bubble');
+    if (bubble) bubble.style.display = 'flex';
+    
+    mostrarFeedback('✅ SyntaxMentor ATIVADO neste site', 'success');
+    // ❌ REMOVA: mostrarNotificacaoTemp('ATIVADO', '#28a745');
+    atualizarBadgeBackground(errosGlobais.length);
+    return;
+}
+
+// 2.5 DESATIVAR extensão no site atual
+if (e.altKey === desativarShortcut.altKey && 
+    e.ctrlKey === desativarShortcut.ctrlKey && 
+    e.shiftKey === desativarShortcut.shiftKey && 
+    e.key.toLowerCase() === desativarShortcut.key) {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (smConfig.disabled) {
+        mostrarFeedback('⛔ SyntaxMentor já está DESATIVADO neste site', 'info');
         return;
     }
+    
+    smConfig.disabled = true;
+    
+    enviarMensagemSegura({ 
+        action: 'toggleSiteGlobal', 
+        enabled: false,
+        host: window.location.hostname 
+    });
+    
+    if (elementoGlobal && elementoGlobal.isContentEditable && !isSiteRestrito) {
+        elementoGlobal.innerHTML = elementoGlobal.innerHTML.replace(/<mark class="sm-highlight">(.*?)<\/mark>/gi, '$1');
+        atualizarElementoComEventos(elementoGlobal);
+    }
+    
+    errosGlobais = [];
+    fecharPainel();
+    
+    const bubble = document.getElementById('syntax-mentor-bubble');
+    if (bubble) bubble.style.display = 'none';
+    
+    mostrarFeedback('⛔ SyntaxMentor DESATIVADO neste site', 'info');
+    // ❌ REMOVA: mostrarNotificacaoTemp('DESATIVADO', '#6b7280');
+    resetarBadgeBackground();
+    return;
+}
 }, true); // capture: true — recebe o evento antes dos listeners do site
 
 /**
