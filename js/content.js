@@ -3477,6 +3477,26 @@ function atualizarAnaliseSentimento(container) {
 }
 
 // =============================================
+// SUGESTÕES DE PALAVRAS (SELEÇÃO DE TEXTO)
+// =============================================
+
+document.addEventListener('mouseup', async (e) => {
+    // Só mostrar sugestões se o usuário seguiu Alt + clique
+    if (!e.altKey) return;
+    
+    const selection = window.getSelection();
+    const textoSelecionado = selection.toString().trim();
+    
+    if (textoSelecionado && textoSelecionado.split(' ').length === 1) {
+        const palavra = textoSelecionado;
+        const x = e.clientX;
+        const y = e.clientY;
+        
+        await synonymAPI.mostrarSugestoes(palavra, x, y);
+    }
+});
+
+// =============================================
 // INICIALIZAÇÃO
 // =============================================
 

@@ -31,6 +31,7 @@ if (document.body.classList.contains('seguranca-page')) {
     let currentWhitelist = [];
     const elCloudSync = document.getElementById('cloudSync');
     const btnSalvar = document.getElementById('btn-salvar');
+    const elDarkModeAuto = document.getElementById('darkModeAuto');
     
     // =============================================
     // STATUS BADGES
@@ -321,6 +322,18 @@ if (document.body.classList.contains('seguranca-page')) {
                 }
             });
         }
+        
+        if (elDarkModeAuto) {
+            elDarkModeAuto.addEventListener('change', (e) => {
+                chrome.storage.local.set({ darkModeAuto: e.target.checked });
+                if (e.target.checked) {
+                    // Aplicar tema do sistema imediatamente
+                    const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                    chrome.storage.local.set({ darkMode: isDark });
+                    document.body.classList.toggle('dark-mode', isDark);
+                }
+            });
+        }
     }
     
     // =============================================
@@ -348,6 +361,7 @@ if (document.body.classList.contains('seguranca-page')) {
             if (elModoAprendizado) elModoAprendizado.checked = res.modoAprendizado || false;
             if (elModoWhitelist) elModoWhitelist.checked = res.modoWhitelist || false;
             if (elCloudSync) elCloudSync.checked = res.cloudSync || false;
+            if (elDarkModeAuto) elDarkModeAuto.checked = res.darkModeAuto || false;
 
             currentModoLeitura = res.modoLeituraSites || [];
             renderizarModoLeitura();
