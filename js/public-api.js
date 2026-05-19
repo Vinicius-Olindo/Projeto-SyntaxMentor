@@ -36,7 +36,7 @@
     // =============================================
     
     const config = {
-        version: '2.7.1',
+        version: '2.9.0',
         language: 'pt-BR',
         pickyMode: true,
         apiUrl: 'https://api.languagetool.org/v2/check'

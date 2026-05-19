@@ -1,5 +1,5 @@
 // =============================================
-// SyntaxMentor - background.js v2.7.1
+// SyntaxMentor - background.js v2.9.0
 // Service Worker com suporte a Toggle Site e Overrides
 // =============================================
 

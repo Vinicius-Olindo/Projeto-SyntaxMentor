@@ -1,5 +1,5 @@
 // =============================================
-// SyntaxMentor - popup.js v2.7.1
+// SyntaxMentor - popup.js v2.9.0
 // Live Sync + Corrigir Tudo + Revisar Página + Toggle Site
 // =============================================
 

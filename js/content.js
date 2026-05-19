@@ -1,5 +1,5 @@
 // =============================================
-// SyntaxMentor - content.js v2.7.1 Elite
+// SyntaxMentor - content.js v2.9.0 Elite
 // Shadow DOM + Digisac + Fila Inteligente + Correção Persistente
 // Ctrl+Z + Revisão de Página + Modo Aprendizado + Toggle Site
 // Tratamento de Erro Robusto em Todas as Mensagens
