@@ -85,6 +85,11 @@
                 "<all_urls>"
             ],
             "js": [
+                "js/text-to-speech.js",
+                "js/synonyms.js",
+                "js/offline-grammar.js",
+                "js/offline-mode.js",
+                "js/sentiment-analysis.js",
                 "js/content.js"
             ],
             "css": [

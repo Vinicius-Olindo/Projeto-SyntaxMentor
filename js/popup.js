@@ -347,7 +347,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     const palavraRemovida = currentDictionary[idx];
                     currentDictionary.splice(idx, 1);
                     salvarDicionario();
-                    mostrarFeedbackTemporario(`🗑️ "${palavraRemovida}" removido`);
+                    mostrarFeedbackPopup(`"${palavraRemovida}" removido`, 'info');
                 }
             });
         });

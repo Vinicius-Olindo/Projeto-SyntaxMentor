@@ -246,6 +246,12 @@ function criarMenuContexto() {
             title: '↩ Ignorar nesta sessão',
             contexts: ['selection']
         });
+        
+        chrome.contextMenus.create({
+            id: 'ler-selecao',
+            title: '🔊 Ler seleção em voz alta',
+            contexts: ['selection']
+        });
     });
 }
 
@@ -277,6 +283,13 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
         chrome.tabs.sendMessage(tab.id, {
             action: 'ignorarTemporariamente',
             palavra: palavra
+        }).catch(() => {});
+    }
+
+    if (info.menuItemId === 'ler-selecao' && info.selectionText) {
+    chrome.tabs.sendMessage(tab.id, {
+            action: 'lerTexto',
+            texto: info.selectionText.trim()
         }).catch(() => {});
     }
 });

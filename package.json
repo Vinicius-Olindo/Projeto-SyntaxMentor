@@ -1,6 +1,6 @@
 {
   "name": "syntaxmentor",
-  "version": "2.7.1",
+  "version": "2.9.0",
   "description": "Extensão de correção ortográfica",
   "scripts": {
     "test": "jest",
