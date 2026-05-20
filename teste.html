@@ -1,0 +1,172 @@
+<!-- ============================================= -->
+<!-- SyntaxMentor - 2.6.0 - -->
+<!-- ============================================= -->
+ 
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>SyntaxMentor - Ambiente de Testes</title>
+    <style>
+        /* Estilos Modernos para a Área de Testes */
+        :root {
+            --primary: #6f42c1;
+            --primary-hover: #59359a;
+            --bg-color: #f3f4f6;
+            --box-bg: #ffffff;
+            --text-main: #1f2937;
+            --text-muted: #6b7280;
+            --border: #e5e7eb;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 40px 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .container {
+            max-width: 850px;
+            width: 100%;
+            background-color: var(--box-bg);
+            padding: 40px;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            border-bottom: 2px solid #f0f0f0;
+            padding-bottom: 20px;
+        }
+
+        .header h1 {
+            color: var(--primary);
+            margin: 0 0 10px 0;
+            font-size: 28px;
+        }
+
+        .header p {
+            color: var(--text-muted);
+            margin: 0;
+            font-size: 15px;
+        }
+
+        .test-section {
+            margin-bottom: 35px;
+        }
+
+        .test-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+
+        .test-header h2 {
+            font-size: 18px;
+            margin: 0;
+        }
+
+        .badge {
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+
+        .badge.textarea { background-color: #e0e7ff; color: #3730a3; }
+        .badge.editable { background-color: #dcfce7; color: #166534; }
+
+        .info-text {
+            font-size: 13px;
+            color: var(--text-muted);
+            margin-bottom: 10px;
+        }
+
+        /* Estilização das Caixas de Texto */
+        .editor-box {
+            width: 100%;
+            min-height: 150px;
+            padding: 18px;
+            border: 2px solid var(--border);
+            border-radius: 10px;
+            font-size: 16px;
+            line-height: 1.6;
+            color: #333;
+            box-sizing: border-box;
+            transition: all 0.3s ease;
+            outline: none;
+            background-color: #fafafa;
+        }
+
+        .editor-box:focus {
+            border-color: var(--primary);
+            background-color: #ffffff;
+            box-shadow: 0 0 0 4px rgba(111, 66, 193, 0.1);
+        }
+
+        textarea.editor-box {
+            resize: vertical;
+        }
+
+        /* Dica de uso no final */
+        .tips {
+            background-color: #fffbeb;
+            border-left: 4px solid #f59e0b;
+            padding: 15px;
+            border-radius: 0 8px 8px 0;
+            font-size: 13px;
+            color: #b45309;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="header">
+            <h1>- SyntaxMentor Lab -</h1>
+            <p>Bancada de testes oficial para a extensão de correção ortográfica.</p>
+        </div>
+
+        <div class="test-section">
+            <div class="test-header">
+                <h2>Campo de Formulário Padrão</h2>
+                <span class="badge textarea">&lt;textarea&gt;</span>
+            </div>
+            <p class="info-text">Neste campo nativo, os navegadores bloqueiam injeção de HTML. O painel deve abrir e corrigir, mas o grifo ondulado vermelho não aparecerá aqui dentro.</p>
+            
+            <textarea class="editor-box" placeholder="Digite seu texto aqui...">Eu to fasendo um texxto aqui com alguns errus pra testar a extencao. Vamos ver se a ferramenta consegue identificar essas coizas sem muito esforso.</textarea>
+        </div>
+
+        <div class="test-section">
+            <div class="test-header">
+                <h2>Editor de Texto Rico (Rich Text)</h2>
+                <span class="badge editable">contenteditable="true"</span>
+            </div>
+            <p class="info-text">Simula editores modernos como Gmail, WhatsApp Web ou WordPress. Aqui o SyntaxMentor consegue injetar a tag &lt;mark&gt; e exibir os grifos ondulados!</p>
+            
+            <div class="editor-box" contenteditable="true">
+                Eu to fazendu um texxto maiior agora, cheiu de errus de ortografia pra testa uma extencao direitu. As palavra tao tudo trocadas, faltandu letra e as ves com letra a mais tambem. Nao sei si isso ta suficient, mais vo continua escrevendu coizas sem muitu sentidu, misturandu pontuacao errada, acentu faltandu e umas frase meio confuza pra fica bem bagunsadu e dificiu de le.
+            </div>
+        </div>
+
+        <div class="tips">
+            <strong>💡 Dica de Teste:</strong> Tente digitar palavras técnicas como <b>ACTLOC</b>, <b>Docker</b> ou <b>n8n</b>. Use o botão "+ Dic" do painel para salvá-las no seu dicionário pessoal e recarregue a página!
+        </div>
+
+    </div>
+
+</body>
+</html>

@@ -1,0 +1,72 @@
+/* ============================================
+   SyntaxMentor - 2.6.0 - Análise de Sentimento - Estilos
+   ============================================ */
+
+/* Abas */
+.sm-tab-btn {
+    background: none;
+    border: none;
+    padding: 8px 16px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #6b7280;
+    cursor: pointer;
+    transition: all 0.2s;
+    border-radius: 6px 6px 0 0;
+}
+
+.sm-tab-btn:hover {
+    color: #6f42c1;
+    background: #f3e8ff;
+}
+
+.sm-tab-btn.active {
+    color: #6f42c1;
+    border-bottom: 2px solid #6f42c1;
+}
+
+/* Modo escuro para abas */
+#syntax-mentor-painel.sm-dark .sm-tab-btn {
+    color: #9ca3af;
+}
+
+#syntax-mentor-painel.sm-dark .sm-tab-btn:hover {
+    color: #d8b4fe;
+    background: #2d1b4e;
+}
+
+#syntax-mentor-painel.sm-dark .sm-tab-btn.active {
+    color: #d8b4fe;
+    border-bottom-color: #d8b4fe;
+}
+
+/* Cards de sentimento */
+.issue-card {
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.issue-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+#syntax-mentor-painel.sm-dark .issue-card {
+    background: #2a2a2a !important;
+}
+
+#syntax-mentor-painel.sm-dark .issue-card p {
+    color: #9ca3af !important;
+}
+
+/* Indicador de sentimento na bolinha */
+#syntax-mentor-bubble[data-sentiment="negative"] {
+    background: linear-gradient(135deg, #e53e3e 0%, #c53030 100%);
+}
+
+#syntax-mentor-bubble[data-sentiment="positive"] {
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+}
+
+#syntax-mentor-bubble[data-sentiment="neutral"] {
+    background: linear-gradient(135deg, #6f42c1 0%, #8b5cf6 100%);
+}
