@@ -86,6 +86,20 @@ let smConfig = {
     modoAprendizado: false
 };
 
+// Carregar TTS se disponível
+let smTTS = null;
+try {
+    // Tentar carregar o módulo TTS
+    const script = document.createElement('script');
+    script.src = chrome.runtime.getURL('js/text-to-speech.js');
+    script.onload = () => {
+        console.log('✅ TTS carregado');
+    };
+    document.head.appendChild(script);
+} catch(e) {
+    console.debug('TTS não disponível');
+}
+
 // =============================================
 // FUNÇÃO SEGURA PARA ENVIAR MENSAGENS (ROBUSTA)
 // =============================================
@@ -2493,11 +2507,11 @@ function exibirPainel() {
         };
     });
 
-    // Adicionar controles de TTS
-    if (smTTS) {
-        const contentArea = document.getElementById('syntax-mentor-content');
-        if (contentArea && !document.querySelector('.sm-tts-controls')) {
+    if (typeof smTTS !== 'undefined' && smTTS) {
+        try {
             smTTS.adicionarControles(contentArea);
+        } catch(e) {
+            console.debug('TTS não disponível:', e.message);
         }
     }
 }

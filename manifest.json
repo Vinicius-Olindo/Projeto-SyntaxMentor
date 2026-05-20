@@ -81,20 +81,9 @@
     },
     "content_scripts": [
         {
-            "matches": [
-                "<all_urls>"
-            ],
-            "js": [
-                "js/text-to-speech.js",
-                "js/synonyms.js",
-                "js/offline-grammar.js",
-                "js/offline-mode.js",
-                "js/sentiment-analysis.js",
-                "js/content.js"
-            ],
-            "css": [
-                "css/content.css"
-            ],
+            "matches": ["<all_urls>"],
+            "js": ["js/content.js"],
+            "css": ["css/content.css"],
             "all_frames": true,
             "match_about_blank": true,
             "match_origin_as_fallback": true,
@@ -112,12 +101,11 @@
                 "js/export-reports.js",
                 "js/public-api.js",
                 "js/api-usage.js",
+                "js/text-to-speech.js",
                 "api-usage.html",
                 "api-docs.html"
             ],
-            "matches": [
-                "<all_urls>"
-            ]
+            "matches": ["<all_urls>"]
         }
     ]
 }
