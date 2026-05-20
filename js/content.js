@@ -1,8 +1,12 @@
 // =============================================
+<<<<<<< HEAD
 // SyntaxMentor - content.js v2.9.0 Elite
 // Shadow DOM + Digisac + Fila Inteligente + Correção Persistente
 // Ctrl+Z + Revisão de Página + Modo Aprendizado + Toggle Site
 // Tratamento de Erro Robusto em Todas as Mensagens
+=======
+// SyntaxMentor - content.js v2.7.1 Elite
+>>>>>>> b82253680f0931746507b5a68f72b664a9daa9f7
 // =============================================
 
 // =============================================
@@ -170,6 +174,76 @@ async function verificarConexaoExtensao() {
 // =============================================
 // UTILITÁRIOS
 // =============================================
+
+/**
+ * Mostra feedback flutuante com duração automática baseada no conteúdo
+ * @param {string} msg - Mensagem a ser exibida
+ * @param {string} tipo - success, error, info, warning
+ * @param {number} duracaoMs - Duração opcional (se não informada, calcula automaticamente)
+ */
+function mostrarFeedback(msg, tipo, duracaoMs = null) {
+    // Remove feedbacks anteriores
+    document.querySelectorAll('.sm-feedback-flutuante').forEach(el => el.remove());
+    
+    const feedback = document.createElement('div');
+    feedback.textContent = msg;
+    feedback.className = 'sm-feedback-flutuante';
+    
+    const cores = {
+        success: '#28a745',
+        error: '#e53e3e',
+        info: '#6b7280',
+        warning: '#f59e0b'
+    };
+    
+    feedback.style.cssText = `
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        z-index: 2147483647;
+        background: ${cores[tipo] || cores.info};
+        color: #fff;
+        padding: 12px 18px;
+        border-radius: 8px;
+        font: 600 14px 'Segoe UI', sans-serif;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        pointer-events: none;
+        max-width: 350px;
+        word-wrap: break-word;
+        line-height: 1.4;
+    `;
+    
+    document.body.appendChild(feedback);
+    
+    // Adiciona animação se não existir
+    if (!document.querySelector('#sm-feedback-style')) {
+        const style = document.createElement('style');
+        style.id = 'sm-feedback-style';
+        style.textContent = `
+            @keyframes sm-feedback-fadeout {
+                0% { opacity: 1; transform: translateX(0); }
+                70% { opacity: 1; transform: translateX(0); }
+                100% { opacity: 0; transform: translateX(20px); }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+    
+    // Calcula duração: mínimo 2 segundos, máximo 8 segundos
+    // Base: 1 segundo para cada 20 caracteres + 1.5 segundos fixos
+    let duracao = duracaoMs;
+    if (!duracao) {
+        duracao = Math.min(8000, Math.max(2000, msg.length * 50 + 1500));
+    }
+    
+    // Aplica animação
+    feedback.style.animation = `sm-feedback-fadeout ${duracao / 1000}s forwards`;
+    
+    // Timeout para remover do DOM
+    setTimeout(() => {
+        if (feedback.parentNode) feedback.remove();
+    }, duracao);
+}
 
 /**
  * Verifica se a extensão ainda está ativa
@@ -1566,26 +1640,23 @@ async function verificarTexto(texto, elemento) {
 
         atualizarInterface();
     } catch (err) {
-        if (err.name === 'AbortError') return;
-        console.warn('SyntaxMentor:', err.message);
-        
-        // 🔧 MELHORIA: Mensagens de erro mais específicas
-        let mensagemErro = '⚠️ Erro de conexão';
-        if (err.message.includes('API Key inválida')) {
-            mensagemErro = '🔑 API Key inválida - Verifique suas configurações';
-        } else if (err.message.includes('Muitas requisições')) {
-            mensagemErro = '⏳ Muitas correções seguidas - Aguarde um momento';
-        } else if (err.message.includes('Timeout')) {
-            mensagemErro = '⏱️ Servidor demorou muito para responder - Tente novamente';
-        } else if (err.message.includes('Failed to fetch')) {
-            mensagemErro = '🌐 Sem conexão - Usando correção offline';
-            // Fallback para verificador offline
-            if (typeof verificarTextoOffline === 'function') {
-                verificarTextoOffline(texto, elemento);
-            }
-        }
-        
-        mostrarFeedback(mensagemErro, 'error');
+    if (err.name === 'AbortError') return;
+    console.warn('SyntaxMentor:', err.message);
+    
+    // Mensagens de erro específicas
+    let mensagemErro = '⚠️ Erro de conexão com o servidor';
+    
+    if (err.message.includes('API Key inválida') || err.message.includes('401')) {
+        mensagemErro = '🔑 API Key inválida - Verifique suas configurações na aba Segurança';
+    } else if (err.message.includes('Muitas requisições') || err.message.includes('429')) {
+        mensagemErro = '⏳ Muitas correções seguidas - Aguarde alguns segundos e tente novamente';
+    } else if (err.message.includes('Timeout') || err.name === 'AbortError') {
+        mensagemErro = '⏱️ Servidor demorou para responder - Tente novamente em alguns instantes';
+    } else if (err.message.includes('Failed to fetch')) {
+        mensagemErro = '🌐 Sem conexão com a internet - Verifique sua rede';
+    }
+    
+    mostrarFeedback(mensagemErro, 'error');
     } finally {
         if (currentFetchController && currentFetchController.signal === signal) {
             estaCarregando = false;
@@ -2010,7 +2081,7 @@ function corrigirTudo() {
         correcoes.forEach(([o, s]) => aplicarCorrecao(o, s, elementoGlobal));
         errosGlobais = [];
         atualizarInterface();
-        mostrarFeedback('✓ Tudo corrigido!', 'success');
+        mostrarFeedbackInteligente('✓ Tudo corrigido!', 'success');
     }
 }
 
@@ -2095,7 +2166,7 @@ function confirmarCorrecaoEmLote(correcoes) {
         correcoes.forEach(([o, s]) => aplicarCorrecao(o, s, elementoGlobal));
         errosGlobais = [];
         atualizarInterface();
-        mostrarFeedback('✓ Tudo corrigido!', 'success');
+        mostrarFeedbackInteligente('✓ Tudo corrigido!', 'success');
     };
 
     btnCancel.onclick = () => overlay.remove();
@@ -3112,6 +3183,11 @@ if (typeof chrome !== 'undefined' && chrome.runtime) {
         }
     });
 }
+
+// Carregar módulo offline
+const offlineScript = document.createElement('script');
+offlineScript.src = chrome.runtime.getURL('js/offline-grammar.js');
+(document.head || document.documentElement).appendChild(offlineScript);
 
 // =============================================
 // INICIALIZAÇÃO
