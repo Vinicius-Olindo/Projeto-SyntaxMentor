@@ -1,5 +1,5 @@
 // =============================================
-// SyntaxMentor - background.js v2.9.0
+// SyntaxMentor - background.js v2.7.1
 // Service Worker com suporte a Toggle Site e Overrides
 // =============================================
 
@@ -246,12 +246,6 @@ function criarMenuContexto() {
             title: '↩ Ignorar nesta sessão',
             contexts: ['selection']
         });
-        
-        chrome.contextMenus.create({
-            id: 'ler-selecao',
-            title: '🔊 Ler seleção em voz alta',
-            contexts: ['selection']
-        });
     });
 }
 
@@ -283,13 +277,6 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
         chrome.tabs.sendMessage(tab.id, {
             action: 'ignorarTemporariamente',
             palavra: palavra
-        }).catch(() => {});
-    }
-
-    if (info.menuItemId === 'ler-selecao' && info.selectionText) {
-    chrome.tabs.sendMessage(tab.id, {
-            action: 'lerTexto',
-            texto: info.selectionText.trim()
         }).catch(() => {});
     }
 });
@@ -643,52 +630,5 @@ chrome.commands.onCommand.addListener((command) => {
         });
     }
 });
-
-// =============================================
-// NOTIFICAÇÕES NATIVAS DO CHROME
-// =============================================
-
-/**
- * Mostra notificação nativa do Chrome
- * @param {string} titulo - Título da notificação
- * @param {string} mensagem - Mensagem da notificação
- * @param {string} iconUrl - URL do ícone (opcional)
- */
-function mostrarNotificacaoNativa(titulo, mensagem, iconUrl = 'icons/icon128.png') {
-    chrome.notifications.create({
-        type: 'basic',
-        iconUrl: chrome.runtime.getURL(iconUrl),
-        title: titulo,
-        message: mensagem,
-        priority: 1
-    });
-}
-
-// Modificar a função de conquistas para usar notificação nativa
-// Localize a função de conquistas e adicione:
-
-function verificarConquistas(totalCorrigidas, dicSize, extra) {
-    // ... código existente ...
-    
-    if (novasConquistas.length > 0) {
-        novasConquistas.forEach(c => {
-            conquistasNotificadas[c.id] = true;
-            // Notificação nativa para cada conquista
-            mostrarNotificacaoNativa('🏆 Nova Conquista!', c.nome);
-        });
-        // ... resto do código
-    }
-}
-
-// Notificação de streak diário
-function verificarStreak(streak) {
-    if (streak === 3) {
-        mostrarNotificacaoNativa('🔥 Sequência Ativa!', 'Você está há 3 dias consecutivos corrigindo textos!');
-    } else if (streak === 7) {
-        mostrarNotificacaoNativa('🌟 Uma Semana!', '7 dias seguidos corrigindo! Você está imparável!');
-    } else if (streak === 30) {
-        mostrarNotificacaoNativa('👑 Lenda!', '30 DIAS SEGUIDOS! Você é uma lenda do SyntaxMentor!');
-    }
-}
 
 smLog("🚀 SyntaxMentor Background Service Worker v2.7.1 iniciado!");

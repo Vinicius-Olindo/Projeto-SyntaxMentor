@@ -29,12 +29,6 @@ if (document.body.classList.contains('dashboard-page')) {
     // =============================================
     // CARREGAR DASHBOARD
     // =============================================
-
-    function carregarTema() {
-        chrome.storage.local.get({ darkMode: false }, (res) => {
-            document.body.classList.toggle('dark-mode', res.darkMode);
-        });
-    }
     
     function carregarDashboard(res) {
         if (!heroTotalMini && !listaConquistas && !listaErrosComuns) return;

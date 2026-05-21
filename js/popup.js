@@ -1,5 +1,5 @@
 // =============================================
-// SyntaxMentor - popup.js v2.9.0
+// SyntaxMentor - popup.js v2.7.1
 // Live Sync + Corrigir Tudo + Revisar Página + Toggle Site
 // =============================================
 
@@ -347,7 +347,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     const palavraRemovida = currentDictionary[idx];
                     currentDictionary.splice(idx, 1);
                     salvarDicionario();
-                    mostrarFeedbackPopup(`"${palavraRemovida}" removido`, 'info');
+                    mostrarFeedbackTemporario(`🗑️ "${palavraRemovida}" removido`);
                 }
             });
         });

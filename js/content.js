@@ -1,12 +1,5 @@
 // =============================================
-<<<<<<< HEAD
-// SyntaxMentor - content.js v2.9.0 Elite
-// Shadow DOM + Digisac + Fila Inteligente + Correção Persistente
-// Ctrl+Z + Revisão de Página + Modo Aprendizado + Toggle Site
-// Tratamento de Erro Robusto em Todas as Mensagens
-=======
 // SyntaxMentor - content.js v2.7.1 Elite
->>>>>>> b82253680f0931746507b5a68f72b664a9daa9f7
 // =============================================
 
 // =============================================
@@ -90,20 +83,6 @@ let smConfig = {
     modoAprendizado: false
 };
 
-// Carregar TTS se disponível
-let smTTS = null;
-try {
-    // Tentar carregar o módulo TTS
-    const script = document.createElement('script');
-    script.src = chrome.runtime.getURL('js/text-to-speech.js');
-    script.onload = () => {
-        console.log('✅ TTS carregado');
-    };
-    document.head.appendChild(script);
-} catch(e) {
-    console.debug('TTS não disponível');
-}
-
 // =============================================
 // FUNÇÃO SEGURA PARA ENVIAR MENSAGENS (ROBUSTA)
 // =============================================
@@ -165,11 +144,6 @@ async function verificarConexaoExtensao() {
         return false;
     }
 }
-
-// =============================================
-// TEXT-TO-SPEECH
-// =============================================
-// smTTS é inicializado em text-to-speech.js
 
 // =============================================
 // UTILITÁRIOS
@@ -2452,19 +2426,35 @@ function exibirPainel() {
     html += `
             </div>
             <div class="footer-actions">
-                <div class="sm-nav-row">
-                    <button id="btn-erro-prev" class="sm-nav-btn" title="Erro anterior (Alt+↑)">↑</button>
-                    <span id="sm-nav-contador" class="sm-nav-label">${total > 0 ? `1 de ${total}` : '0 erros'}</span>
-                    <button id="btn-erro-next" class="sm-nav-btn" title="Próximo erro (Alt+↓)">↓</button>
+                <div style="display:flex;gap:4px;margin-bottom:6px">
+                    <button id="btn-erro-prev" style="flex:1;font-size:12px;padding:5px" title="Erro anterior">⬆ Anterior</button>
+                    <span id="sm-nav-contador" style="font-size:11px;color:var(--color-text-tertiary);display:flex;align-items:center;padding:0 6px;white-space:nowrap">— / ${total}</span>
+                    <button id="btn-erro-next" style="flex:1;font-size:12px;padding:5px" title="Próximo erro">Próximo ⬇</button>
                 </div>
-                <div class="sm-action-row">
-                    <button id="btn-corrigir-tudo">✦ Corrigir tudo</button>
-                    <button id="btn-ignorar-tudo">Ignorar tudo</button>
-                    <button id="btn-desfazer-ultima" title="Ctrl+Z">↩</button>
-                </div>
+                <button id="btn-corrigir-tudo">✨ Corrigir Tudo (${total})</button>
+                <button id="btn-ignorar-tudo">Ignorar Tudo</button>
             </div>
-            ${ignoradosTemporarios.length ? `<div class="sm-footer-info">📋 ${ignoradosTemporarios.length} palavra(s) ignorada(s)</div>` : ''}
-            ${isModoLeitura() ? `<div class="sm-footer-info" style="color:#f59e0b">⚠️ Modo leitura ativo</div>` : ''}
+    `;
+
+    if (historicoDesfazer.length > 0) {
+        html += `
+            <div style="text-align:center;margin-top:8px;">
+                <button id="btn-desfazer-ultima" 
+                        style="background:none;border:1px solid #d1d5db;color:#6b7280;padding:6px 14px;border-radius:6px;cursor:pointer;font-size:11px;font-weight:600;transition:all 0.2s;"
+                        onmouseover="this.style.background='#f3f4f6';this.style.color='#374151'"
+                        onmouseout="this.style.background='none';this.style.color='#6b7280'">
+                    ↩ Desfazer Última Correção (Ctrl+Z)
+                </button>
+            </div>
+        `;
+    }
+
+    html += `
+            ${ignoradosTemporarios.length ? `<div style="text-align:center;font-size:10px;color:#9ca3af;margin-top:8px;">📋 ${ignoradosTemporarios.length} ignorada(s)</div>` : ''}
+            ${isModoLeitura() ? `<div style="text-align:center;font-size:10px;color:#f59e0b;margin-top:4px;">⚠️ Modo Leitura ativo</div>` : ''}
+            <div style="text-align:center;font-size:10px;color:#9ca3af;margin-top:4px;">
+                Alt+Shift+S = corrigir | Ctrl+Z = desfazer | Botão direito = revisar
+            </div>
         </div>
     `;
 
@@ -2527,22 +2517,6 @@ function exibirPainel() {
     document.getElementById('btn-erro-prev')?.addEventListener('click', () => navegarParaErro(erroNavIdx - 1));
     document.getElementById('btn-ignorar-tudo').onclick = limparTudo;
 
-    // Desfazer sempre disponível — desabilitado quando sem histórico
-    const btnDesfazer = document.getElementById('btn-desfazer-ultima');
-    if (btnDesfazer) {
-        const atualizar = () => {
-            btnDesfazer.disabled = historicoDesfazer.length === 0;
-            btnDesfazer.title = historicoDesfazer.length > 0
-                ? `Desfazer: "${historicoDesfazer[historicoDesfazer.length-1]?.textoAnterior}" (Ctrl+Z)`
-                : 'Nada para desfazer';
-        };
-        atualizar();
-        btnDesfazer.addEventListener('click', () => { desfazerUltimaCorrecao(); atualizar(); });
-    }
-
-    // Navegar para o primeiro erro ao abrir
-    if (errosNavegaveis.length > 0) navegarParaErro(0);
-
     painel.querySelectorAll('.btn-fix-mini').forEach(b => {
         b.onclick = () => {
             aplicarCorrecao(b.dataset.o, b.dataset.s, elementoGlobal);
@@ -2578,12 +2552,14 @@ function exibirPainel() {
         };
     });
 
-    if (typeof smTTS !== 'undefined' && smTTS) {
-        try {
-            smTTS.adicionarControles(contentArea);
-        } catch(e) {
-            console.debug('TTS não disponível:', e.message);
-        }
+    const btnDesfazer = document.getElementById('btn-desfazer-ultima');
+    if (btnDesfazer) {
+        btnDesfazer.addEventListener('click', () => {
+            desfazerUltimaCorrecao();
+            if (elementoGlobal && textoUltimaVerificacao) {
+                verificarTexto(textoUltimaVerificacao, elementoGlobal);
+            }
+        });
     }
 }
 
@@ -3172,15 +3148,6 @@ if (typeof chrome !== 'undefined' && chrome.runtime) {
         }
 
         return false;
-
-        if (request.action === 'lerTexto' && request.texto) {
-            if (smTTS) {
-                smTTS.falar(request.texto);
-                mostrarFeedback('🔊 Lendo texto selecionado...', 'info');
-            }
-            sendResponse({ success: true });
-            return true;
-        }
     });
 }
 
@@ -3197,6 +3164,8 @@ offlineScript.src = chrome.runtime.getURL('js/offline-grammar.js');
  * Inicializa a extensão na página
  */
 function carregarSmConfig(callback) {
+    // apiKey fica em session storage (nao persiste entre sessoes do navegador)
+    chrome.storage.session.get({ apiKey: '' }, (sess) => {
     storageGetSeguro({
         language: 'pt-BR',
         pickyMode: true,
@@ -3237,24 +3206,10 @@ function carregarSmConfig(callback) {
             smConfig.disabled = (res.blacklist || []).some(d => host.includes(d));
         }
 
-        // apiKey: tentar session storage (disponível em páginas da extensão),
-        // mas no content script usar o valor já carregado do local storage
-        try {
-            if (chrome.storage.session) {
-                chrome.storage.session.get({ apiKey: '' }, (sess) => {
-                    if (!chrome.runtime.lastError && sess?.apiKey) {
-                        smConfig.apiKey = sess.apiKey;
-                    }
-                    if (callback) callback();
-                });
-            } else {
-                if (callback) callback();
-            }
-        } catch (e) {
-            // session storage indisponível no content script — usar local
-            if (callback) callback();
-        }
+        smConfig.apiKey = sess.apiKey || '';
+        if (callback) callback();
     });
+    }); // fecha session.get
 }
 
 function iniciar() {
@@ -3589,26 +3544,6 @@ function atualizarAnaliseSentimento(container) {
 
     container.innerHTML = html;
 }
-
-// =============================================
-// SUGESTÕES DE PALAVRAS (SELEÇÃO DE TEXTO)
-// =============================================
-
-document.addEventListener('mouseup', async (e) => {
-    // Só mostrar sugestões se o usuário seguiu Alt + clique
-    if (!e.altKey) return;
-    
-    const selection = window.getSelection();
-    const textoSelecionado = selection.toString().trim();
-    
-    if (textoSelecionado && textoSelecionado.split(' ').length === 1) {
-        const palavra = textoSelecionado;
-        const x = e.clientX;
-        const y = e.clientY;
-        
-        await synonymAPI.mostrarSugestoes(palavra, x, y);
-    }
-});
 
 // =============================================
 // INICIALIZAÇÃO

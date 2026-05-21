@@ -348,77 +348,24 @@
 
 /* --- 4. RODAPÉ DO PAINEL (Botões Globais) --- */
 .footer-actions {
-    margin-top: 12px;
-    padding-top: 12px;
-    border-top: 1px solid #f0f0f0;
     display: flex;
-    flex-direction: column;
-    gap: 8px;
+    gap: 10px;
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid #f0f0f0;
 }
 
 #syntax-mentor-painel.sm-dark .footer-actions {
     border-top-color: #333;
 }
 
-/* Linha de navegação */
-.sm-nav-row {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    background: #f8f7ff;
-    border-radius: 8px;
-    padding: 4px 6px;
-}
-
-#syntax-mentor-painel.sm-dark .sm-nav-row {
-    background: #2a2040;
-}
-
-.sm-nav-btn {
-    width: 28px;
-    height: 28px;
-    border-radius: 6px;
-    border: 1px solid #e0d9f7;
-    background: white;
-    color: #6f42c1;
-    font-size: 14px;
-    font-weight: 700;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.15s;
-    flex-shrink: 0;
-}
-
-.sm-nav-btn:hover {
-    background: #6f42c1;
-    color: white;
-    border-color: #6f42c1;
-}
-
-.sm-nav-label {
-    flex: 1;
-    text-align: center;
-    font-size: 12px;
-    font-weight: 500;
-    color: #6f42c1;
-}
-
-/* Linha de ações */
-.sm-action-row {
-    display: flex;
-    gap: 6px;
-    align-items: stretch;
-}
-
-.sm-action-row #btn-corrigir-tudo {
+#btn-corrigir-tudo {
     flex: 1;
     background: linear-gradient(135deg, #6f42c1 0%, #8b5cf6 100%);
     color: white;
     border: none;
     border-radius: 8px;
-    padding: 9px 12px;
+    padding: 10px;
     font-weight: 700;
     font-size: 13px;
     cursor: pointer;
@@ -426,75 +373,27 @@
     box-shadow: 0 4px 10px rgba(111, 66, 193, 0.2);
 }
 
-.sm-action-row #btn-corrigir-tudo:hover {
-    transform: translateY(-1px);
+#btn-corrigir-tudo:hover {
+    transform: translateY(-2px);
     box-shadow: 0 6px 15px rgba(111, 66, 193, 0.4);
 }
 
-.sm-action-row #btn-ignorar-tudo {
+#btn-ignorar-tudo {
     background: white;
     color: #6b7280;
     border: 1px solid #e5e7eb;
     border-radius: 8px;
-    padding: 9px 12px;
+    padding: 10px 16px;
     font-weight: 600;
-    font-size: 12px;
+    font-size: 13px;
     cursor: pointer;
-    transition: 0.15s;
-    white-space: nowrap;
+    transition: 0.2s;
 }
 
-.sm-action-row #btn-ignorar-tudo:hover {
+#btn-ignorar-tudo:hover {
     background: #f9fafb;
     color: #374151;
-}
-
-/* Botão desfazer — compacto, só ícone */
-.sm-action-row #btn-desfazer-ultima {
-    width: 36px;
-    flex-shrink: 0;
-    background: white;
-    border: 1px solid #e5e7eb;
-    border-radius: 8px;
-    color: #9ca3af;
-    font-size: 16px;
-    cursor: pointer;
-    transition: 0.15s;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.sm-action-row #btn-desfazer-ultima:hover:not(:disabled) {
-    background: #fef3c7;
-    border-color: #fbbf24;
-    color: #92400e;
-}
-
-.sm-action-row #btn-desfazer-ultima:disabled {
-    opacity: 0.3;
-    cursor: default;
-}
-
-/* Info de rodapé */
-.sm-footer-info {
-    text-align: center;
-    font-size: 10px;
-    color: #9ca3af;
-    margin-top: 2px;
-}
-
-#syntax-mentor-painel.sm-dark .sm-nav-btn {
-    background: #2a2040;
-    border-color: #4a3a6a;
-    color: #a78bfa;
-}
-
-#syntax-mentor-painel.sm-dark .sm-action-row #btn-ignorar-tudo,
-#syntax-mentor-painel.sm-dark .sm-action-row #btn-desfazer-ultima {
-    background: #2a2a2a;
-    border-color: #3a3a3a;
-    color: #9ca3af;
+    border-color: #d1d5db;
 }
 
 /* Modo Escuro (Botões Rodapé) */
@@ -634,53 +533,4 @@ mark.sm-highlight {
 
 .sm-bubble-correction {
     animation: sm-bubble-correction 0.3s ease-in-out !important;
-}
-
-/* ============================================
-   CONTROLES DE LEITURA EM VOZ ALTA (TTS)
-   ============================================ */
-
-.sm-tts-controls {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    padding: 10px;
-    background: #f8f9fa;
-    border-radius: 12px;
-    margin-top: 12px;
-    flex-wrap: wrap;
-}
-
-.sm-tts-btn {
-    transition: all 0.2s ease;
-}
-
-.sm-tts-btn:hover {
-    transform: translateY(-2px);
-}
-
-.sm-tts-btn:active {
-    transform: translateY(0);
-}
-
-#syntax-mentor-painel.sm-dark .sm-tts-controls {
-    background: #2a2a2a;
-}
-
-#syntax-mentor-painel.sm-dark .sm-tts-btn {
-    background: #3a3a3a;
-    color: #e0e0e0;
-}
-
-#syntax-mentor-painel.sm-dark #sm-tts-play {
-    background: #6f42c1;
-}
-
-#syntax-mentor-painel.sm-dark #sm-tts-pause {
-    background: #f59e0b;
-}
-
-#syntax-mentor-painel.sm-dark #sm-tts-stop {
-    background: #6b7280;
 }

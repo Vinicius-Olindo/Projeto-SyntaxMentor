@@ -2,7 +2,7 @@
 
 Extensão de correção ortográfica e gramatical para Chrome (Manifest V3), com suporte a múltiplos idiomas, modo offline, análise de sentimentos, API pública e sincronização entre dispositivos.
 
-**Versão atual:** 2.9.0 Elite
+**Versão atual:** 2.8.0 Elite
 
 ---
 
