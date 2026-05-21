@@ -1,0 +1,127 @@
+// =============================================
+// Testes para public-api.js — v2.8.0
+// =============================================
+
+describe('formatarResposta (correcao por offset)', () => {
+    function aplicarCorrecoes(originalText, matches) {
+        let correctedText = originalText;
+        const correcoesPorOffset = matches
+            .filter(m => m.replacements && m.replacements.length > 0)
+            .sort((a, b) => b.offset - a.offset);
+
+        correcoesPorOffset.forEach(match => {
+            const inicio = match.offset;
+            const fim = match.offset + match.length;
+            const sugestao = match.replacements[0].value;
+            correctedText = correctedText.slice(0, inicio) + sugestao + correctedText.slice(fim);
+        });
+
+        return correctedText;
+    }
+
+    test('corrige uma unica palavra', () => {
+        const result = aplicarCorrecoes('programaçao', [{
+            offset: 0, length: 11, replacements: [{ value: 'programação' }]
+        }]);
+        expect(result).toBe('programação');
+    });
+
+    test('corrige multiplas palavras na ordem correta', () => {
+        const result = aplicarCorrecoes('eu to fazendo erros', [
+            { offset: 3, length: 2, replacements: [{ value: 'estou' }] },
+            { offset: 6, length: 7, replacements: [{ value: 'fazendo' }] }
+        ]);
+        expect(result).toBe('eu estou fazendo erros');
+    });
+
+    test('nao corrige match sem sugestao', () => {
+        const result = aplicarCorrecoes('texto normal', [
+            { offset: 0, length: 5, replacements: [] }
+        ]);
+        expect(result).toBe('texto normal');
+    });
+
+    test('corrige palavra com caracteres especiais no offset correto', () => {
+        const texto = 'email: user@exemplo..com';
+        const result = aplicarCorrecoes(texto, [
+            { offset: 15, length: 8, replacements: [{ value: 'exemplo.com' }] }
+        ]);
+        expect(result).toBe('email: user@exemplo.com');
+    });
+
+    test('correcoes de tras para frente nao deslocam offsets', () => {
+        const texto = 'aa bb cc';
+        const result = aplicarCorrecoes(texto, [
+            { offset: 0, length: 2, replacements: [{ value: 'AAA' }] },
+            { offset: 3, length: 2, replacements: [{ value: 'BBB' }] },
+            { offset: 6, length: 2, replacements: [{ value: 'CCC' }] }
+        ]);
+        expect(result).toBe('AAA BBB CCC');
+    });
+});
+
+describe('rate limiting', () => {
+    let callCount, windowStart;
+
+    function checkRateLimit() {
+        const now = Date.now();
+        if (now - windowStart > 1000) { callCount = 0; windowStart = now; }
+        if (callCount >= 10) throw new Error('Limite de requisições atingido (10/s).');
+        callCount++;
+    }
+
+    beforeEach(() => { callCount = 0; windowStart = Date.now(); });
+
+    test('permite ate 10 chamadas por segundo', () => {
+        for (let i = 0; i < 10; i++) {
+            expect(() => checkRateLimit()).not.toThrow();
+        }
+    });
+
+    test('bloqueia a 11a chamada no mesmo segundo', () => {
+        for (let i = 0; i < 10; i++) checkRateLimit();
+        expect(() => checkRateLimit()).toThrow('Limite de requisições atingido');
+    });
+
+    test('reseta contagem apos 1 segundo', () => {
+        for (let i = 0; i < 10; i++) checkRateLimit();
+        windowStart = Date.now() - 1001;
+        expect(() => checkRateLimit()).not.toThrow();
+    });
+});
+
+describe('addToDictionary (validacao)', () => {
+    function validarPalavras(words) {
+        const wordList = Array.isArray(words) ? words : [words];
+        return wordList
+            .filter(w => typeof w === 'string')
+            .map(w => w.trim().toLowerCase())
+            .filter(w => w.length > 0 && w.length <= 60 && /^[\p{L}\p{M}'-]+$/u.test(w));
+    }
+
+    test('aceita palavras validas', () => {
+        expect(validarPalavras('SyntaxMentor')).toEqual(['syntaxmentor']);
+    });
+
+    test('rejeita string vazia', () => {
+        expect(validarPalavras('')).toEqual([]);
+    });
+
+    test('rejeita palavras muito longas', () => {
+        expect(validarPalavras('a'.repeat(61))).toEqual([]);
+    });
+
+    test('rejeita palavras com numeros', () => {
+        expect(validarPalavras('palavra123')).toEqual([]);
+    });
+
+    test('aceita lista de palavras, filtrando invalidas', () => {
+        const result = validarPalavras(['valida', '123invalida', '', 'outra']);
+        expect(result).toEqual(['valida', 'outra']);
+    });
+
+    test('aceita palavras com hifen e apostrofo', () => {
+        expect(validarPalavras("l'hotel")).toEqual(["l'hotel"]);
+        expect(validarPalavras('bem-estar')).toEqual(['bem-estar']);
+    });
+});
