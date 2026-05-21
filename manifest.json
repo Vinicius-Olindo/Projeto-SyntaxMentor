@@ -81,7 +81,7 @@
     "content_scripts": [
         {
             "matches": ["<all_urls>"],
-            "js": ["js/content.js"],
+            "js": ["js/content/index.js"],
             "css": ["css/content.css"],
             "all_frames": true,
             "match_about_blank": true,
@@ -92,14 +92,24 @@
     "web_accessible_resources": [
         {
             "resources": [
-                "js/content.js",
+                "js/content/index.js",
+                "js/content/core/config.js",
+                "js/content/core/queue-manager.js",
+                "js/content/core/correction-engine.js",
+                "js/content/ui/feedback.js",
+                "js/content/ui/panel.js",
+                "js/content/ui/bubble.js",
+                "js/content/observers/keyboard.js",
+                "js/content/observers/dom-observer.js",
+                "js/content/observers/iframe-handler.js",
+                "js/content/features/learning.js",
+                "js/content/features/undo-manager.js",
+                "js/content/features/sentiment.js",
                 "css/content.css",
                 "welcome.html",
+                "teste.html",
                 "js/offline-grammar.js",
-                "js/sentiment-analysis.js",
-                "js/export-reports.js",
                 "js/public-api.js",
-                "js/api-usage.js",
                 "api-usage.html",
                 "api-docs.html"
             ],
