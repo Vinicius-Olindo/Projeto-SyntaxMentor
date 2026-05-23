@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>SyntaxMentor API - Documentação</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+        .container { max-width: 1000px; margin: 0 auto; }
+        .header { text-align: center; margin-bottom: 40px; }
+        .logo { font-size: 48px; margin-bottom: 16px; }
+        h1 { color: white; font-size: 32px; margin-bottom: 8px; }
+        .sub { color: rgba(255,255,255,0.8); }
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        .card h2 {
+            color: #6f42c1;
+            margin-bottom: 16px;
+            font-size: 20px;
+        }
+        pre {
+            background: #1a1a1a;
+            color: #e5e5e5;
+            padding: 16px;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-size: 13px;
+            margin: 16px 0;
+        }
+        code { font-family: 'Monaco', monospace; }
+        .method {
+            background: #f8f9fa;
+            padding: 12px;
+            border-radius: 8px;
+            margin: 12px 0;
+            border-left: 4px solid #6f42c1;
+        }
+        .method h3 { color: #6f42c1; margin-bottom: 8px; font-size: 16px; }
+        .badge {
+            display: inline-block;
+            background: #28a745;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            margin-left: 8px;
+        }
+        .footer {
+            text-align: center;
+            color: rgba(255,255,255,0.7);
+            margin-top: 40px;
+        }
+        @media (max-width: 640px) {
+            .card { padding: 16px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">✨</div>
+            <h1>SyntaxMentor API</h1>
+            <p class="sub">Documentação oficial para desenvolvedores</p>
+        </div>
+
+        <div class="card">
+            <h2>📦 Instalação</h2>
+            <p>A API está disponível automaticamente quando a extensão SyntaxMentor está instalada.</p>
+            <pre><code>// A API está disponível globalmente
+window.SyntaxMentor.correct("texto");</code></pre>
+        </div>
+
+        <div class="card">
+            <h2>🔧 Métodos Disponíveis</h2>
+            
+            <div class="method">
+                <h3>SyntaxMentor.correct(texto, options) <span class="badge">async</span></h3>
+                <p>Corrige um texto e retorna o resultado completo.</p>
+                <pre><code>const resultado = await SyntaxMentor.correct("texto com erro");
+console.log(resultado.correctedText);</code></pre>
+            </div>
+
+            <div class="method">
+                <h3>SyntaxMentor.getSuggestions(texto, options) <span class="badge">async</span></h3>
+                <p>Retorna apenas a lista de sugestões.</p>
+                <pre><code>const sugestoes = await SyntaxMentor.getSuggestions("testo");
+// sugestoes = [{ original: "testo", suggestions: ["texto"] }]</code></pre>
+            </div>
+
+            <div class="method">
+                <h3>SyntaxMentor.correctElement(elemento, options) <span class="badge">async</span></h3>
+                <p>Aplica correções diretamente em um elemento HTML editável.</p>
+                <pre><code>await SyntaxMentor.correctElement(document.getElementById("meu-texto"));</code></pre>
+            </div>
+
+            <div class="method">
+                <h3>SyntaxMentor.configure(options)</h3>
+                <p>Configura a API (idioma, modo, etc).</p>
+                <pre><code>SyntaxMentor.configure({
+    language: "en-US",
+    pickyMode: true
+});</code></pre>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>📤 Resposta da API</h2>
+            <pre><code>{
+    "success": true,
+    "text": "texto original",
+    "correctedText": "texto corrigido",
+    "corrections": [
+        {
+            "original": "testo",
+            "suggestions": ["texto"],
+            "message": "Possível erro de digitação"
+        }
+    ],
+    "totalErrors": 1
+}</code></pre>
+        </div>
+
+        <div class="footer">
+            <p>SyntaxMentor API v2.7.1 — Disponível para qualquer site ou aplicação</p>
+        </div>
+    </div>
+</body>
+</html>
