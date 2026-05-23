@@ -451,3 +451,244 @@
 #syntax-mentor-painel.sm-dark .shortcuts {
     color: #6c7086;
 }
+
+/* Animação de Carregamento (Bolinha pulsando) */
+@keyframes sm-pulse {
+    0% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(111, 66, 193, 0.7);
+    }
+    50% {
+        transform: scale(1.1);
+        box-shadow: 0 0 0 8px rgba(111, 66, 193, 0);
+    }
+    100% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(111, 66, 193, 0);
+    }
+}
+
+/* Pulsação durante carregamento */
+#syntax-mentor-bubble.sm-pulse {
+    animation: sm-pulse 1s ease-in-out infinite !important;
+}
+
+/* Pulsação para bolinha de erro */
+#syntax-mentor-bubble.sm-bubble-error.sm-pulse {
+    animation: sm-pulse-error 1s ease-in-out infinite !important;
+}
+
+@keyframes sm-pulse-error {
+    0% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7);
+    }
+    50% {
+        transform: scale(1.1);
+        box-shadow: 0 0 0 8px rgba(220, 53, 69, 0);
+    }
+    100% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(220, 53, 69, 0);
+    }
+}
+
+/* Pulsação para bolinha de sucesso */
+#syntax-mentor-bubble.sm-bubble-success.sm-pulse {
+    animation: sm-pulse-success 1s ease-in-out infinite !important;
+}
+
+@keyframes sm-pulse-success {
+    0% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(40, 167, 69, 0.7);
+    }
+    50% {
+        transform: scale(1.1);
+        box-shadow: 0 0 0 8px rgba(40, 167, 69, 0);
+    }
+    100% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(40, 167, 69, 0);
+    }
+}
+
+/* ============================================
+   ONDAS MAGNÉTICAS PARA A BOLINHA
+   ============================================ */
+
+/* Container da bolinha para posicionar as ondas */
+#syntax-mentor-bubble {
+    position: fixed;
+    z-index: 2147483646;
+    width: 45px;
+    height: 45px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: grab;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    transition: transform 0.2s, opacity 0.2s, background-color 0.3s;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    user-select: none;
+}
+
+/* Ondas magnéticas - efeito nos lados */
+#syntax-mentor-bubble::before,
+#syntax-mentor-bubble::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    width: 30px;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, #6f42c1, #8b5cf6, #6f42c1, transparent);
+    border-radius: 2px;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(-50%);
+}
+
+/* Onda esquerda */
+#syntax-mentor-bubble::before {
+    right: 100%;
+    margin-right: 5px;
+    transform-origin: right center;
+}
+
+/* Onda direita */
+#syntax-mentor-bubble::after {
+    left: 100%;
+    margin-left: 5px;
+    transform-origin: left center;
+}
+
+/* Ondas ativas durante carregamento */
+#syntax-mentor-bubble.sm-loading::before {
+    animation: magnetic-wave-left 0.8s ease-in-out infinite;
+    opacity: 1;
+}
+
+#syntax-mentor-bubble.sm-loading::after {
+    animation: magnetic-wave-right 0.8s ease-in-out infinite;
+    opacity: 1;
+}
+
+/* Ondas para bolinha de erro */
+#syntax-mentor-bubble.sm-bubble-error.sm-loading::before {
+    background: linear-gradient(90deg, transparent, #dc3545, #ff6b6b, #dc3545, transparent);
+}
+
+#syntax-mentor-bubble.sm-bubble-error.sm-loading::after {
+    background: linear-gradient(90deg, transparent, #dc3545, #ff6b6b, #dc3545, transparent);
+}
+
+/* Ondas para bolinha de sucesso */
+#syntax-mentor-bubble.sm-bubble-success.sm-loading::before {
+    background: linear-gradient(90deg, transparent, #28a745, #20c997, #28a745, transparent);
+}
+
+#syntax-mentor-bubble.sm-bubble-success.sm-loading::after {
+    background: linear-gradient(90deg, transparent, #28a745, #20c997, #28a745, transparent);
+}
+
+/* Animação da onda esquerda */
+@keyframes magnetic-wave-left {
+    0% {
+        width: 0px;
+        opacity: 0;
+    }
+    20% {
+        width: 20px;
+        opacity: 0.6;
+    }
+    50% {
+        width: 45px;
+        opacity: 1;
+    }
+    80% {
+        width: 60px;
+        opacity: 0.6;
+    }
+    100% {
+        width: 70px;
+        opacity: 0;
+    }
+}
+
+/* Animação da onda direita */
+@keyframes magnetic-wave-right {
+    0% {
+        width: 0px;
+        opacity: 0;
+    }
+    20% {
+        width: 20px;
+        opacity: 0.6;
+    }
+    50% {
+        width: 45px;
+        opacity: 1;
+    }
+    80% {
+        width: 60px;
+        opacity: 0.6;
+    }
+    100% {
+        width: 70px;
+        opacity: 0;
+    }
+}
+
+/* Ondas magnéticas com pulsação combinada */
+#syntax-mentor-bubble.sm-loading {
+    animation: sm-pulse 1s ease-in-out infinite;
+}
+
+/* Versão alternativa com mais ondas (3 ondas de cada lado) */
+#syntax-mentor-bubble.sm-loading-multi::before {
+    animation: magnetic-wave-left 0.8s ease-in-out infinite;
+    box-shadow: 0 0 5px rgba(111, 66, 193, 0.5);
+}
+
+#syntax-mentor-bubble.sm-loading-multi::after {
+    animation: magnetic-wave-right 0.8s ease-in-out infinite;
+    box-shadow: 0 0 5px rgba(111, 66, 193, 0.5);
+}
+
+/* Ondas com glow (efeito de brilho) */
+@keyframes magnetic-wave-left-glow {
+    0% {
+        width: 0px;
+        opacity: 0;
+        box-shadow: 0 0 0px rgba(111, 66, 193, 0);
+    }
+    50% {
+        width: 50px;
+        opacity: 1;
+        box-shadow: 0 0 15px rgba(111, 66, 193, 0.8);
+    }
+    100% {
+        width: 80px;
+        opacity: 0;
+        box-shadow: 0 0 0px rgba(111, 66, 193, 0);
+    }
+}
+
+@keyframes magnetic-wave-right-glow {
+    0% {
+        width: 0px;
+        opacity: 0;
+        box-shadow: 0 0 0px rgba(111, 66, 193, 0);
+    }
+    50% {
+        width: 50px;
+        opacity: 1;
+        box-shadow: 0 0 15px rgba(111, 66, 193, 0.8);
+    }
+    100% {
+        width: 80px;
+        opacity: 0;
+        box-shadow: 0 0 0px rgba(111, 66, 193, 0);
+    }
+}

@@ -845,42 +845,106 @@ function atualizarEstadoExtensao(ativar) {
 
 async function verificarTexto(texto, elemento) {
     if (smConfig.disabled) return;
-    if (currentFetchController) currentFetchController.abort();
-    currentFetchController = new AbortController();
-    const signal = currentFetchController.signal;
+    
+    // INÍCIO DO CARREGAMENTO - ATIVAR PULSAÇÃO
     estaCarregando = true;
     atualizarEstadoCarregamento(true);
+    
+    if (currentFetchController) {
+        currentFetchController.abort();
+    }
+    currentFetchController = new AbortController();
+    const signal = currentFetchController.signal;
+    
     const url = smConfig.apiUrl || 'https://api.languagetool.org/v2/check';
-    const params = new URLSearchParams({ text: texto, language: smConfig.language });
+    const params = new URLSearchParams({ 
+        text: texto, 
+        language: smConfig.language 
+    });
+    
     if (smConfig.pickyMode) params.set('level', 'picky');
+    
+    // Perfil de voz: prioriza pontuação e capitalização, ignora erros de digitação
     if (elemento._smModoVoz) {
         params.set('enabledRules', 'UPPERCASE_SENTENCE_START,PUNCTUATION_PARAGRAPH_END,COMMA_PARENTHESIS_WHITESPACE,PT_QUESTION_MARK');
         params.set('enabledOnly', 'false');
         params.set('disabledCategories', 'TYPOS');
     }
-    const headers = { 'Content-Type': 'application/x-www-form-urlencoded' };
+
+    const headers = { 
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Accept': 'application/json'
+    };
+    
     if (smConfig.apiKey?.trim()) headers['Authorization'] = `Bearer ${smConfig.apiKey.trim()}`;
+
     try {
-        if (signal.aborted) { estaCarregando = false; atualizarEstadoCarregamento(false); return; }
-        const resp = await fetch(url, { method: 'POST', headers, body: params, signal });
-        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        if (signal.aborted) {
+            estaCarregando = false;
+            atualizarEstadoCarregamento(false);
+            return;
+        }
+        
+        const resp = await fetch(url, { 
+            method: 'POST', 
+            headers: headers, 
+            body: params, 
+            signal: signal 
+        });
+
+        if (!resp.ok) {
+            let errorMsg = `HTTP ${resp.status}`;
+            if (resp.status === 401) errorMsg = 'API Key inválida - Verifique sua chave';
+            if (resp.status === 429) errorMsg = 'Muitas requisições - Aguarde um momento';
+            throw new Error(errorMsg);
+        }
+
         const data = await resp.json();
-        if (signal.aborted) { estaCarregando = false; atualizarEstadoCarregamento(false); return; }
+
+        if (signal.aborted) {
+            estaCarregando = false;
+            atualizarEstadoCarregamento(false);
+            return;
+        }
+
         const atual = (elemento.value || elemento.textContent || elemento.innerText || '').trim();
-        if (atual !== texto) { estaCarregando = false; atualizarEstadoCarregamento(false); return; }
+        if (atual !== texto) {
+            estaCarregando = false;
+            atualizarEstadoCarregamento(false);
+            return;
+        }
+
+        // Usar cache em memoria
         const dic = dicCache;
+
         const matchesProcessados = processarPontuacao(data.matches || []);
         const errosPontuacaoLocal = verificarPontuacaoComum(texto);
         const todosMatches = [...matchesProcessados, ...errosPontuacaoLocal];
-        const REGRAS_IGNORADAS = new Set(['UPPERCASE_SENTENCE_START','PUNCTUATION_PARAGRAPH_END','DOUBLE_PUNCTUATION','COMMA_PARENTHESIS_WHITESPACE','EN_QUOTES','DASH_RULE']);
+
+        // Regras da API que geram muitos falsos positivos em textos informais
+        const REGRAS_IGNORADAS = new Set([
+            'UPPERCASE_SENTENCE_START',
+            'PUNCTUATION_PARAGRAPH_END',
+            'DOUBLE_PUNCTUATION',
+            'COMMA_PARENTHESIS_WHITESPACE',
+            'EN_QUOTES',
+            'DASH_RULE',
+        ]);
+
         errosGlobais = todosMatches.filter(m => {
             if (!m.replacements?.length) return false;
+
+            // Ignorar regras que geram falsos positivos
             const ruleId = m.rule?.id || '';
             if (REGRAS_IGNORADAS.has(ruleId)) return false;
+
             const o = m.context.text.substr(m.context.offset, m.context.length);
             if (!o.trim()) return false;
             const ol = o.toLowerCase();
+
+            // Ignorar numeros puros e URLs
             if (ol.match(/^[0-9]+$/) || ol.match(/^https?:\/\//)) return false;
+
             if (o.trim()) {
                 erroMaisComumTemp[ol] = (erroMaisComumTemp[ol] || 0) + 1;
                 const host = window.location.hostname;
@@ -893,36 +957,102 @@ async function verificarTexto(texto, elemento) {
                     storageSetSeguro({ erroMaisComum: global, estatisticasPorSite: porSite });
                 });
             }
+
+            // Dicionario: normalizar para lowercase na comparacao
             return !dic.includes(ol) && !ignoradosTemporarios.includes(ol);
         });
+
         elementoGlobal = elemento;
+
         if (!isSiteRestrito && elemento.isContentEditable && elemento.tagName !== 'TEXTAREA' && elemento.tagName !== 'INPUT') {
             aplicarGrifos(errosGlobais, elemento);
         }
+
         atualizarInterface();
+        
+        // FIM DO CARREGAMENTO - PARAR PULSAÇÃO
+        estaCarregando = false;
+        atualizarEstadoCarregamento(false);
+        
     } catch (err) {
-        if (err.name === 'AbortError') return;
-        console.warn('SyntaxMentor:', err.message);
-        let mensagemErro = '⚠️ Erro de conexão com o servidor';
-        if (err.message.includes('API Key inválida') || err.message.includes('401')) mensagemErro = '🔑 API Key inválida - Verifique suas configurações na aba Segurança';
-        else if (err.message.includes('Muitas requisições') || err.message.includes('429')) mensagemErro = '⏳ Muitas correções seguidas - Aguarde alguns segundos e tente novamente';
-        else if (err.message.includes('Timeout') || err.name === 'AbortError') mensagemErro = '⏱️ Servidor demorou para responder - Tente novamente em alguns instantes';
-        else if (err.message.includes('Failed to fetch')) mensagemErro = '🌐 Sem conexão com a internet - Verifique sua rede';
-        mostrarFeedback(mensagemErro, 'error');
-    } finally {
-        if (currentFetchController && currentFetchController.signal === signal) {
+        if (err.name === 'AbortError') {
             estaCarregando = false;
             atualizarEstadoCarregamento(false);
+            return;
+        }
+        
+        console.warn('SyntaxMentor:', err.message);
+        
+        // Mensagens de erro específicas
+        let mensagemErro = '⚠️ Erro de conexão com o servidor';
+        
+        if (err.message.includes('API Key inválida') || err.message.includes('401')) {
+            mensagemErro = '🔑 API Key inválida - Verifique suas configurações na aba Segurança';
+        } else if (err.message.includes('Muitas requisições') || err.message.includes('429')) {
+            mensagemErro = '⏳ Muitas correções seguidas - Aguarde alguns segundos e tente novamente';
+        } else if (err.message.includes('Timeout') || err.name === 'AbortError') {
+            mensagemErro = '⏱️ Servidor demorou para responder - Tente novamente em alguns instantes';
+        } else if (err.message.includes('Failed to fetch')) {
+            mensagemErro = '🌐 Sem conexão com a internet - Verifique sua rede';
+        }
+        
+        mostrarFeedback(mensagemErro, 'error');
+        
+        // FIM DO CARREGAMENTO (mesmo em erro)
+        estaCarregando = false;
+        atualizarEstadoCarregamento(false);
+    } finally {
+        if (currentFetchController && currentFetchController.signal === signal) {
+            if (estaCarregando) {
+                estaCarregando = false;
+                atualizarEstadoCarregamento(false);
+            }
         }
     }
 }
+
 function atualizarEstadoCarregamento(on) {
     const b = document.getElementById('syntax-mentor-bubble');
     if (!b) return;
-    b.style.opacity = on ? '0.6' : '1';
-    b.style.cursor = on ? 'wait' : 'grab';
-    b.style.animation = on ? 'sm-pulse 1.5s infinite' : '';
+    
+    if (on) {
+        // Estado de carregamento: pulsação + ondas magnéticas
+        b.classList.add('sm-loading');
+        b.style.cursor = 'wait';
+        
+        // Mudar ícone para indicar processamento
+        const icon = b.querySelector('.sm-bubble-icon');
+        if (icon) {
+            icon.textContent = '⏳';
+        }
+    } else {
+        // Estado normal - remover ondas
+        b.classList.remove('sm-loading');
+        b.style.cursor = 'grab';
+        
+        // Restaurar ícone baseado no total de erros
+        const total = errosGlobais.filter(e => e.context.text.substr(e.context.offset, e.context.length).trim()).length;
+        const icon = b.querySelector('.sm-bubble-icon');
+        if (icon) {
+            if (total === 0) {
+                icon.textContent = '✓';
+                b.classList.add('sm-bubble-success');
+                b.classList.remove('sm-bubble-error');
+            } else {
+                icon.textContent = isModoLeitura() ? '👁️' : '✏️';
+                b.classList.add('sm-bubble-error');
+                b.classList.remove('sm-bubble-success');
+            }
+        }
+        
+        // Atualizar badge
+        const badge = b.querySelector('.sm-bubble-badge');
+        if (badge) {
+            badge.textContent = total > 0 ? total : '';
+        }
+    }
 }
+
 function aplicarGrifos(erros, el) {
     if (!el?.isContentEditable || isSiteRestrito) return;
     isExtensaoMutando = true;
