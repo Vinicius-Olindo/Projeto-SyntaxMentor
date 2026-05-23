@@ -11,7 +11,7 @@ let errosGlobais = [];
 let dicCache = []; // cache do dicionario pessoal — atualizado via storage.onChanged
 
 // Helper de log — so exibe quando sm_debug=true no localStorage
-const smLog = (...args) => { if (localStorage.getItem('sm_debug') === 'true') smLog('[SM]', ...args); };
+const smLog = (...args) => { if (localStorage.getItem('sm_debug') === 'true') console.log('[SM]', ...args); };
 let elementoGlobal = null;
 let painelAberto = false;
 let indexSugestao = -1;
@@ -285,60 +285,6 @@ function escapeHtml(texto) {
     const div = document.createElement('div');
     div.textContent = texto;
     return div.innerHTML;
-}
-
-/**
- * Mostra feedback flutuante na página
- * @param {string} msg - Mensagem a ser exibida
- * @param {string} tipo - Tipo da mensagem (success, error, info)
- */
-function mostrarFeedback(msg, tipo) {
-    document.querySelectorAll('.sm-feedback-flutuante').forEach(el => el.remove());
-
-    const f = document.createElement('div');
-    f.textContent = msg;
-    f.className = 'sm-feedback-flutuante';
-
-    const cores = {
-        success: '#28a745',
-        error: '#e53e3e',
-        info: '#6b7280',
-        warning: '#f59e0b'
-    };
-
-    f.style.cssText = `
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        z-index: 2147483647;
-        background: ${cores[tipo] || cores.info};
-        color: #fff;
-        padding: 10px 20px;
-        border-radius: 8px;
-        font: 600 14px 'Segoe UI', sans-serif;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-        pointer-events: none;
-        animation: sm-feedback-fadeout 2.2s forwards;
-    `;
-
-    document.body.appendChild(f);
-
-    if (!document.querySelector('#sm-feedback-style')) {
-        const style = document.createElement('style');
-        style.id = 'sm-feedback-style';
-        style.textContent = `
-            @keyframes sm-feedback-fadeout {
-                0% { opacity: 1; transform: translateX(0); }
-                70% { opacity: 1; transform: translateX(0); }
-                100% { opacity: 0; transform: translateX(20px); }
-            }
-        `;
-        document.head.appendChild(style);
-    }
-
-    setTimeout(() => {
-        if (f.parentNode) f.remove();
-    }, 2200);
 }
 
 /**
