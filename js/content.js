@@ -1216,27 +1216,175 @@ function atualizarInterface() {
     if (total === 0) { bubble.className = 'sm-bubble-success'; bubble.innerHTML = '<span class="sm-bubble-icon">✓</span>'; if (painelAberto) fecharPainelComSucesso(); }
     else { bubble.className = 'sm-bubble-error'; bubble.innerHTML = `<span class="sm-bubble-icon">${isModoLeitura() ? '👁️' : '✏️'}</span><span class="sm-bubble-badge">${total}</span>`; if (painelAberto) exibirPainel(); }
 }
+
 function exibirPainel() {
-    if (modoFocoAtivo) { desativarModoFoco(); clearTimeout(timeoutFoco); }
-    painelAberto = true; indexSugestao = -1;
+    if (modoFocoAtivo) {
+        desativarModoFoco();
+        clearTimeout(timeoutFoco);
+    }
+
+    painelAberto = true;
+    indexSugestao = -1;
+
     let painel = document.getElementById('syntax-mentor-painel');
-    if (!painel) { painel = document.createElement('div'); painel.id = 'syntax-mentor-painel'; document.body.appendChild(painel); }
-    if (smConfig.darkMode) painel.classList.add('sm-dark');
-    else painel.classList.remove('sm-dark');
-    const mapa = {}; let total = 0;
-    errosGlobais.forEach(e => { const o = e.context.text.substr(e.context.offset, e.context.length); if (!o.trim()) return; if (!mapa[o]) mapa[o] = { s: e.replacements[0]?.value || '', c: 0, msg: e.message }; mapa[o].c++; total++; });
-    let html = `<div id="syntax-mentor-header"><span>${isModoLeitura() ? '👁️ Revisão' : '📝 Sugestões'}</span><div id="sm-nivel-painel" style="font-size:11px;color:rgba(255,255,255,.7);flex:1;text-align:center"></div><button id="btn-fechar-painel">✕</button></div><div id="syntax-mentor-content"><div class="body-cards">`;
-    if (Object.keys(mapa).length === 0) html += '<div style="text-align:center;padding:20px;color:#888;">✓ Nenhum erro</div>';
-    else {
-        Object.entries(mapa).forEach(([o, info]) => {
-            html += `<div class="erro-card"><p class="erro-msg" title="${info.msg.replace(/"/g, '&quot;')}">Erro: <strong>${o}</strong></p><div class="sugestao-container"><span class="palavra-original">${o}</span><span class="seta">→</span><div class="botoes-acao"><button class="btn-fix-mini" data-o="${o}" data-s="${info.s}">${info.c > 1 ? info.s + ' (' + info.c + 'x)' : (info.s || '[Remover]')}</button><button class="btn-ignorar-sessao" data-o="${o}">↩</button><button class="btn-ignorar" data-o="${o}">+</button></div></div></div>`;
+    if (!painel) {
+        painel = document.createElement('div');
+        painel.id = 'syntax-mentor-painel';
+        document.body.appendChild(painel);
+    }
+
+    if (smConfig.darkMode) {
+        painel.classList.add('sm-dark');
+    } else {
+        painel.classList.remove('sm-dark');
+    }
+
+    // Mapa de erros únicos
+    const mapa = {};
+    let total = 0;
+    const errosLista = [];
+
+    errosGlobais.forEach(e => {
+        const o = e.context.text.substr(e.context.offset, e.context.length);
+        if (!o.trim()) return;
+
+        if (!mapa[o]) {
+            mapa[o] = {
+                s: e.replacements[0]?.value || '',
+                c: 0,
+                msg: e.message || 'Possível erro de ortografia'
+            };
+            errosLista.push({
+                original: o,
+                sugestao: e.replacements[0]?.value || '',
+                mensagem: e.message || 'Possível erro de ortografia',
+                count: 0
+            });
+        }
+        mapa[o].c++;
+        if (errosLista.length > 0) {
+            errosLista[errosLista.length - 1].count = mapa[o].c;
+        }
+        total++;
+    });
+
+    // HTML DO PAINEL COM ABAS FUNCIONAIS
+    let html = `
+        <div id="syntax-mentor-header">
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <span style="font-size: 18px;">${isModoLeitura() ? '👁️' : '📝'}</span>
+                <span style="font-weight: 600;">${isModoLeitura() ? 'Revisão' : 'Sugestões'}</span>
+                ${isModoLeitura() ? '<span style="background: rgba(255,255,255,0.2); padding: 2px 8px; border-radius: 12px; font-size: 10px;">Modo Leitura</span>' : ''}
+            </div>
+            <div id="sm-nivel-painel" style="font-size: 11px; background: rgba(255,255,255,0.15); padding: 4px 10px; border-radius: 20px;">
+                🌱 Carregando...
+            </div>
+            <button id="btn-fechar-painel" style="background: none; border: none; color: white; font-size: 18px; cursor: pointer;">✕</button>
+        </div>
+        
+        <!-- ABAS -->
+        <div id="sm-tabs-container" style="display: flex; border-bottom: 1px solid #e5e7eb; background: #f8f9fa;">
+            <button id="sm-tab-grammar" class="sm-tab-btn active" style="flex: 1; padding: 10px; border: none; background: none; cursor: pointer; font-weight: 600; font-size: 13px; transition: all 0.2s;">📝 Gramática</button>
+            <button id="sm-tab-sentiment" class="sm-tab-btn" style="flex: 1; padding: 10px; border: none; background: none; cursor: pointer; font-weight: 600; font-size: 13px; transition: all 0.2s;">😊 Sentimento</button>
+            <button id="sm-tab-historico" class="sm-tab-btn" style="flex: 1; padding: 10px; border: none; background: none; cursor: pointer; font-weight: 600; font-size: 13px; transition: all 0.2s;">🕓 Histórico</button>
+        </div>
+        
+        <!-- CONTEÚDO GRAMÁTICA -->
+        <div id="syntax-mentor-content" style="padding: 16px; max-height: 400px; overflow-y: auto;">
+    `;
+
+    if (errosLista.length === 0) {
+        html += `
+            <div style="text-align: center; padding: 40px 20px;">
+                <div style="font-size: 48px; margin-bottom: 16px;">✅</div>
+                <p style="color: #28a745; font-weight: 600;">Nenhum erro encontrado!</p>
+                <p style="font-size: 12px; color: #6b7280;">Parabéns, seu texto está correto!</p>
+            </div>
+        `;
+    } else {
+        html += `
+            <div style="margin-bottom: 16px;">
+                <p style="font-size: 12px; color: #6b7280; margin: 0;">
+                    📊 ${total} erro${total !== 1 ? 's' : ''} encontrado${total !== 1 ? 's' : ''} 
+                    (${Object.keys(mapa).length} palavra${Object.keys(mapa).length !== 1 ? 's' : ''} única${Object.keys(mapa).length !== 1 ? 's' : ''})
+                </p>
+            </div>
+        `;
+        
+        errosLista.forEach((erro) => {
+            const plural = erro.count > 1 ? ` (${erro.count}x)` : '';
+            html += `
+                <div class="erro-card" style="background: #ffffff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 12px 16px; margin-bottom: 12px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+                        <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                            <span style="background: #fee2e2; color: #dc2626; padding: 4px 8px; border-radius: 8px; font-size: 12px; font-weight: 600; text-decoration: line-through;">
+                                ${escapeHtml(erro.original)}${plural}
+                            </span>
+                            <span style="color: #9ca3af;">→</span>
+                            <span style="background: #d1fae5; color: #059669; padding: 4px 8px; border-radius: 8px; font-size: 12px; font-weight: 600;">
+                                ${escapeHtml(erro.sugestao || '[remover]')}
+                            </span>
+                        </div>
+                        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                            <button class="btn-fix-mini" data-o="${escapeHtml(erro.original)}" data-s="${escapeHtml(erro.sugestao)}" style="background: linear-gradient(135deg, #6f42c1, #8b5cf6); color: white; border: none; padding: 6px 14px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer;">✅ Corrigir</button>
+                            <button class="btn-ignorar-sessao" data-o="${escapeHtml(erro.original)}" style="background: #f3f4f6; color: #6b7280; border: 1px solid #e5e7eb; padding: 6px 14px; border-radius: 8px; font-size: 12px; cursor: pointer;">↩ Ignorar</button>
+                            <button class="btn-ignorar" data-o="${escapeHtml(erro.original)}" style="background: none; color: #9ca3af; border: 1px solid #e5e7eb; padding: 6px 14px; border-radius: 8px; font-size: 12px; cursor: pointer;">+ Dic</button>
+                        </div>
+                    </div>
+                    ${erro.mensagem ? `<p style="font-size: 11px; color: #9ca3af; margin: 8px 0 0 0;">💡 ${escapeHtml(erro.mensagem)}</p>` : ''}
+                </div>
+            `;
         });
     }
-    html += `</div><div class="footer-actions"><div style="display:flex;gap:4px;margin-bottom:6px"><button id="btn-erro-prev" style="flex:1;font-size:12px;padding:5px" title="Erro anterior">⬆ Anterior</button><span id="sm-nav-contador" style="font-size:11px;color:var(--color-text-tertiary);display:flex;align-items:center;padding:0 6px;white-space:nowrap">— / ${total}</span><button id="btn-erro-next" style="flex:1;font-size:12px;padding:5px" title="Próximo erro">Próximo ⬇</button></div><button id="btn-corrigir-tudo">✨ Corrigir Tudo (${total})</button><button id="btn-ignorar-tudo">Ignorar Tudo</button></div>`;
-    if (historicoDesfazer.length > 0) html += `<div style="text-align:center;margin-top:8px;"><button id="btn-desfazer-ultima" style="background:none;border:1px solid #d1d5db;color:#6b7280;padding:6px 14px;border-radius:6px;cursor:pointer;font-size:11px;font-weight:600;transition:all 0.2s;" onmouseover="this.style.background='#f3f4f6';this.style.color='#374151'" onmouseout="this.style.background='none';this.style.color='#6b7280'">↩ Desfazer Última Correção (Ctrl+Z)</button></div>`;
-    html += `${ignoradosTemporarios.length ? `<div style="text-align:center;font-size:10px;color:#9ca3af;margin-top:8px;">📋 ${ignoradosTemporarios.length} ignorada(s)</div>` : ''}${isModoLeitura() ? `<div style="text-align:center;font-size:10px;color:#f59e0b;margin-top:4px;">⚠️ Modo Leitura ativo</div>` : ''}<div style="text-align:center;font-size:10px;color:#9ca3af;margin-top:4px;">Alt+Shift+S = corrigir | Ctrl+Z = desfazer | Botão direito = revisar</div></div>`;
+
+    html += `
+        </div>
+        
+        <!-- CONTEÚDO SENTIMENTO (inicialmente escondido) -->
+        <div id="sm-sentiment-content" style="display: none; padding: 16px; max-height: 400px; overflow-y: auto;">
+            <div style="text-align: center; padding: 40px;">
+                <div style="font-size: 28px; margin-bottom: 12px;">⏳</div>
+                <p style="font-size: 13px; color: #6b7280;">Selecione um texto para analisar o sentimento</p>
+            </div>
+        </div>
+        
+        <!-- CONTEÚDO HISTÓRICO (inicialmente escondido) -->
+        <div id="sm-historico-content" style="display: none; padding: 16px; max-height: 400px; overflow-y: auto;">
+            <div style="text-align: center; padding: 40px;">
+                <div style="font-size: 36px; margin-bottom: 12px;">📭</div>
+                <p style="font-size: 13px; color: #6b7280;">Nenhuma correção feita ainda nesta sessão.</p>
+            </div>
+        </div>
+        
+        <!-- RODAPÉ -->
+        <div style="padding: 12px 16px; border-top: 1px solid #e5e7eb; background: #f8f9fa;">
+            <div style="display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 16px;">
+                <button id="btn-erro-prev" style="width: 32px; height: 32px; padding: 0; background: white; border: 1px solid #e5e7eb; border-radius: 8px; cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center;">⬆️</button>
+                <span id="sm-nav-contador" style="padding: 6px 16px; font-size: 12px; font-weight: 600; color: #6b7280; background: white; border-radius: 20px; border: 1px solid #e5e7eb; min-width: 60px; text-align: center;">0 / ${total}</span>
+                <button id="btn-erro-next" style="width: 32px; height: 32px; padding: 0; background: white; border: 1px solid #e5e7eb; border-radius: 8px; cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center;">⬇️</button>
+            </div>
+            
+            <div style="display: flex; gap: 8px;">
+                <button id="btn-corrigir-tudo" style="flex: 2; background: linear-gradient(135deg, #10b981, #059669); color: white; border: none; padding: 10px; border-radius: 10px; font-weight: 700; font-size: 13px; cursor: pointer;">✨ Corrigir Tudo (${total})</button>
+                <button id="btn-ignorar-tudo" style="flex: 1; background: #f3f4f6; color: #6b7280; border: 1px solid #e5e7eb; padding: 10px; border-radius: 10px; font-weight: 600; font-size: 13px; cursor: pointer;">Ignorar Tudo</button>
+            </div>
+            
+            ${historicoDesfazer.length > 0 ? `
+            <div style="margin-top: 12px; text-align: center;">
+                <button id="btn-desfazer-ultima" style="background: none; border: 1px solid #e5e7eb; color: #6b7280; padding: 6px 12px; border-radius: 8px; cursor: pointer; font-size: 11px;">↩ Desfazer (Ctrl+Z)</button>
+            </div>
+            ` : ''}
+            
+            <div style="margin-top: 12px; text-align: center; font-size: 10px; color: #9ca3af; line-height: 1.5;">
+                ⌨️ Alt+Shift+S = corrigir tudo | Ctrl+Z = desfazer | 🖱️ Botão direito = revisar
+            </div>
+        </div>
+    `;
+
     painel.innerHTML = html;
     tornarArrastavelPainel(painel, document.getElementById('syntax-mentor-header'));
+
+    // Nível no header
     storageGetSeguro({ totalCorrigidas: 0 }, (res) => {
         const t = res.totalCorrigidas || 0;
         const el = document.getElementById('sm-nivel-painel');
@@ -1247,24 +1395,206 @@ function exibirPainel() {
         else if (t >= 100) { icone = '🔥'; nome = 'Avançado'; proximo = 500; }
         else if (t >= 10) { icone = '📈'; nome = 'Intermediário'; proximo = 100; }
         else { icone = '🌱'; nome = 'Iniciante'; proximo = 10; }
-        const pct = proximo ? Math.round((t / proximo) * 100) : 100;
-        el.innerHTML = `${icone} ${nome} <span style="opacity:.55;font-size:10px">${proximo ? `${t}/${proximo}` : 'MAX'}</span>`;
-        el.title = `Nível: ${nome} — ${pct}% para o próximo`;
+        el.innerHTML = `${icone} ${nome} <span style="opacity: 0.7;">${proximo ? `${t}/${proximo}` : 'MAX'}</span>`;
     });
+
+    // Elementos
+    const grammarContent = document.getElementById('syntax-mentor-content');
+    const sentimentContent = document.getElementById('sm-sentiment-content');
+    const historicoContent = document.getElementById('sm-historico-content');
+    
+    const tabGrammar = document.getElementById('sm-tab-grammar');
+    const tabSentiment = document.getElementById('sm-tab-sentiment');
+    const tabHistorico = document.getElementById('sm-tab-historico');
+
+    // Função para trocar abas
+    function switchTab(tab) {
+        // Resetar estilos das abas
+        [tabGrammar, tabSentiment, tabHistorico].forEach(t => {
+            if (t) t.classList.remove('active');
+        });
+        
+        // Esconder todos os conteúdos
+        if (grammarContent) grammarContent.style.display = 'none';
+        if (sentimentContent) sentimentContent.style.display = 'none';
+        if (historicoContent) historicoContent.style.display = 'none';
+        
+        // Mostrar o conteúdo selecionado
+        if (tab === 'grammar') {
+            if (tabGrammar) tabGrammar.classList.add('active');
+            if (grammarContent) grammarContent.style.display = 'block';
+        } else if (tab === 'sentiment') {
+            if (tabSentiment) tabSentiment.classList.add('active');
+            if (sentimentContent) sentimentContent.style.display = 'block';
+            // Atualizar análise de sentimento
+            if (elementoGlobal) {
+                const texto = elementoGlobal.value || elementoGlobal.textContent || elementoGlobal.innerText || '';
+                if (texto.length >= 10) {
+                    sentimentContent.innerHTML = '<div style="text-align:center;padding:40px;">⏳ Analisando sentimento...</div>';
+                    if (typeof atualizarAnaliseSentimento === 'function') {
+                        atualizarAnaliseSentimento(sentimentContent);
+                    }
+                } else {
+                    sentimentContent.innerHTML = `
+                        <div style="text-align: center; padding: 40px;">
+                            <div style="font-size: 48px; margin-bottom: 16px;">📝</div>
+                            <p style="color: #6b7280;">Digite mais texto para analisar o sentimento</p>
+                            <p style="font-size: 12px; color: #9ca3af;">Mínimo de 10 caracteres</p>
+                        </div>
+                    `;
+                }
+            }
+        } else if (tab === 'historico') {
+            if (tabHistorico) tabHistorico.classList.add('active');
+            if (historicoContent) historicoContent.style.display = 'block';
+            // Renderizar histórico
+            if (historicoCorrecoes.length === 0) {
+                historicoContent.innerHTML = `
+                    <div style="text-align: center; padding: 40px;">
+                        <div style="font-size: 36px; margin-bottom: 12px;">📭</div>
+                        <p style="font-size: 13px; color: #6b7280;">Nenhuma correção feita ainda nesta sessão.</p>
+                    </div>
+                `;
+            } else {
+                historicoContent.innerHTML = historicoCorrecoes.slice().reverse().map((item, idx) => {
+                    const realIdx = historicoCorrecoes.length - 1 - idx;
+                    const hora = new Date(item.timestamp).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                    return `
+                        <div style="background: #f8f9fa; border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; font-size: 13px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap;">
+                                <div style="display: flex; align-items: center; gap: 6px;">
+                                    <span style="color: #dc2626; text-decoration: line-through;">${escapeHtml(item.original)}</span>
+                                    <span style="color: #9ca3af;">→</span>
+                                    <span style="color: #059669;">${escapeHtml(item.sugestao)}</span>
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <span style="font-size: 10px; color: #9ca3af;">${hora}</span>
+                                    <button data-idx="${realIdx}" class="sm-btn-reverter" style="font-size: 10px; padding: 4px 10px; border-radius: 6px; border: 1px solid #e5e7eb; background: white; cursor: pointer;">↩ Reverter</button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+                
+                historicoContent.querySelectorAll('.sm-btn-reverter').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const idx = parseInt(btn.dataset.idx);
+                        const item = historicoCorrecoes[idx];
+                        if (!item || !item.el) return;
+                        const el = item.el;
+                        if (el.value !== undefined) {
+                            const novoValor = el.value.replace(item.sugestao, item.original);
+                            el.value = novoValor;
+                            dispararEventosNativos(el);
+                        } else {
+                            const novoTexto = el.textContent.replace(item.sugestao, item.original);
+                            el.textContent = novoTexto;
+                        }
+                        historicoCorrecoes.splice(idx, 1);
+                        mostrarFeedback(`↩ Revertido: "${item.sugestao}" → "${item.original}"`, 'info');
+                        exibirPainel();
+                    });
+                });
+            }
+        }
+    }
+
+    // Eventos das abas
+    if (tabGrammar) tabGrammar.onclick = () => switchTab('grammar');
+    if (tabSentiment) tabSentiment.onclick = () => switchTab('sentiment');
+    if (tabHistorico) tabHistorico.onclick = () => switchTab('historico');
+
+    // Eventos dos botões
     document.getElementById('btn-fechar-painel').onclick = fecharPainel;
     document.getElementById('btn-corrigir-tudo').onclick = corrigirTudo;
-    let erroNavIdx = -1;
+    document.getElementById('btn-ignorar-tudo').onclick = limparTudo;
+
+    // Navegação entre erros
     const errosNavegaveis = errosGlobais.filter(e => e.context.text.substr(e.context.offset, e.context.length).trim());
-    function navegarParaErro(idx) { if (errosNavegaveis.length === 0) return; erroNavIdx = (idx + errosNavegaveis.length) % errosNavegaveis.length; const erro = errosNavegaveis[erroNavIdx]; const palavra = erro.context.text.substr(erro.context.offset, erro.context.length); const contador = document.getElementById('sm-nav-contador'); if (contador) contador.textContent = `${erroNavIdx + 1} / ${errosNavegaveis.length}`; const marks = document.querySelectorAll(`mark.sm-highlight`); marks.forEach(m => m.style.outline = ''); marks.forEach(m => { if (m.textContent === palavra) { m.style.outline = '2px solid #f97316'; m.scrollIntoView({ behavior: 'smooth', block: 'center' }); } }); document.querySelectorAll('.erro-card').forEach(card => { const strong = card.querySelector('strong'); card.style.background = strong?.textContent === palavra ? 'var(--color-background-warning)' : ''; }); }
+    let erroNavIdx = -1;
+    
+    function atualizarContador() {
+        const contador = document.getElementById('sm-nav-contador');
+        if (contador && errosNavegaveis.length > 0) {
+            contador.textContent = `${erroNavIdx + 1} / ${errosNavegaveis.length}`;
+        } else if (contador) {
+            contador.textContent = `0 / 0`;
+        }
+    }
+    
+    function navegarParaErro(idx) {
+        if (errosNavegaveis.length === 0) return;
+        erroNavIdx = (idx + errosNavegaveis.length) % errosNavegaveis.length;
+        const erro = errosNavegaveis[erroNavIdx];
+        const palavra = erro.context.text.substr(erro.context.offset, erro.context.length);
+        atualizarContador();
+        
+        const marks = document.querySelectorAll('mark.sm-highlight');
+        marks.forEach(m => m.style.outline = '');
+        marks.forEach(m => {
+            if (m.textContent === palavra) {
+                m.style.outline = '2px solid #f97316';
+                m.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        });
+        
+        document.querySelectorAll('.erro-card').forEach(card => {
+            const btn = card.querySelector('.btn-fix-mini');
+            card.style.background = btn?.dataset.o === palavra ? '#fef3c7' : '';
+        });
+    }
+    
     document.getElementById('btn-erro-next')?.addEventListener('click', () => navegarParaErro(erroNavIdx + 1));
     document.getElementById('btn-erro-prev')?.addEventListener('click', () => navegarParaErro(erroNavIdx - 1));
-    document.getElementById('btn-ignorar-tudo').onclick = limparTudo;
-    painel.querySelectorAll('.btn-fix-mini').forEach(b => { b.onclick = () => { aplicarCorrecao(b.dataset.o, b.dataset.s, elementoGlobal); removerErroGlobal(b.dataset.o); }; });
-    painel.querySelectorAll('.btn-ignorar-sessao').forEach(b => { b.onclick = () => ignorarTemporariamente(b.dataset.o); });
-    painel.querySelectorAll('.btn-ignorar').forEach(b => { b.onclick = () => { const o = b.dataset.o; if (isExtensaoAtiva()) { storageGetSeguro(['dicionario_pessoal'], (res) => { const dic = res.dicionario_pessoal || []; if (!dic.includes(o)) { dic.push(o); storageSetSeguro({ dicionario_pessoal: dic }); } }); } if (!isSiteRestrito && elementoGlobal?.isContentEditable) { elementoGlobal.innerHTML = elementoGlobal.innerHTML.replace(new RegExp(`<mark class="sm-highlight">${o.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}</mark>`, 'g'), o); atualizarElementoComEventos(elementoGlobal); } removerErroGlobal(o); mostrarFeedback(`"${o}" → dicionário`, 'success'); }; });
-    const btnDesfazer = document.getElementById('btn-desfazer-ultima'); if (btnDesfazer) btnDesfazer.addEventListener('click', () => { desfazerUltimaCorrecao(); if (elementoGlobal && textoUltimaVerificacao) verificarTexto(textoUltimaVerificacao, elementoGlobal); });
-    adicionarAbaSentimento();
+    
+    // Botões de correção
+    painel.querySelectorAll('.btn-fix-mini').forEach(b => {
+        b.onclick = () => {
+            aplicarCorrecao(b.dataset.o, b.dataset.s, elementoGlobal);
+            removerErroGlobal(b.dataset.o);
+            exibirPainel();
+        };
+    });
+    
+    painel.querySelectorAll('.btn-ignorar-sessao').forEach(b => {
+        b.onclick = () => ignorarTemporariamente(b.dataset.o);
+    });
+    
+    painel.querySelectorAll('.btn-ignorar').forEach(b => {
+        b.onclick = () => {
+            const o = b.dataset.o;
+            if (isExtensaoAtiva()) {
+                storageGetSeguro(['dicionario_pessoal'], (res) => {
+                    const dic = res.dicionario_pessoal || [];
+                    if (!dic.includes(o)) {
+                        dic.push(o);
+                        storageSetSeguro({ dicionario_pessoal: dic });
+                    }
+                });
+            }
+            removerErroGlobal(o);
+            mostrarFeedback(`"${o}" → dicionário`, 'success');
+            exibirPainel();
+        };
+    });
+    
+    const btnDesfazer = document.getElementById('btn-desfazer-ultima');
+    if (btnDesfazer) {
+        btnDesfazer.addEventListener('click', () => {
+            desfazerUltimaCorrecao();
+            if (elementoGlobal && textoUltimaVerificacao) {
+                verificarTexto(textoUltimaVerificacao, elementoGlobal);
+            }
+            exibirPainel();
+        });
+    }
+    
+    atualizarContador();
+    
+    // Iniciar com a aba Gramática ativa
+    switchTab('grammar');
 }
+
 function fecharPainel() { const painel = document.getElementById('syntax-mentor-painel'); if (painel) painel.remove(); painelAberto = false; if (smConfig.modoFoco && !usuarioDigitando) setTimeout(() => { modoFocoAtivo = true; iniciarTimeoutFoco(); }, 1000); }
 function fecharPainelComSucesso() { const c = document.getElementById('syntax-mentor-content'); if (c) { c.innerHTML = `<div style="text-align:center;padding:30px;"><div style="font-size:48px;color:#28a745;">✓</div><p>Tudo limpo!</p></div>`; } setTimeout(fecharPainel, 1500); }
 
