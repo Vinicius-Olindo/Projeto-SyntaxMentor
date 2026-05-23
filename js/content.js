@@ -78,6 +78,25 @@ let smConfig = {
     modoAprendizado: false
 };
 
+function isContextoPermitido() {
+    try {
+        if (window.location.protocol === 'chrome:' || window.location.protocol === 'chrome-extension:') {
+            return false;
+        }
+        if (window.self !== window.top) {
+            try {
+                const topOrigin = window.top.location.href;
+                return true;
+            } catch (e) {
+                return false;
+            }
+        }
+        return true;
+    } catch (e) {
+        return false;
+    }
+}
+
 // =============================================
 // FUNÇÃO SEGURA PARA ENVIAR MENSAGENS
 // =============================================
@@ -142,19 +161,8 @@ function isExtensaoAtiva() {
 }
 
 function storageGetSeguro(chave, fallback) {
-    // Verificar se está em contexto permitido
-    if (!isExtensaoAtiva() || !chrome.storage || !chrome.storage.local) {
-        if (fallback) fallback({});
-        return;
-    }
-    
-    // Verificar se é um frame cross-origin
-    try {
-        if (window.self !== window.top && !document.cookie) {
-            if (fallback) fallback({});
-            return;
-        }
-    } catch (e) {
+    // Adicionar esta verificação no início
+    if (!isExtensaoAtiva() || !isContextoPermitido() || !chrome.storage || !chrome.storage.local) {
         if (fallback) fallback({});
         return;
     }
@@ -162,14 +170,12 @@ function storageGetSeguro(chave, fallback) {
     try {
         chrome.storage.local.get(chave, (res) => {
             if (chrome.runtime.lastError) {
-                console.debug('Erro no storage.get:', chrome.runtime.lastError.message);
                 if (fallback) fallback({});
                 return;
             }
             if (fallback) fallback(res);
         });
     } catch (e) {
-        console.debug('Exceção no storage.get:', e);
         if (fallback) fallback({});
     }
 }
@@ -1339,27 +1345,210 @@ document.addEventListener('input', (e) => {
 }, true);
 
 // =============================================
-// CONTEXT MENU HANDLER
+// LISTENER DE MENSAGENS (CORRIGIDO)
 // =============================================
 
-if (typeof chrome !== 'undefined' && chrome.runtime) {
+if (typeof chrome !== 'undefined' && chrome.runtime && isContextoPermitido()) {
     chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-        if (request.action === 'togglePainel') { if (painelAberto) fecharPainel(); else exibirPainel(); sendResponse({ success: true }); return true; }
-        if (request.action === 'ignorarErroAtual') { if (errosGlobais.length > 0) { const primeiro = errosGlobais[0]; const palavra = primeiro.context.text.substr(primeiro.context.offset, primeiro.context.length); ignorarTemporariamente(palavra); } sendResponse({ success: true }); return true; }
-        if (request.action === 'getErrosAtivos') { const erros = errosGlobais.slice(0, 10).map(e => ({ original: e.context.text.substr(e.context.offset, e.context.length), sugestao: e.replacements?.[0]?.value || '', message: e.message || '' })).filter(e => e.original && e.sugestao && e.original !== e.sugestao); sendResponse({ erros, total: erros.length }); return true; }
-        if (request.action === 'aplicarCorrecaoPopup') { const { original, sugestao } = request; if (elementoGlobal && original && sugestao) aplicarCorrecao(original, sugestao, elementoGlobal, true); sendResponse({ success: true }); return true; }
-        if (request.action === 'revisarSelecao' && request.texto) { const texto = request.texto.trim(); const sel = window.getSelection(); const range = sel && sel.rangeCount > 0 ? sel.getRangeAt(0).getBoundingClientRect() : null; const div = document.createElement('div'); div.contentEditable = 'true'; div.style.cssText = 'position:fixed;left:-9999px;top:-9999px;'; div.textContent = texto; document.body.appendChild(div); textoUltimaVerificacao = texto; elementoGlobal = div; const tooltip = document.createElement('div'); tooltip.id = 'sm-selecao-tooltip'; tooltip.style.cssText = `position:fixed;z-index:2147483647;background:#1a1a2e;color:#fff;border-radius:10px;padding:12px 16px;font-size:13px;font-family:'Segoe UI',system-ui,sans-serif;max-width:320px;box-shadow:0 8px 32px rgba(0,0,0,.25);top:${range ? Math.max(10, range.top - 80) : 100}px;left:${range ? Math.min(window.innerWidth - 340, range.left) : 100}px;`; tooltip.innerHTML = '<div style="text-align:center;padding:4px">⏳ Verificando seleção...</div>'; document.body.appendChild(tooltip); verificarTexto(texto, div).then(() => { document.body.removeChild(div); if (errosGlobais.length === 0) { tooltip.innerHTML = '<div style="text-align:center;color:#4ade80">✅ Nenhum erro encontrado!</div>'; setTimeout(() => tooltip.remove(), 2500); return; } const itens = errosGlobais.slice(0, 4).map(e => { const orig = e.context.text.substr(e.context.offset, e.context.length); const sug = e.replacements?.[0]?.value || ''; return orig && sug ? `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-top:1px solid rgba(255,255,255,.1)"><span style="color:#f87171;text-decoration:line-through">${escapeHtml(orig)}</span><span style="color:#9ca3af">→</span><span style="color:#4ade80">${escapeHtml(sug)}</span></div>` : ''; }).filter(Boolean).join(''); tooltip.innerHTML = `<div style="font-size:11px;font-weight:500;color:#a78bfa;margin-bottom:4px">${errosGlobais.length} ERRO${errosGlobais.length > 1 ? 'S' : ''} ENCONTRADO${errosGlobais.length > 1 ? 'S' : ''}</div>${itens}<div style="margin-top:8px;text-align:right"><button id="sm-tooltip-fechar" style="background:rgba(255,255,255,.1);border:none;color:#fff;padding:4px 10px;border-radius:4px;cursor:pointer;font-size:12px">Fechar</button><button id="sm-tooltip-abrir" style="background:#6f42c1;border:none;color:#fff;padding:4px 10px;border-radius:4px;cursor:pointer;font-size:12px;margin-left:6px">Ver no painel</button></div>`; tooltip.querySelector('#sm-tooltip-fechar')?.addEventListener('click', () => tooltip.remove()); tooltip.querySelector('#sm-tooltip-abrir')?.addEventListener('click', () => { tooltip.remove(); exibirPainel(); }); setTimeout(() => tooltip.remove(), 8000); }).catch(() => { document.body.removeChild(div); tooltip.remove(); }); sendResponse({ success: true }); return true; }
-        if (request.action === 'ignorarTemporariamente' && request.palavra) { ignorarTemporariamente(request.palavra); sendResponse({ success: true }); return true; }
-        if (request.action === 'corrigirTudo') { if (errosGlobais.length > 0 && elementoGlobal) corrigirTudo(); sendResponse({ success: true }); return true; }
-        if (request.action === 'revisarPaginaInteira') { revisarPaginaInteira(); sendResponse({ success: true }); return true; }
-        if (request.action === 'toggleSite') { atualizarEstadoExtensao(request.enabled); sendResponse({ success: true }); return true; }
-        if (request.action === 'siteToggled') { atualizarEstadoExtensao(request.enabled); sendResponse({ success: true }); return true; }
-        return false;
+        // Função segura para responder
+        const responder = (res) => {
+            try {
+                sendResponse(res);
+            } catch (e) {
+                console.debug('Erro ao enviar resposta:', e);
+            }
+        };
+        
+        // =========================================
+        // togglePainel - Abrir/fechar painel
+        // =========================================
+        if (request.action === 'togglePainel') {
+            if (painelAberto) {
+                fecharPainel();
+            } else {
+                exibirPainel();
+            }
+            responder({ success: true });
+            return true;
+        }
+        
+        // =========================================
+        // ignorarErroAtual - Ignorar erro selecionado
+        // =========================================
+        if (request.action === 'ignorarErroAtual') {
+            if (errosGlobais.length > 0) {
+                const primeiro = errosGlobais[0];
+                const palavra = primeiro.context.text.substr(primeiro.context.offset, primeiro.context.length);
+                ignorarTemporariamente(palavra);
+            }
+            responder({ success: true });
+            return true;
+        }
+        
+        // =========================================
+        // getErrosAtivos - Retornar erros para o popup
+        // =========================================
+        if (request.action === 'getErrosAtivos') {
+            const erros = errosGlobais.slice(0, 10).map(e => ({
+                original: e.context.text.substr(e.context.offset, e.context.length),
+                sugestao: e.replacements?.[0]?.value || '',
+                message: e.message || ''
+            })).filter(e => e.original && e.sugestao && e.original !== e.sugestao);
+            responder({ erros, total: erros.length });
+            return true;
+        }
+        
+        // =========================================
+        // aplicarCorrecaoPopup - Aplicar correção via popup
+        // =========================================
+        if (request.action === 'aplicarCorrecaoPopup') {
+            const { original, sugestao } = request;
+            if (elementoGlobal && original && sugestao) {
+                aplicarCorrecao(original, sugestao, elementoGlobal, true);
+            }
+            responder({ success: true });
+            return true;
+        }
+        
+        // =========================================
+        // revisarSelecao - Revisar texto selecionado com mouse
+        // =========================================
+        if (request.action === 'revisarSelecao' && request.texto) {
+            const texto = request.texto.trim();
+            const sel = window.getSelection();
+            const range = sel && sel.rangeCount > 0 ? sel.getRangeAt(0).getBoundingClientRect() : null;
+            
+            // Criar elemento temporário para verificação
+            const div = document.createElement('div');
+            div.contentEditable = 'true';
+            div.style.cssText = 'position:fixed;left:-9999px;top:-9999px;';
+            div.textContent = texto;
+            document.body.appendChild(div);
+            
+            textoUltimaVerificacao = texto;
+            elementoGlobal = div;
+            
+            // Mostrar tooltip de loading próxima à seleção
+            const tooltip = document.createElement('div');
+            tooltip.id = 'sm-selecao-tooltip';
+            tooltip.style.cssText = `
+                position:fixed;
+                z-index:2147483647;
+                background:#1a1a2e;
+                color:#fff;
+                border-radius:10px;
+                padding:12px 16px;
+                font-size:13px;
+                font-family:'Segoe UI',system-ui,sans-serif;
+                max-width:320px;
+                box-shadow:0 8px 32px rgba(0,0,0,.25);
+                top:${range ? Math.max(10, range.top - 80) : 100}px;
+                left:${range ? Math.min(window.innerWidth - 340, range.left) : 100}px;
+            `;
+            tooltip.innerHTML = '<div style="text-align:center;padding:4px">⏳ Verificando seleção...</div>';
+            document.body.appendChild(tooltip);
+            
+            verificarTexto(texto, div).then(() => {
+                document.body.removeChild(div);
+                if (errosGlobais.length === 0) {
+                    tooltip.innerHTML = '<div style="text-align:center;color:#4ade80">✅ Nenhum erro encontrado!</div>';
+                    setTimeout(() => tooltip.remove(), 2500);
+                    return;
+                }
+                
+                // Exibir erros na tooltip
+                const itens = errosGlobais.slice(0, 4).map(e => {
+                    const orig = e.context.text.substr(e.context.offset, e.context.length);
+                    const sug = e.replacements?.[0]?.value || '';
+                    return orig && sug ? `
+                        <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-top:1px solid rgba(255,255,255,.1)">
+                            <span style="color:#f87171;text-decoration:line-through">${escapeHtml(orig)}</span>
+                            <span style="color:#9ca3af">→</span>
+                            <span style="color:#4ade80">${escapeHtml(sug)}</span>
+                        </div>
+                    ` : '';
+                }).filter(Boolean).join('');
+                
+                tooltip.innerHTML = `
+                    <div style="font-size:11px;font-weight:500;color:#a78bfa;margin-bottom:4px">
+                        ${errosGlobais.length} ERRO${errosGlobais.length > 1 ? 'S' : ''} ENCONTRADO${errosGlobais.length > 1 ? 'S' : ''}
+                    </div>
+                    ${itens}
+                    <div style="margin-top:8px;text-align:right">
+                        <button id="sm-tooltip-fechar" style="background:rgba(255,255,255,.1);border:none;color:#fff;padding:4px 10px;border-radius:4px;cursor:pointer;font-size:12px">Fechar</button>
+                        <button id="sm-tooltip-abrir" style="background:#6f42c1;border:none;color:#fff;padding:4px 10px;border-radius:4px;cursor:pointer;font-size:12px;margin-left:6px">Ver no painel</button>
+                    </div>
+                `;
+                
+                tooltip.querySelector('#sm-tooltip-fechar')?.addEventListener('click', () => tooltip.remove());
+                tooltip.querySelector('#sm-tooltip-abrir')?.addEventListener('click', () => {
+                    tooltip.remove();
+                    exibirPainel();
+                });
+                setTimeout(() => tooltip.remove(), 8000);
+            }).catch(() => {
+                document.body.removeChild(div);
+                tooltip.remove();
+            });
+            
+            responder({ success: true });
+            return true;
+        }
+        
+        // =========================================
+        // ignorarTemporariamente - Ignorar palavra na sessão
+        // =========================================
+        if (request.action === 'ignorarTemporariamente' && request.palavra) {
+            ignorarTemporariamente(request.palavra);
+            responder({ success: true });
+            return true;
+        }
+        
+        // =========================================
+        // corrigirTudo - Corrigir todos os erros
+        // =========================================
+        if (request.action === 'corrigirTudo') {
+            if (errosGlobais.length > 0 && elementoGlobal) {
+                corrigirTudo();
+            }
+            responder({ success: true });
+            return true;
+        }
+        
+        // =========================================
+        // revisarPaginaInteira - Revisar toda a página
+        // =========================================
+        if (request.action === 'revisarPaginaInteira') {
+            revisarPaginaInteira();
+            responder({ success: true });
+            return true;
+        }
+        
+        // =========================================
+        // toggleSite - Ativar/desativar no site (via popup)
+        // =========================================
+        if (request.action === 'toggleSite') {
+            atualizarEstadoExtensao(request.enabled);
+            responder({ success: true });
+            return true;
+        }
+        
+        // =========================================
+        // siteToggled - Resposta do toggle do site
+        // =========================================
+        if (request.action === 'siteToggled') {
+            atualizarEstadoExtensao(request.enabled);
+            responder({ success: true });
+            return true;
+        }
+        
+        // =========================================
+        // Nenhum action reconhecido
+        // =========================================
+        responder({ success: false, error: 'Unknown action: ' + request.action });
+        return true;
     });
 }
-// const offlineScript = document.createElement('script');
-// offlineScript.src = chrome.runtime.getURL('js/offline-grammar.js');
-// (document.head || document.documentElement).appendChild(offlineScript);
 
 // =============================================
 // ANÁLISE DE SENTIMENTO
@@ -1462,21 +1651,31 @@ function mostrarExplicacaoRegra(original, sugestao, mensagem, erroObj) {
     overlay.addEventListener('click', e => { if (e.target === overlay) fechar(); });
     setTimeout(fechar, 12000);
 }
+
 function carregarSmConfig(callback) {
-    // Verificar se storage.session está disponível
-    if (!chrome.storage || !chrome.storage.session) {
-        console.debug('SyntaxMentor: storage.session não disponível');
-        smConfig.apiKey = '';
+    // Adicionar verificação de contexto
+    if (!isContextoPermitido()) {
         if (callback) callback();
         return;
     }
     
-    chrome.storage.session.get({ apiKey: '' }, (sess) => {
-        if (chrome.runtime.lastError) {
-            console.debug('Erro ao acessar session storage:', chrome.runtime.lastError.message);
-            sess = { apiKey: '' };
+    let sessApiKey = '';
+    if (chrome.storage && chrome.storage.session) {
+        try {
+            chrome.storage.session.get({ apiKey: '' }, (sess) => {
+                if (!chrome.runtime.lastError && sess && sess.apiKey) {
+                    sessApiKey = sess.apiKey;
+                }
+                finalizarCarregamento();
+            });
+        } catch (e) {
+            finalizarCarregamento();
         }
-        
+    } else {
+        finalizarCarregamento();
+    }
+    
+    function finalizarCarregamento() {
         storageGetSeguro({
             language: 'pt-BR', pickyMode: true, speed: 500, darkMode: false,
             blacklist: [], apiUrl: '', apiKey: '', strictMode: false,
@@ -1491,7 +1690,7 @@ function carregarSmConfig(callback) {
             desativarShortcut: { altKey: true, ctrlKey: false, shiftKey: true, key: 'd' }
         }, (res) => {
             Object.assign(smConfig, res);
-            smConfig.apiKey = (sess && sess.apiKey) || '';
+            smConfig.apiKey = sessApiKey;
             dicCache = (res.dicionario_pessoal || []).map(w => w.toLowerCase());
             
             const host = window.location.hostname;
@@ -1502,8 +1701,9 @@ function carregarSmConfig(callback) {
             
             if (callback) callback();
         });
-    });
+    }
 }
+
 function carregarPublicAPI() {
     if (window.SyntaxMentor) return;
     const script = document.createElement('script');
