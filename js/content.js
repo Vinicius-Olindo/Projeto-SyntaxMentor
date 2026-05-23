@@ -1345,13 +1345,18 @@ document.addEventListener('input', (e) => {
 }, true);
 
 // =============================================
-// LISTENER DE MENSAGENS (CORRIGIDO)
+// LISTENER DE MENSAGENS (VERSÃO FINAL CORRIGIDA)
 // =============================================
 
 if (typeof chrome !== 'undefined' && chrome.runtime && isContextoPermitido()) {
     chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-        // Função segura para responder
+        // Flag para saber se já respondemos
+        let responded = false;
+        
+        // Função segura para responder (garante apenas uma resposta)
         const responder = (res) => {
+            if (responded) return;
+            responded = true;
             try {
                 sendResponse(res);
             } catch (e) {
@@ -1360,7 +1365,7 @@ if (typeof chrome !== 'undefined' && chrome.runtime && isContextoPermitido()) {
         };
         
         // =========================================
-        // togglePainel - Abrir/fechar painel
+        // togglePainel
         // =========================================
         if (request.action === 'togglePainel') {
             if (painelAberto) {
@@ -1373,7 +1378,7 @@ if (typeof chrome !== 'undefined' && chrome.runtime && isContextoPermitido()) {
         }
         
         // =========================================
-        // ignorarErroAtual - Ignorar erro selecionado
+        // ignorarErroAtual
         // =========================================
         if (request.action === 'ignorarErroAtual') {
             if (errosGlobais.length > 0) {
@@ -1386,7 +1391,7 @@ if (typeof chrome !== 'undefined' && chrome.runtime && isContextoPermitido()) {
         }
         
         // =========================================
-        // getErrosAtivos - Retornar erros para o popup
+        // getErrosAtivos
         // =========================================
         if (request.action === 'getErrosAtivos') {
             const erros = errosGlobais.slice(0, 10).map(e => ({
@@ -1399,7 +1404,7 @@ if (typeof chrome !== 'undefined' && chrome.runtime && isContextoPermitido()) {
         }
         
         // =========================================
-        // aplicarCorrecaoPopup - Aplicar correção via popup
+        // aplicarCorrecaoPopup
         // =========================================
         if (request.action === 'aplicarCorrecaoPopup') {
             const { original, sugestao } = request;
@@ -1411,14 +1416,13 @@ if (typeof chrome !== 'undefined' && chrome.runtime && isContextoPermitido()) {
         }
         
         // =========================================
-        // revisarSelecao - Revisar texto selecionado com mouse
+        // revisarSelecao
         // =========================================
         if (request.action === 'revisarSelecao' && request.texto) {
             const texto = request.texto.trim();
             const sel = window.getSelection();
             const range = sel && sel.rangeCount > 0 ? sel.getRangeAt(0).getBoundingClientRect() : null;
             
-            // Criar elemento temporário para verificação
             const div = document.createElement('div');
             div.contentEditable = 'true';
             div.style.cssText = 'position:fixed;left:-9999px;top:-9999px;';
@@ -1428,19 +1432,12 @@ if (typeof chrome !== 'undefined' && chrome.runtime && isContextoPermitido()) {
             textoUltimaVerificacao = texto;
             elementoGlobal = div;
             
-            // Mostrar tooltip de loading próxima à seleção
             const tooltip = document.createElement('div');
             tooltip.id = 'sm-selecao-tooltip';
             tooltip.style.cssText = `
-                position:fixed;
-                z-index:2147483647;
-                background:#1a1a2e;
-                color:#fff;
-                border-radius:10px;
-                padding:12px 16px;
-                font-size:13px;
-                font-family:'Segoe UI',system-ui,sans-serif;
-                max-width:320px;
+                position:fixed; z-index:2147483647; background:#1a1a2e; color:#fff;
+                border-radius:10px; padding:12px 16px; font-size:13px;
+                font-family:'Segoe UI',system-ui,sans-serif; max-width:320px;
                 box-shadow:0 8px 32px rgba(0,0,0,.25);
                 top:${range ? Math.max(10, range.top - 80) : 100}px;
                 left:${range ? Math.min(window.innerWidth - 340, range.left) : 100}px;
@@ -1453,10 +1450,10 @@ if (typeof chrome !== 'undefined' && chrome.runtime && isContextoPermitido()) {
                 if (errosGlobais.length === 0) {
                     tooltip.innerHTML = '<div style="text-align:center;color:#4ade80">✅ Nenhum erro encontrado!</div>';
                     setTimeout(() => tooltip.remove(), 2500);
+                    responder({ success: true });
                     return;
                 }
                 
-                // Exibir erros na tooltip
                 const itens = errosGlobais.slice(0, 4).map(e => {
                     const orig = e.context.text.substr(e.context.offset, e.context.length);
                     const sug = e.replacements?.[0]?.value || '';
@@ -1486,17 +1483,18 @@ if (typeof chrome !== 'undefined' && chrome.runtime && isContextoPermitido()) {
                     exibirPainel();
                 });
                 setTimeout(() => tooltip.remove(), 8000);
-            }).catch(() => {
+                responder({ success: true });
+            }).catch((err) => {
                 document.body.removeChild(div);
                 tooltip.remove();
+                responder({ success: false, error: err.message });
             });
             
-            responder({ success: true });
             return true;
         }
         
         // =========================================
-        // ignorarTemporariamente - Ignorar palavra na sessão
+        // ignorarTemporariamente
         // =========================================
         if (request.action === 'ignorarTemporariamente' && request.palavra) {
             ignorarTemporariamente(request.palavra);
@@ -1505,7 +1503,7 @@ if (typeof chrome !== 'undefined' && chrome.runtime && isContextoPermitido()) {
         }
         
         // =========================================
-        // corrigirTudo - Corrigir todos os erros
+        // corrigirTudo
         // =========================================
         if (request.action === 'corrigirTudo') {
             if (errosGlobais.length > 0 && elementoGlobal) {
@@ -1516,7 +1514,7 @@ if (typeof chrome !== 'undefined' && chrome.runtime && isContextoPermitido()) {
         }
         
         // =========================================
-        // revisarPaginaInteira - Revisar toda a página
+        // revisarPaginaInteira
         // =========================================
         if (request.action === 'revisarPaginaInteira') {
             revisarPaginaInteira();
@@ -1525,7 +1523,7 @@ if (typeof chrome !== 'undefined' && chrome.runtime && isContextoPermitido()) {
         }
         
         // =========================================
-        // toggleSite - Ativar/desativar no site (via popup)
+        // toggleSite
         // =========================================
         if (request.action === 'toggleSite') {
             atualizarEstadoExtensao(request.enabled);
@@ -1534,7 +1532,7 @@ if (typeof chrome !== 'undefined' && chrome.runtime && isContextoPermitido()) {
         }
         
         // =========================================
-        // siteToggled - Resposta do toggle do site
+        // siteToggled
         // =========================================
         if (request.action === 'siteToggled') {
             atualizarEstadoExtensao(request.enabled);
@@ -1543,7 +1541,7 @@ if (typeof chrome !== 'undefined' && chrome.runtime && isContextoPermitido()) {
         }
         
         // =========================================
-        // Nenhum action reconhecido
+        // Nenhum action reconhecido - IMPORTANTE: responder mesmo assim!
         // =========================================
         responder({ success: false, error: 'Unknown action: ' + request.action });
         return true;
