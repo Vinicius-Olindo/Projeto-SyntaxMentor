@@ -1,6 +1,5 @@
 // =============================================
-// SyntaxMentor - background.js v2.7.1
-// Service Worker com suporte a Toggle Site e Overrides
+// SyntaxMentor - background.js v2.8.1
 // =============================================
 
 const smLog = (...args) => { /* debug only */ };
@@ -25,11 +24,70 @@ function isSiteBloqueado(host, res) {
 }
 
 // =============================================
+// GERENCIAMENTO DE BADGE "NEW" COM ALARMS
+// =============================================
+
+/**
+ * Agenda a remoção do badge "NEW" após 7 dias usando chrome.alarms
+ */
+function agendarRemocaoBadgeNew() {
+    chrome.alarms.create('removeNewBadge', { delayInMinutes: 7 * 24 * 60 });
+    smLog("✅ Alarme 'removeNewBadge' agendado para 7 dias");
+}
+
+/**
+ * Remove o badge "NEW" (chamado pelo alarme)
+ */
+function removerBadgeNew() {
+    chrome.storage.local.get({ dataInstalacao: 0 }, (res) => {
+        const dias = (Date.now() - res.dataInstalacao) / (1000 * 60 * 60 * 24);
+        if (dias >= 7) {
+            chrome.action.setBadgeText({ text: '' });
+            smLog("✅ Badge 'NEW' removido após 7 dias");
+        } else {
+            // Se ainda não passaram 7 dias, reagendar
+            const diasRestantes = 7 - dias;
+            if (diasRestantes > 0) {
+                chrome.alarms.create('removeNewBadge', { delayInMinutes: diasRestantes * 24 * 60 });
+                smLog(`⏳ Badge 'NEW' reagendado para ${diasRestantes.toFixed(1)} dias`);
+            }
+        }
+    });
+}
+
+/**
+ * Verifica se o badge NEW ainda deve ser exibido (chamado na inicialização)
+ */
+function verificarBadgeNew() {
+    chrome.storage.local.get({ dataInstalacao: 0 }, (res) => {
+        if (!res.dataInstalacao) return;
+        
+        const dias = (Date.now() - res.dataInstalacao) / (1000 * 60 * 60 * 24);
+        if (dias < 7) {
+            chrome.action.setBadgeText({ text: 'NEW' });
+            chrome.action.setBadgeBackgroundColor({ color: '#6f42c1' });
+            chrome.action.setTitle({ title: 'SyntaxMentor: Novo! Clique para configurar' });
+            
+            // Reagendar caso o alarme não exista
+            chrome.alarms.get('removeNewBadge', (alarm) => {
+                if (!alarm && dias < 7) {
+                    const diasRestantes = 7 - dias;
+                    chrome.alarms.create('removeNewBadge', { delayInMinutes: diasRestantes * 24 * 60 });
+                    smLog(`⏳ Badge 'NEW' reagendado para ${diasRestantes.toFixed(1)} dias`);
+                }
+            });
+        } else {
+            chrome.action.setBadgeText({ text: '' });
+        }
+    });
+}
+
+// =============================================
 // INSTALAÇÃO E INICIALIZAÇÃO
 // =============================================
 
 chrome.runtime.onInstalled.addListener((details) => {
-    smLog("✅ SyntaxMentor Elite v2.7.1 instalado!");
+    smLog("✅ SyntaxMentor Elite v2.8.1 instalado!");
     
     if (details.reason === 'install') {
         // Salva data de instalação para badge NEW
@@ -43,61 +101,77 @@ chrome.runtime.onInstalled.addListener((details) => {
         chrome.action.setBadgeBackgroundColor({ color: '#6f42c1' });
         chrome.action.setTitle({ title: 'SyntaxMentor: Novo! Clique para configurar' });
         
-        // Remove o badge NEW após 7 dias
-        setTimeout(() => {
-            chrome.storage.local.get({ dataInstalacao: 0 }, (res) => {
-                const dias = (Date.now() - res.dataInstalacao) / (1000 * 60 * 60 * 24);
-                if (dias >= 7) {
-                    chrome.action.setBadgeText({ text: '' });
-                }
-            });
-        }, 7 * 24 * 60 * 60 * 1000);
+        // 🔥 CORREÇÃO: Usar chrome.alarms em vez de setTimeout
+        agendarRemocaoBadgeNew();
     }
     
     if (details.reason === 'update') {
-        smLog("📦 SyntaxMentor atualizado para versão 2.7.1");
+        smLog("📦 SyntaxMentor atualizado para versão 2.8.1");
+        
+        // Verificar se veio de uma versão anterior e corrigir badge se necessário
+        verificarBadgeNew();
     }
     
     criarMenuContexto();
 });
 
 chrome.runtime.onStartup.addListener(() => {
-    // Verifica se ainda está no período NEW
-    chrome.storage.local.get({ dataInstalacao: 0, cloudSync: false }, (res) => {
-        if (res.dataInstalacao) {
-            const dias = (Date.now() - res.dataInstalacao) / (1000 * 60 * 60 * 24);
-            if (dias < 7) {
-                chrome.action.setBadgeText({ text: 'NEW' });
-                chrome.action.setBadgeBackgroundColor({ color: '#6f42c1' });
-            }
-        }
-
-        // Restaurar dados do storage.sync se cloudSync estiver ativo
+    smLog("🔄 Chrome iniciado, restaurando estado do SyntaxMentor");
+    
+    // Verificar se ainda está no período NEW
+    verificarBadgeNew();
+    
+    // Restaurar dados do storage.sync se cloudSync estiver ativo
+    chrome.storage.local.get({ cloudSync: false }, (res) => {
         if (res.cloudSync) {
             chrome.storage.sync.get(null, (syncData) => {
                 if (chrome.runtime.lastError || !syncData || Object.keys(syncData).length === 0) return;
                 chrome.storage.local.set(syncData);
+                smLog("☁️ Dados sincronizados com a nuvem na inicialização");
             });
         }
     });
+    
     criarMenuContexto();
+});
+
+// Listener para alarmes
+chrome.alarms.onAlarm.addListener((alarm) => {
+    smLog(`🔔 Alarme disparado: ${alarm.name}`);
+    
+    if (alarm.name === 'removeNewBadge') {
+        removerBadgeNew();
+    }
 });
 
 // Listener para manter sync atualizado quando dados locais mudarem
 chrome.storage.onChanged.addListener((changes, namespace) => {
     if (namespace !== 'local') return;
-    const CAMPOS_SYNC = ['dicionario_pessoal','blacklist','language','pickyMode',
-        'toggleShortcut','ignoreShortcut','corrigirTudoShortcut',
-        'ativarShortcut','desativarShortcut','modoWhitelist','whitelist'];
+    
+    const CAMPOS_SYNC = [
+        'dicionario_pessoal', 'blacklist', 'language', 'pickyMode',
+        'toggleShortcut', 'ignoreShortcut', 'corrigirTudoShortcut',
+        'ativarShortcut', 'desativarShortcut', 'modoWhitelist', 'whitelist'
+    ];
+    
     const temCampoSync = CAMPOS_SYNC.some(k => changes[k] !== undefined);
     if (!temCampoSync) return;
+    
     chrome.storage.local.get({ cloudSync: false }, (res) => {
         if (!res.cloudSync) return;
+        
         const atualizacoes = {};
         CAMPOS_SYNC.forEach(k => {
             if (changes[k] !== undefined) atualizacoes[k] = changes[k].newValue;
         });
-        chrome.storage.sync.set(atualizacoes);
+        
+        chrome.storage.sync.set(atualizacoes, () => {
+            if (chrome.runtime.lastError) {
+                console.debug('Erro ao sincronizar:', chrome.runtime.lastError.message);
+            } else {
+                smLog('☁️ Dados sincronizados com a nuvem');
+            }
+        });
     });
 });
 
@@ -246,6 +320,8 @@ function criarMenuContexto() {
             title: '↩ Ignorar nesta sessão',
             contexts: ['selection']
         });
+        
+        smLog("📋 Menu de contexto criado");
     });
 }
 
@@ -268,6 +344,7 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
             if (!dic.includes(palavra)) {
                 dic.push(palavra);
                 chrome.storage.local.set({ dicionario_pessoal: dic });
+                smLog(`📖 Palavra adicionada ao dicionário: ${palavra}`);
             }
         });
     }
@@ -335,7 +412,7 @@ function exportarDados() {
             delete res.dataInstalacao;
             
             const backup = {
-                versao: '2.7.1',
+                versao: '2.8.1',
                 data: new Date().toISOString(),
                 dados: res
             };
@@ -434,12 +511,14 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                 if (index > -1) {
                     overrides.splice(index, 1);
                     chrome.storage.local.set({ userBlacklistOverrides: overrides });
+                    smLog(`✅ Site ativado: ${host}`);
                 }
             } else {
                 // Desativar: adicionar à lista
                 if (!overrides.includes(host)) {
                     overrides.push(host);
                     chrome.storage.local.set({ userBlacklistOverrides: overrides });
+                    smLog(`⛔ Site desativado: ${host}`);
                 }
             }
             
@@ -505,6 +584,10 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                     errorMessage = 'Timeout: O servidor demorou muito para responder';
                 } else if (err.message.includes('Failed to fetch')) {
                     errorMessage = 'Erro de conexão: Verifique sua internet';
+                } else if (err.message.includes('HTTP Error 401')) {
+                    errorMessage = 'API Key inválida - Verifique suas configurações';
+                } else if (err.message.includes('HTTP Error 429')) {
+                    errorMessage = 'Muitas requisições - Aguarde um momento';
                 }
                 
                 try {
@@ -541,6 +624,8 @@ chrome.storage.onChanged.addListener((changes, namespace) => {
 // =============================================
 
 chrome.commands.onCommand.addListener((command) => {
+    smLog(`⌨️ Atalho pressionado: ${command}`);
+    
     // Ativar extensão
     if (command === 'ativar-extensao') {
         chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
@@ -569,6 +654,8 @@ chrome.commands.onCommand.addListener((command) => {
                         setTimeout(() => {
                             chrome.action.setBadgeText({ text: '', tabId: tabs[0].id });
                         }, 2000);
+                        
+                        smLog(`✅ Extensão ativada no site: ${host}`);
                     });
                 } catch (e) {
                     console.debug('Erro ao ativar extensão:', e);
@@ -604,6 +691,8 @@ chrome.commands.onCommand.addListener((command) => {
                         setTimeout(() => {
                             chrome.action.setBadgeText({ text: '', tabId: tabs[0].id });
                         }, 2000);
+                        
+                        smLog(`⛔ Extensão desativada no site: ${host}`);
                     });
                 } catch (e) {
                     console.debug('Erro ao desativar extensão:', e);
@@ -617,6 +706,7 @@ chrome.commands.onCommand.addListener((command) => {
         chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
             if (tabs[0]?.id && tabs[0]?.url && !tabs[0].url.startsWith('chrome://')) {
                 chrome.tabs.sendMessage(tabs[0].id, { action: 'togglePainel' }).catch(() => {});
+                smLog(`📂 Toggle painel enviado`);
             }
         });
     }
@@ -626,9 +716,32 @@ chrome.commands.onCommand.addListener((command) => {
         chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
             if (tabs[0]?.id && tabs[0]?.url && !tabs[0].url.startsWith('chrome://')) {
                 chrome.tabs.sendMessage(tabs[0].id, { action: 'corrigirTudo' }).catch(() => {});
+                smLog(`✨ Corrigir tudo enviado`);
             }
         });
     }
 });
 
-smLog("🚀 SyntaxMentor Background Service Worker v2.7.1 iniciado!");
+// =============================================
+// LIMPEZA DE ALARMES ANTIGOS (opcional)
+// =============================================
+
+/**
+ * Limpa alarmes órfãos que não são mais necessários
+ */
+function limparAlarmesAntigos() {
+    chrome.alarms.getAll((alarms) => {
+        const alarmesValidos = ['removeNewBadge'];
+        alarms.forEach(alarm => {
+            if (!alarmesValidos.includes(alarm.name)) {
+                chrome.alarms.clear(alarm.name);
+                smLog(`🗑️ Alarme órfão removido: ${alarm.name}`);
+            }
+        });
+    });
+}
+
+// Executar limpeza de alarmes na inicialização
+limparAlarmesAntigos();
+
+smLog("🚀 SyntaxMentor Background Service Worker v2.8.1 iniciado!");

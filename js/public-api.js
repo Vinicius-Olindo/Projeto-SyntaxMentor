@@ -1,6 +1,5 @@
 // =============================================
-// SyntaxMentor - Public API v1.0
-// Permite que outros sites usem o corretor
+// SyntaxMentor - Public API v2.8.0b
 // =============================================
 
 (function() {
@@ -12,23 +11,51 @@
         return;
     }
 
-    // Rate limiting — máx 10 chamadas/s e debounce de 300ms
-    let _lastCallTime = 0;
-    let _callCount = 0;
-    let _callWindowStart = Date.now();
-    let _debounceTimer = null;
+    // =============================================
+    // RATE LIMITING MELHORADO
+    // =============================================
+    let _callTimestamps = []; // Array de timestamps das últimas chamadas
+    const MAX_CALLS_PER_SECOND = 10;
+    const RATE_WINDOW_MS = 1000;
+    
+    // Cache LRU simples para evitar chamadas repetidas ao mesmo texto em curto período
+    const _cache = new Map();
+    const CACHE_MAX_SIZE = 50;
+    const CACHE_TTL_MS = 60000; // 1 minuto
 
     function _checkRateLimit() {
         const now = Date.now();
-        if (now - _callWindowStart > 1000) {
-            _callCount = 0;
-            _callWindowStart = now;
+        
+        // Limpar timestamps antigos
+        _callTimestamps = _callTimestamps.filter(ts => now - ts < RATE_WINDOW_MS);
+        
+        if (_callTimestamps.length >= MAX_CALLS_PER_SECOND) {
+            throw new Error(`Limite de requisições atingido (${MAX_CALLS_PER_SECOND}/s). Aguarde um momento.`);
         }
-        if (_callCount >= 10) {
-            throw new Error('Limite de requisições atingido (10/s). Aguarde um momento.');
+        
+        _callTimestamps.push(now);
+    }
+    
+    function _getCached(key) {
+        const cached = _cache.get(key);
+        if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
+            return cached.result;
         }
-        _callCount++;
-        _lastCallTime = now;
+        _cache.delete(key);
+        return null;
+    }
+    
+    function _setCache(key, result) {
+        // Limitar tamanho do cache
+        if (_cache.size >= CACHE_MAX_SIZE) {
+            const firstKey = _cache.keys().next().value;
+            _cache.delete(firstKey);
+        }
+        _cache.set(key, { result, timestamp: Date.now() });
+    }
+    
+    function _getCacheKey(text, options) {
+        return `${text}|${options.language || ''}|${options.pickyMode !== undefined ? options.pickyMode : ''}`;
     }
     
     // =============================================
@@ -36,19 +63,34 @@
     // =============================================
     
     const config = {
-        version: '2.7.1',
+        version: '2.8.1',
         language: 'pt-BR',
         pickyMode: true,
-        apiUrl: 'https://api.languagetool.org/v2/check'
+        apiUrl: 'https://api.languagetool.org/v2/check',
+        maxTextLength: 10000 // Limite de segurança
     };
     
-    // Fila de requisições
+    // Fila de requisições com limite de tamanho
     let requestQueue = [];
     let isProcessing = false;
+    const MAX_QUEUE_SIZE = 20;
     
     // =============================================
     // FUNÇÕES PRIVADAS
     // =============================================
+    
+    /**
+     * Valida e sanitiza entrada
+     */
+    function _validateText(text) {
+        if (!text || typeof text !== 'string') {
+            throw new Error('Texto inválido: deve ser uma string não vazia');
+        }
+        if (text.length > config.maxTextLength) {
+            throw new Error(`Texto muito longo (máximo ${config.maxTextLength} caracteres)`);
+        }
+        return text.trim();
+    }
     
     /**
      * Faz requisição para a API LanguageTool
@@ -63,28 +105,37 @@
         
         if (config.pickyMode) params.set('level', 'picky');
         
+        // Timeout de 10 segundos
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000);
+        
         try {
             const response = await fetch(config.apiUrl, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded'
                 },
-                body: params
+                body: params,
+                signal: controller.signal
             });
             
+            clearTimeout(timeoutId);
+            
             if (!response.ok) {
+                if (response.status === 429) {
+                    throw new Error('Muitas requisições. Aguarde um momento.');
+                }
                 throw new Error(`HTTP ${response.status}`);
             }
             
             const data = await response.json();
             return formatResponse(data, text);
         } catch (error) {
-            console.error('SyntaxMentor API Error:', error);
-            return {
-                success: false,
-                error: error.message,
-                text: text
-            };
+            clearTimeout(timeoutId);
+            if (error.name === 'AbortError') {
+                throw new Error('Timeout: O servidor demorou para responder');
+            }
+            throw error;
         }
     }
     
@@ -118,7 +169,6 @@
         });
         
         // Texto corrigido (aplica a primeira sugestão de cada erro)
-        // Processa de trás para frente para não deslocar os offsets das correções seguintes
         let correctedText = originalText;
         const correcoesPorOffset = matches
             .filter(m => m.replacements && m.replacements.length > 0)
@@ -142,46 +192,60 @@
     }
     
     /**
-     * Processa a fila de requisições
+     * Processa a fila de requisições (SEM DEBOUNCE INTERNO)
      */
     async function processQueue() {
         if (isProcessing || requestQueue.length === 0) return;
         
         isProcessing = true;
-        const { text, callback, options } = requestQueue.shift();
+        const { text, resolve, reject, options } = requestQueue.shift();
         
-        // Atualizar configuração temporária se fornecida
-        const previousLang = config.language;
-        const previousPicky = config.pickyMode;
-        
-        if (options) {
-            if (options.language) config.language = options.language;
-            if (options.pickyMode !== undefined) config.pickyMode = options.pickyMode;
+        try {
+            // Aplica rate limit ANTES de processar
+            _checkRateLimit();
+            
+            // Verifica cache
+            const cacheKey = _getCacheKey(text, options);
+            const cached = _getCached(cacheKey);
+            if (cached) {
+                resolve(cached);
+                isProcessing = false;
+                processQueue();
+                return;
+            }
+            
+            // Atualizar configuração temporária se fornecida
+            const previousLang = config.language;
+            const previousPicky = config.pickyMode;
+            
+            if (options) {
+                if (options.language) config.language = options.language;
+                if (options.pickyMode !== undefined) config.pickyMode = options.pickyMode;
+            }
+            
+            const result = await checkGrammar(text);
+            
+            // Restaurar configuração
+            config.language = previousLang;
+            config.pickyMode = previousPicky;
+            
+            // Armazena em cache
+            _setCache(cacheKey, result);
+            
+            resolve(result);
+        } catch (error) {
+            reject(error);
+        } finally {
+            isProcessing = false;
+            processQueue();
         }
-        
-        const result = await checkGrammar(text);
-        
-        // Restaurar configuração
-        config.language = previousLang;
-        config.pickyMode = previousPicky;
-        
-        if (callback) callback(result);
-        
-        isProcessing = false;
-        processQueue();
     }
     
     // =============================================
     // FUNÇÕES PÚBLICAS
     // =============================================
     
-    /**
-     * API Pública do SyntaxMentor
-     */
     window.SyntaxMentor = {
-        /**
-         * Versão da API
-         */
         version: config.version,
         
         /**
@@ -192,68 +256,41 @@
             if (options.language) config.language = options.language;
             if (options.pickyMode !== undefined) config.pickyMode = options.pickyMode;
             if (options.apiUrl) config.apiUrl = options.apiUrl;
+            if (options.maxTextLength) config.maxTextLength = options.maxTextLength;
             
-            console.log('SyntaxMentor API configurada:', config);
+            console.log('SyntaxMentor API configurada:', { language: config.language, pickyMode: config.pickyMode });
             return this;
         },
         
         /**
-         * Corrige um texto
+         * Corrige um texto (SEM DEBOUNCE, respeita rate limit)
          * @param {string} text - Texto a ser corrigido
-         * @param {Object} options - Opções (callback, language, etc)
+         * @param {Object} options - Opções
          * @returns {Promise<Object>}
          */
         correct: function(text, options = {}) {
             return new Promise((resolve, reject) => {
-                if (!text || typeof text !== 'string') {
-                    reject(new Error('Texto inválido'));
-                    return;
-                }
-
-                // Debounce de 300ms + rate limit de 10/s
-                clearTimeout(_debounceTimer);
-                _debounceTimer = setTimeout(() => {
-                    try { _checkRateLimit(); } catch (e) { reject(e); return; }
-
-                const callback = (result) => {
-                    if (result.success) {
-                        resolve(result);
-                    } else {
-                        reject(new Error(result.error));
+                try {
+                    const textoValidado = _validateText(text);
+                    
+                    // Verificar se a fila não está cheia
+                    if (requestQueue.length >= MAX_QUEUE_SIZE) {
+                        reject(new Error('Fila de requisições cheia. Aguarde.'));
+                        return;
                     }
-                };
-                
-                requestQueue.push({
-                    text: text,
-                    callback: callback,
-                    options: options
-                });
-
-                processQueue();
-                }, 300); // fim debounce
+                    
+                    requestQueue.push({
+                        text: textoValidado,
+                        resolve,
+                        reject,
+                        options
+                    });
+                    
+                    processQueue();
+                } catch (err) {
+                    reject(err);
+                }
             });
-        },
-        
-        /**
-         * Corrige um texto (versão síncrona com callback)
-         * @param {string} text - Texto a ser corrigido
-         * @param {Object} options - Opções (callback, language, etc)
-         */
-        correctAsync: function(text, options = {}) {
-            const callback = options.callback || function() {};
-            
-            if (!text || typeof text !== 'string') {
-                callback({ success: false, error: 'Texto inválido' });
-                return;
-            }
-            
-            requestQueue.push({
-                text: text,
-                callback: callback,
-                options: options
-            });
-            
-            processQueue();
         },
         
         /**
@@ -264,10 +301,7 @@
          */
         getSuggestions: async function(text, options = {}) {
             const result = await this.correct(text, options);
-            if (result.success) {
-                return result.corrections;
-            }
-            return [];
+            return result.corrections;
         },
         
         /**
@@ -312,7 +346,17 @@
         },
         
         /**
-         * Adiciona palavras ao dicionário pessoal
+         * Limpa o cache da API
+         */
+        clearCache: function() {
+            _cache.clear();
+            _callTimestamps = [];
+            console.log('Cache da API limpo');
+            return this;
+        },
+        
+        /**
+         * Adiciona palavras ao dicionário pessoal (com validação)
          * @param {string|Array} words - Palavra ou array de palavras
          */
         addToDictionary: function(words) {
