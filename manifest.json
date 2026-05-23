@@ -96,7 +96,6 @@
                 "js/content.js",
                 "css/content.css",
                 "welcome.html",
-                "js/offline-grammar.js",
                 "js/sentiment-analysis.js",
                 "js/export-reports.js",
                 "js/public-api.js",

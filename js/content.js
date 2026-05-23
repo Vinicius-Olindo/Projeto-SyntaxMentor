@@ -1,6 +1,5 @@
 // =============================================
 // SyntaxMentor - content.js v2.8.1 Elite
-// CORREÇÕES: Desfazer (Ctrl+Z), Escape HTML, Performance
 // =============================================
 
 // =============================================
@@ -143,20 +142,35 @@ function isExtensaoAtiva() {
 }
 
 function storageGetSeguro(chave, fallback) {
-    if (!isExtensaoAtiva()) {
-        fallback({});
+    // Verificar se está em contexto permitido
+    if (!isExtensaoAtiva() || !chrome.storage || !chrome.storage.local) {
+        if (fallback) fallback({});
         return;
     }
+    
+    // Verificar se é um frame cross-origin
+    try {
+        if (window.self !== window.top && !document.cookie) {
+            if (fallback) fallback({});
+            return;
+        }
+    } catch (e) {
+        if (fallback) fallback({});
+        return;
+    }
+    
     try {
         chrome.storage.local.get(chave, (res) => {
             if (chrome.runtime.lastError) {
-                fallback({});
+                console.debug('Erro no storage.get:', chrome.runtime.lastError.message);
+                if (fallback) fallback({});
                 return;
             }
-            fallback(res);
+            if (fallback) fallback(res);
         });
     } catch (e) {
-        fallback({});
+        console.debug('Exceção no storage.get:', e);
+        if (fallback) fallback({});
     }
 }
 
@@ -1343,9 +1357,9 @@ if (typeof chrome !== 'undefined' && chrome.runtime) {
         return false;
     });
 }
-const offlineScript = document.createElement('script');
-offlineScript.src = chrome.runtime.getURL('js/offline-grammar.js');
-(document.head || document.documentElement).appendChild(offlineScript);
+// const offlineScript = document.createElement('script');
+// offlineScript.src = chrome.runtime.getURL('js/offline-grammar.js');
+// (document.head || document.documentElement).appendChild(offlineScript);
 
 // =============================================
 // ANÁLISE DE SENTIMENTO
@@ -1449,20 +1463,45 @@ function mostrarExplicacaoRegra(original, sugestao, mensagem, erroObj) {
     setTimeout(fechar, 12000);
 }
 function carregarSmConfig(callback) {
-    chrome.storage.session.get({ apiKey: '' }, (sess) => {
-    storageGetSeguro({
-        language: 'pt-BR', pickyMode: true, speed: 500, darkMode: false, blacklist: [], apiUrl: '', apiKey: '', strictMode: false, disabled: false, autoHideBubble: false, modoConfirmacao: false, modoLeituraGlobal: false, modoLeituraSites: [], modoWhitelist: false, whitelist: [], erroMaisComum: {}, modoFoco: false, modoAprendizado: false, userBlacklistOverrides: [], toggleShortcut: { altKey: true, ctrlKey: false, shiftKey: false, key: 's' }, ignoreShortcut: { altKey: true, ctrlKey: false, shiftKey: false, key: 'i' }, corrigirTudoShortcut: { altKey: true, ctrlKey: false, shiftKey: true, key: 's' }, ativarShortcut: { altKey: true, ctrlKey: false, shiftKey: true, key: 'a' }, desativarShortcut: { altKey: true, ctrlKey: false, shiftKey: true, key: 'd' }
-    }, (res) => {
-        Object.assign(smConfig, res);
-        dicCache = (res.dicionario_pessoal || []).map(w => w.toLowerCase());
-        const host = window.location.hostname;
-        const overrides = res.userBlacklistOverrides || [];
-        if (overrides.includes(host)) smConfig.disabled = true;
-        else if (res.modoWhitelist) smConfig.disabled = !(res.whitelist || []).some(d => host.includes(d));
-        else smConfig.disabled = (res.blacklist || []).some(d => host.includes(d));
-        smConfig.apiKey = sess.apiKey || '';
+    // Verificar se storage.session está disponível
+    if (!chrome.storage || !chrome.storage.session) {
+        console.debug('SyntaxMentor: storage.session não disponível');
+        smConfig.apiKey = '';
         if (callback) callback();
-    });
+        return;
+    }
+    
+    chrome.storage.session.get({ apiKey: '' }, (sess) => {
+        if (chrome.runtime.lastError) {
+            console.debug('Erro ao acessar session storage:', chrome.runtime.lastError.message);
+            sess = { apiKey: '' };
+        }
+        
+        storageGetSeguro({
+            language: 'pt-BR', pickyMode: true, speed: 500, darkMode: false,
+            blacklist: [], apiUrl: '', apiKey: '', strictMode: false,
+            disabled: false, autoHideBubble: false, modoConfirmacao: false,
+            modoLeituraGlobal: false, modoLeituraSites: [], modoWhitelist: false,
+            whitelist: [], erroMaisComum: {}, modoFoco: false, modoAprendizado: false,
+            userBlacklistOverrides: [], dicionario_pessoal: [],
+            toggleShortcut: { altKey: true, ctrlKey: false, shiftKey: false, key: 's' },
+            ignoreShortcut: { altKey: true, ctrlKey: false, shiftKey: false, key: 'i' },
+            corrigirTudoShortcut: { altKey: true, ctrlKey: false, shiftKey: true, key: 's' },
+            ativarShortcut: { altKey: true, ctrlKey: false, shiftKey: true, key: 'a' },
+            desativarShortcut: { altKey: true, ctrlKey: false, shiftKey: true, key: 'd' }
+        }, (res) => {
+            Object.assign(smConfig, res);
+            smConfig.apiKey = (sess && sess.apiKey) || '';
+            dicCache = (res.dicionario_pessoal || []).map(w => w.toLowerCase());
+            
+            const host = window.location.hostname;
+            const overrides = res.userBlacklistOverrides || [];
+            if (overrides.includes(host)) smConfig.disabled = true;
+            else if (res.modoWhitelist) smConfig.disabled = !(res.whitelist || []).some(d => host.includes(d));
+            else smConfig.disabled = (res.blacklist || []).some(d => host.includes(d));
+            
+            if (callback) callback();
+        });
     });
 }
 function carregarPublicAPI() {

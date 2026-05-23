@@ -447,165 +447,284 @@ if (document.body.classList.contains('geral-page')) {
     }
     
     // =============================================
-    // BACKUP (EXPORTAR/IMPORTAR)
+    // BACKUP (EXPORTAR/IMPORTAR) - CORRIGIDO
     // =============================================
-    
-    function configurarBackup() {
-        if (btnExportar) {
-            btnExportar.addEventListener('click', () => {
-                mostrarNotificacao('⏳ A gerar backup...', 'info');
-                
-                chrome.storage.local.get(null, (dados) => {
-                    delete dados.apiKey;
-                    delete dados.dataInstalacao;
-                    
-                    const jsonStr = JSON.stringify({
-                        versao: '2.7.1',
-                        data: new Date().toISOString(),
-                        dados
-                    }, null, 2);
-                    
-                    const blob = new Blob([jsonStr], { type: 'application/json' });
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    
-                    a.href = url;
-                    a.download = `syntaxmentor-backup-${new Date().toISOString().split('T')[0]}.json`;
-                    document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
-                    URL.revokeObjectURL(url);
-                    
-                    mostrarNotificacao('✅ Backup exportado com sucesso!', 'success');
-                });
-            });
-        }
+
+    /**
+     * Modal de confirmação inline para options page
+     * @param {string} mensagem - Mensagem a ser exibida
+     * @param {Function} onConfirm - Callback ao confirmar
+     */
+    function smConfirmOptions(mensagem, onConfirm) {
+        const existing = document.getElementById('sm-confirm-modal-options');
+        if (existing) existing.remove();
+
+        const overlay = document.createElement('div');
+        overlay.id = 'sm-confirm-modal-options';
+        overlay.style.cssText = `
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 100000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+        `;
+
+        const box = document.createElement('div');
+        box.style.cssText = `
+            background: var(--color-background-primary, white);
+            border-radius: 16px;
+            padding: 24px 28px;
+            max-width: 420px;
+            width: 90%;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+        `;
+
+        const msg = document.createElement('p');
+        msg.style.cssText = `
+            margin: 0 0 20px;
+            font-size: 14px;
+            line-height: 1.6;
+            color: var(--color-text-primary, #333);
+            white-space: pre-line;
+        `;
+        msg.textContent = mensagem;
+
+        const btns = document.createElement('div');
+        btns.style.cssText = 'display: flex; gap: 12px; justify-content: flex-end;';
+
+        const btnCancelar = document.createElement('button');
+        btnCancelar.textContent = 'Cancelar';
+        btnCancelar.style.cssText = `
+            padding: 8px 20px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            border-radius: 8px;
+            border: 1px solid var(--color-border-secondary, #d1d5db);
+            background: var(--color-background-secondary, #f3f4f6);
+            color: var(--color-text-secondary, #6b7280);
+            transition: all 0.2s;
+        `;
+
+        const btnConfirmar = document.createElement('button');
+        btnConfirmar.textContent = 'Confirmar';
+        btnConfirmar.style.cssText = `
+            padding: 8px 20px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            border-radius: 8px;
+            border: none;
+            background: linear-gradient(135deg, #6f42c1, #8b5cf6);
+            color: white;
+            transition: all 0.2s;
+        `;
+
+        const fechar = () => overlay.remove();
         
-        if (btnImportar && inputImportar) {
-            btnImportar.addEventListener('click', () => inputImportar.click());
+        btnCancelar.addEventListener('click', fechar);
+        btnConfirmar.addEventListener('click', () => {
+            fechar();
+            onConfirm();
+        });
+        
+        btnCancelar.addEventListener('mouseenter', () => {
+            btnCancelar.style.background = '#e5e7eb';
+        });
+        btnCancelar.addEventListener('mouseleave', () => {
+            btnCancelar.style.background = 'var(--color-background-secondary, #f3f4f6)';
+        });
+        
+        btnConfirmar.addEventListener('mouseenter', () => {
+            btnConfirmar.style.transform = 'translateY(-1px)';
+            btnConfirmar.style.boxShadow = '0 4px 12px rgba(111, 66, 193, 0.3)';
+        });
+        btnConfirmar.addEventListener('mouseleave', () => {
+            btnConfirmar.style.transform = 'translateY(0)';
+            btnConfirmar.style.boxShadow = 'none';
+        });
+        
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) fechar();
+        });
+
+        btns.appendChild(btnCancelar);
+        btns.appendChild(btnConfirmar);
+        box.appendChild(msg);
+        box.appendChild(btns);
+        overlay.appendChild(box);
+        document.body.appendChild(overlay);
+        
+        btnCancelar.focus();
+    }
+
+    function configurarBackup() {
+    const btnExportar = document.getElementById('btn-exportar');
+    const btnImportar = document.getElementById('btn-importar');
+    const inputImportar = document.getElementById('input-importar');
+    
+    // Exportar
+    if (btnExportar) {
+        btnExportar.addEventListener('click', () => {
+            mostrarNotificacao('⏳ Gerando backup...', 'info');
             
-            inputImportar.addEventListener('change', (e) => {
-                const file = e.target.files[0];
-                if (!file) return;
+            chrome.storage.local.get(null, (dados) => {
+                delete dados.apiKey;
+                delete dados.dataInstalacao;
                 
-                const ext = file.name.split('.').pop().toLowerCase();
-                if (ext !== 'json' && ext !== 'txt') {
-                    mostrarNotificacao('❌ Formato inválido. Use .txt ou .json', 'error');
-                    inputImportar.value = '';
-                    return;
-                }
-                
-                if (file.size > 10 * 1024 * 1024) {
-                    mostrarNotificacao('❌ Ficheiro muito grande. Máximo: 10MB', 'error');
-                    inputImportar.value = '';
-                    return;
-                }
-                
-                mostrarNotificacao('⏳ A preparar importação...', 'info');
-                
-                const reader = new FileReader();
-                
-                reader.onerror = () => {
-                    mostrarNotificacao('❌ Erro ao ler o ficheiro', 'error');
-                    inputImportar.value = '';
+                const backup = {
+                    versao: '2.8.1',
+                    data: new Date().toISOString(),
+                    dados: dados
                 };
                 
-                reader.onload = (event) => {
-                    try {
-                        const conteudo = event.target.result;
-                        let palavrasImportadas = [];
-                        let blacklistImportada = [];
-                        let idiomaImportado = null;
+                const jsonStr = JSON.stringify(backup, null, 2);
+                const blob = new Blob([jsonStr], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                
+                a.href = url;
+                a.download = `syntaxmentor-backup-${new Date().toISOString().split('T')[0]}.json`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                
+                mostrarNotificacao('✅ Backup exportado!', 'success');
+            });
+        });
+    }
+    
+    // Importar
+    if (btnImportar && inputImportar) {
+        btnImportar.addEventListener('click', () => inputImportar.click());
+        
+        inputImportar.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            const ext = file.name.split('.').pop().toLowerCase();
+            if (ext !== 'json' && ext !== 'txt') {
+                mostrarNotificacao('❌ Use arquivo .txt ou .json', 'error');
+                inputImportar.value = '';
+                return;
+            }
+            
+            if (file.size > 10 * 1024 * 1024) {
+                mostrarNotificacao('❌ Arquivo muito grande (max 10MB)', 'error');
+                inputImportar.value = '';
+                return;
+            }
+            
+            mostrarNotificacao('⏳ Processando...', 'info');
+            
+            const reader = new FileReader();
+            
+            reader.onload = (event) => {
+                try {
+                    const conteudo = event.target.result;
+                    let palavrasImportadas = [];
+                    let blacklistImportada = [];
+                    let idiomaImportado = null;
+                    
+                    if (ext === 'txt') {
+                        palavrasImportadas = conteudo.split(/\r?\n/)
+                            .map(l => l.trim().toLowerCase())
+                            .filter(l => l.length > 0 && !l.startsWith('#'));
+                    } else {
+                        const backup = JSON.parse(conteudo);
+                        const fonte = backup.dados || backup;
+                        palavrasImportadas = fonte.dicionario_pessoal || [];
+                        blacklistImportada = fonte.blacklist || [];
+                        idiomaImportado = fonte.language || null;
+                    }
+                    
+                    chrome.storage.local.get(['dicionario_pessoal', 'blacklist', 'language'], (res) => {
+                        const dicAtual = res.dicionario_pessoal || [];
+                        const blackAtual = res.blacklist || [];
                         
-                        if (ext === 'txt') {
-                            palavrasImportadas = conteudo.split(/\r?\n/)
-                                .map(l => l.trim().toLowerCase())
-                                .filter(l => l.length > 0 && !l.startsWith('#') && !l.startsWith('//'));
-                        } else {
-                            let backup;
-                            try {
-                                backup = JSON.parse(conteudo);
-                            } catch (err) {
-                                mostrarNotificacao('❌ JSON inválido', 'error');
-                                inputImportar.value = '';
-                                return;
-                            }
-                            
-                            const fonte = backup.dados || backup;
-                            palavrasImportadas = Array.isArray(fonte.dicionario_pessoal) ? fonte.dicionario_pessoal : [];
-                            blacklistImportada = Array.isArray(fonte.blacklist) ? fonte.blacklist : [];
-                            if (fonte.language) idiomaImportado = fonte.language;
-                        }
+                        // Contar novidades
+                        let novasPalavras = 0;
+                        let duplicadasPalavras = 0;
+                        palavrasImportadas.forEach(p => {
+                            if (dicAtual.includes(p)) duplicadasPalavras++;
+                            else novasPalavras++;
+                        });
                         
-                        chrome.storage.local.get(['dicionario_pessoal', 'blacklist', 'language'], (res) => {
-                            const dicFinal = [...(res.dicionario_pessoal || [])];
-                            const blackFinal = [...(res.blacklist || [])];
-                            
-                            let novasPalavras = 0, duplicadasPalavras = 0;
-                            let novosSites = 0, duplicadosSites = 0;
+                        let novosSites = 0;
+                        let duplicadosSites = 0;
+                        blacklistImportada.forEach(s => {
+                            if (blackAtual.includes(s)) duplicadosSites++;
+                            else novosSites++;
+                        });
+                        
+                        // Montar mensagem do modal
+                        let mensagem = "📊 Resumo da Importação:\n\n";
+                        mensagem += `📖 Dicionário: ➕ ${novasPalavras} novas, ⏭️ ${duplicadasPalavras} duplicadas\n\n`;
+                        mensagem += `🚫 Blacklist: ➕ ${novosSites} novos, ⏭️ ${duplicadosSites} duplicados\n\n`;
+                        mensagem += "Confirmar importação?";
+                        
+                        // Mostrar modal de confirmação
+                        if (confirm(mensagem)) {
+                            const dicFinal = [...dicAtual];
+                            const blackFinal = [...blackAtual];
                             
                             palavrasImportadas.forEach(p => {
-                                if (!dicFinal.includes(p)) {
-                                    dicFinal.push(p);
-                                    novasPalavras++;
-                                } else {
-                                    duplicadasPalavras++;
-                                }
+                                if (!dicFinal.includes(p)) dicFinal.push(p);
                             });
                             
                             blacklistImportada.forEach(s => {
-                                if (!blackFinal.includes(s)) {
-                                    blackFinal.push(s);
-                                    novosSites++;
-                                } else {
-                                    duplicadosSites++;
-                                }
+                                if (!blackFinal.includes(s)) blackFinal.push(s);
                             });
                             
-                            let msg = "📊 Resumo da Importação:\n\n";
-                            if (novasPalavras > 0 || duplicadasPalavras > 0) {
-                                msg += `📖 Dicionário: ➕${novasPalavras} novas, ⏭️${duplicadasPalavras} duplicadas\n\n`;
-                            }
-                            if (novosSites > 0 || duplicadosSites > 0) {
-                                msg += `🚫 Blacklist: ➕${novosSites} novos, ⏭️${duplicadosSites} duplicados\n\n`;
-                            }
-                            msg += "Deseja confirmar?";
-                            
-                            smConfirm(msg, () => {
-                            const dadosParaSalvar = {
+                            const dadosSalvar = {
                                 dicionario_pessoal: dicFinal,
                                 blacklist: blackFinal
                             };
-
-                            if (idiomaImportado) dadosParaSalvar.language = idiomaImportado;
-
-                            chrome.storage.local.set(dadosParaSalvar, () => {
-                                if (chrome.runtime.lastError) {
-                                    mostrarNotificacao('❌ Erro ao guardar', 'error');
-                                    return;
+                            
+                            if (idiomaImportado && idiomaImportado !== res.language) {
+                                dadosSalvar.language = idiomaImportado;
+                            }
+                            
+                            chrome.storage.local.set(dadosSalvar, () => {
+                                let msg = '';
+                                if (novasPalavras > 0) msg += `📖 +${novasPalavras} palavras | `;
+                                if (novosSites > 0) msg += `🚫 +${novosSites} sites`;
+                                mostrarNotificacao(msg || '✅ Importado!', 'success');
+                                
+                                // Recarregar interface
+                                if (typeof currentDictionary !== 'undefined') {
+                                    currentDictionary = dicFinal;
+                                    if (typeof renderizarDicionario === 'function') renderizarDicionario();
                                 }
-
-                                mostrarNotificacao('✅ Importação concluída!', 'success');
-                                currentDictionary = dicFinal;
-                                currentBlacklist = blackFinal;
-                                renderizarDicionario();
-                                renderizarBlacklist();
+                                if (typeof currentBlacklist !== 'undefined') {
+                                    currentBlacklist = blackFinal;
+                                    if (typeof renderizarBlacklist === 'function') renderizarBlacklist();
+                                }
+                                
+                                const elLanguage = document.getElementById('language');
                                 if (idiomaImportado && elLanguage) elLanguage.value = idiomaImportado;
-                                atualizarStatusGeral();
+                                if (typeof atualizarStatusGeral === 'function') atualizarStatusGeral();
+                                
                                 inputImportar.value = '';
-                            }); // fecha chrome.storage.local.set
-                            }); // fecha smConfirm
-                        }); // fecha chrome.storage.local.get
-                    } catch (err) {
-                        mostrarNotificacao('❌ Erro ao processar', 'error');
-                        inputImportar.value = '';
-                    }
-                };
-                
-                reader.readAsText(file);
-            });
-        }
+                            });
+                        } else {
+                            inputImportar.value = '';
+                        }
+                    });
+                } catch (err) {
+                    mostrarNotificacao('❌ Erro ao ler arquivo', 'error');
+                    inputImportar.value = '';
+                }
+            };
+            
+            reader.readAsText(file);
+        });
     }
+}
     
     // =============================================
     // SALVAR CONFIGURAÇÕES
@@ -678,14 +797,16 @@ if (document.body.classList.contains('geral-page')) {
                     return;
                 }
                 
-                smConfirm(`⚠️ Tem certeza que deseja remover TODOS os ${currentBlacklist.length} sites bloqueados?\n\nEsta ação não pode ser desfeita.`, () => {
+                const mensagem = `⚠️ Tem certeza que deseja remover TODOS os ${currentBlacklist.length} sites bloqueados?\n\nEsta ação não pode ser desfeita.`;
+                
+                if (confirm(mensagem)) {
                     currentBlacklist = [];
                     salvarListaStorage(currentBlacklist, 'blacklist', () => {
                         renderizarBlacklist();
                         mostrarNotificacao('🗑️ Todos os sites foram removidos!', 'success');
                         atualizarStatusGeral();
                     });
-                })
+                }
             });
         }
         
@@ -717,14 +838,16 @@ if (document.body.classList.contains('geral-page')) {
                     return;
                 }
                 
-                smConfirm(`⚠️ Tem certeza que deseja remover TODAS as ${currentDictionary.length} palavras do dicionário?\n\nEsta ação não pode ser desfeita.`, () => {
+                const mensagem = `⚠️ Tem certeza que deseja remover TODAS as ${currentDictionary.length} palavras do dicionário?\n\nEsta ação não pode ser desfeita.`;
+                
+                if (confirm(mensagem)) {
                     currentDictionary = [];
                     salvarListaStorage(currentDictionary, 'dicionario_pessoal', () => {
                         renderizarDicionario();
                         mostrarNotificacao('🗑️ Todas as palavras foram removidas!', 'success');
                         atualizarStatusGeral();
                     });
-                })
+                }
             });
         }
     }
