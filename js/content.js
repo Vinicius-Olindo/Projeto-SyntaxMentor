@@ -50,6 +50,9 @@ let timeoutFoco = null;
 let iframeObserver = null;
 let processedIframes = new WeakSet();
 
+let badgeDebounceTimeout = null;
+let ultimoTotalEnviado = null;
+
 // =============================================
 // CONFIGURAÇÃO PADRÃO
 // =============================================
@@ -195,11 +198,37 @@ function isModoLeitura() {
 }
 
 function atualizarBadgeBackground(total) {
-    enviarMensagemSegura({ action: 'updateBadge', totalErros: total });
+    // Não enviar se o valor não mudou
+    if (ultimoTotalEnviado === total) return;
+    
+    // Limpar timeout anterior
+    if (badgeDebounceTimeout) {
+        clearTimeout(badgeDebounceTimeout);
+    }
+    
+    // Aguardar 150ms antes de enviar (evita spam durante digitação rápida)
+    badgeDebounceTimeout = setTimeout(() => {
+        if (!isExtensaoAtiva()) return;
+        
+        enviarMensagemSegura({ action: 'updateBadge', totalErros: total });
+        ultimoTotalEnviado = total;
+        badgeDebounceTimeout = null;
+    }, 150);
+}
+
+function resetarBadgeBackgroundImediato() {
+    if (badgeDebounceTimeout) {
+        clearTimeout(badgeDebounceTimeout);
+        badgeDebounceTimeout = null;
+    }
+    
+    if (!isExtensaoAtiva()) return;
+    enviarMensagemSegura({ action: 'resetBadge' });
+    ultimoTotalEnviado = null;
 }
 
 function resetarBadgeBackground() {
-    enviarMensagemSegura({ action: 'resetBadge' });
+    resetarBadgeBackgroundImediato();
 }
 
 function atualizarVisibilidadeBolha() {
@@ -1053,38 +1082,140 @@ function atualizarEstadoCarregamento(on) {
     }
 }
 
+// =============================================
+// APLICAR GRIFOS - VERSÃO OTIMIZADA COM CHUNKS
+// =============================================
+
 function aplicarGrifos(erros, el) {
     if (!el?.isContentEditable || isSiteRestrito) return;
-    isExtensaoMutando = true;
-    try {
+    
+    // Se não há erros, apenas remove os grifos existentes
+    if (!erros || erros.length === 0) {
         const marksExistentes = el.querySelectorAll('mark.sm-highlight');
-        marksExistentes.forEach(mark => { const parent = mark.parentNode; const texto = document.createTextNode(mark.textContent); parent.replaceChild(texto, mark); parent.normalize(); });
-        if (!erros || erros.length === 0) return;
-        const palavras = [...new Set(erros.map(e => e.context.text.substr(e.context.offset, e.context.length)).filter(Boolean))];
-        if (palavras.length === 0) return;
-        const regexPalavras = new RegExp(`\\b(${palavras.map(p => p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})\\b`, 'gi');
-        const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, { acceptNode: function(node) { if (node.parentElement?.closest?.('mark.sm-highlight, script, style')) return NodeFilter.FILTER_REJECT; if (node.textContent && node.textContent.trim().length > 0) return NodeFilter.FILTER_ACCEPT; return NodeFilter.FILTER_SKIP; } });
-        const nodesToReplace = [];
-        while (walker.nextNode()) nodesToReplace.push(walker.currentNode);
-        nodesToReplace.forEach(node => {
-            const texto = node.textContent;
-            if (!regexPalavras.test(texto)) return;
-            regexPalavras.lastIndex = 0;
-            const fragment = document.createDocumentFragment();
-            let lastIndex = 0;
-            let match;
-            while ((match = regexPalavras.exec(texto)) !== null) {
-                if (match.index > lastIndex) fragment.appendChild(document.createTextNode(texto.substring(lastIndex, match.index)));
-                const mark = document.createElement('mark');
-                mark.className = 'sm-highlight';
-                mark.textContent = match[0];
-                fragment.appendChild(mark);
-                lastIndex = match.index + match[0].length;
-            }
-            if (lastIndex < texto.length) fragment.appendChild(document.createTextNode(texto.substring(lastIndex)));
-            node.parentNode.replaceChild(fragment, node);
+        marksExistentes.forEach(mark => {
+            const parent = mark.parentNode;
+            const texto = document.createTextNode(mark.textContent);
+            parent.replaceChild(texto, mark);
+            parent.normalize();
         });
-    } finally { isExtensaoMutando = false; }
+        return;
+    }
+    
+    isExtensaoMutando = true;
+    
+    try {
+        // 1. Remover grifos existentes primeiro
+        const marksExistentes = el.querySelectorAll('mark.sm-highlight');
+        marksExistentes.forEach(mark => {
+            const parent = mark.parentNode;
+            const texto = document.createTextNode(mark.textContent);
+            parent.replaceChild(texto, mark);
+            parent.normalize();
+        });
+        
+        // 2. Extrair palavras únicas para marcar
+        const palavrasMap = new Map();
+        erros.forEach(e => {
+            const palavra = e.context.text.substr(e.context.offset, e.context.length);
+            if (palavra && palavra.trim()) {
+                palavrasMap.set(palavra, true);
+            }
+        });
+        
+        const palavras = Array.from(palavrasMap.keys());
+        if (palavras.length === 0) return;
+        
+        // 3. Criar regex para encontrar as palavras
+        const regexPalavras = new RegExp(
+            `\\b(${palavras.map(p => p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})\\b`,
+            'gi'
+        );
+        
+        // 4. Coletar todos os nós de texto
+        const walker = document.createTreeWalker(
+            el,
+            NodeFilter.SHOW_TEXT,
+            {
+                acceptNode: function(node) {
+                    // Ignorar nós dentro de tags que já têm marcação
+                    if (node.parentElement?.closest?.('mark.sm-highlight, script, style')) {
+                        return NodeFilter.FILTER_REJECT;
+                    }
+                    if (node.textContent && node.textContent.trim().length > 0) {
+                        return NodeFilter.FILTER_ACCEPT;
+                    }
+                    return NodeFilter.FILTER_SKIP;
+                }
+            }
+        );
+        
+        const nodesToProcess = [];
+        while (walker.nextNode()) {
+            nodesToProcess.push(walker.currentNode);
+        }
+        
+        if (nodesToProcess.length === 0) return;
+        
+        // 5. Processar em chunks para não travar a UI
+        const CHUNK_SIZE = 50;
+        let currentIndex = 0;
+        let isProcessing = false;
+        
+        function processarChunk() {
+            if (isProcessing) return;
+            isProcessing = true;
+            
+            const chunk = nodesToProcess.slice(currentIndex, currentIndex + CHUNK_SIZE);
+            
+            chunk.forEach(node => {
+                const texto = node.textContent;
+                if (!regexPalavras.test(texto)) return;
+                
+                regexPalavras.lastIndex = 0;
+                const fragment = document.createDocumentFragment();
+                let lastIndex = 0;
+                let match;
+                
+                while ((match = regexPalavras.exec(texto)) !== null) {
+                    if (match.index > lastIndex) {
+                        fragment.appendChild(document.createTextNode(texto.substring(lastIndex, match.index)));
+                    }
+                    
+                    const mark = document.createElement('mark');
+                    mark.className = 'sm-highlight';
+                    mark.textContent = match[0];
+                    fragment.appendChild(mark);
+                    
+                    lastIndex = match.index + match[0].length;
+                }
+                
+                if (lastIndex < texto.length) {
+                    fragment.appendChild(document.createTextNode(texto.substring(lastIndex)));
+                }
+                
+                node.parentNode.replaceChild(fragment, node);
+            });
+            
+            currentIndex += CHUNK_SIZE;
+            isProcessing = false;
+            
+            if (currentIndex < nodesToProcess.length) {
+                // Continuar processando no próximo idle frame
+                requestIdleCallback(processarChunk, { timeout: 100 });
+            } else {
+                // Finalizou, restaurar flag
+                isExtensaoMutando = false;
+                smLog('Grifos aplicados com sucesso em', nodesToProcess.length, 'nós');
+            }
+        }
+        
+        // Iniciar processamento
+        requestIdleCallback(processarChunk, { timeout: 100 });
+        
+    } catch (err) {
+        console.error('Erro ao aplicar grifos:', err);
+        isExtensaoMutando = false;
+    }
 }
 
 // =============================================
