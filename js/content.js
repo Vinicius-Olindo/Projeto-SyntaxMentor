@@ -1,5 +1,5 @@
 // =============================================
-// SyntaxMentor - content.js v2.8.1 Elite
+// SyntaxMentor - content.js v2.8.2 Elite
 // =============================================
 
 // =============================================
@@ -54,6 +54,13 @@ let badgeDebounceTimeout = null;
 let ultimoTotalEnviado = null;
 
 // =============================================
+// CONTROLE DE OBSERVADORES (BUG 6 CORRIGIDO)
+// =============================================
+let activeObservers = [];
+let isCleaningUp = false;
+let shadowObservers = new Map(); // Para rastrear observers por shadowRoot
+
+// =============================================
 // CONFIGURAÇÃO PADRÃO
 // =============================================
 
@@ -98,6 +105,89 @@ function isContextoPermitido() {
     } catch (e) {
         return false;
     }
+}
+
+// =============================================
+// FUNÇÕES SEGURAS PARA MANIPULAÇÃO DE DOM (BUG 5)
+// =============================================
+
+/**
+ * Obtém elemento com segurança (evita erro se não existir)
+ * @param {string} id - ID do elemento
+ * @returns {HTMLElement|null}
+ */
+function $(id) {
+    return document.getElementById(id);
+}
+
+/**
+ * Adiciona evento com segurança
+ * @param {HTMLElement} element - Elemento alvo
+ * @param {string} event - Nome do evento
+ * @param {Function} callback - Função callback
+ */
+function safeAddEvent(element, event, callback) {
+    if (element && element.addEventListener) {
+        element.addEventListener(event, callback);
+    }
+}
+
+/**
+ * Define onclick com segurança
+ * @param {HTMLElement} element - Elemento alvo
+ * @param {Function} callback - Função callback
+ */
+function safeOnClick(element, callback) {
+    if (element) {
+        element.onclick = callback;
+    }
+}
+
+/**
+ * Remove todos os observers ativos (BUG 6)
+ */
+function limparTodosObservadores() {
+    if (isCleaningUp) return;
+    isCleaningUp = true;
+    
+    smLog('Limpando observers ativos...');
+    
+    // Desconectar observers de shadow DOM
+    shadowObservers.forEach((observer, shadowRoot) => {
+        try {
+            observer.disconnect();
+        } catch(e) {}
+    });
+    shadowObservers.clear();
+    
+    // Desconectar observer de iframe
+    if (iframeObserver) {
+        try {
+            iframeObserver.disconnect();
+        } catch(e) {}
+        iframeObserver = null;
+    }
+    
+    // Limpar array de observers
+    activeObservers.forEach(observer => {
+        try {
+            observer.disconnect();
+        } catch(e) {}
+    });
+    activeObservers = [];
+    
+    isCleaningUp = false;
+    smLog('Observers limpos com sucesso');
+}
+
+/**
+ * Registra um observer para gerenciamento
+ * @param {MutationObserver} observer - Observer a ser registrado
+ * @param {string} name - Nome do observer para debug
+ */
+function registrarObserver(observer, name) {
+    activeObservers.push(observer);
+    smLog(`Observer registrado: ${name} (total: ${activeObservers.length})`);
 }
 
 // =============================================
@@ -164,7 +254,6 @@ function isExtensaoAtiva() {
 }
 
 function storageGetSeguro(chave, fallback) {
-    // Adicionar esta verificação no início
     if (!isExtensaoAtiva() || !isContextoPermitido() || !chrome.storage || !chrome.storage.local) {
         if (fallback) fallback({});
         return;
@@ -198,15 +287,12 @@ function isModoLeitura() {
 }
 
 function atualizarBadgeBackground(total) {
-    // Não enviar se o valor não mudou
     if (ultimoTotalEnviado === total) return;
     
-    // Limpar timeout anterior
     if (badgeDebounceTimeout) {
         clearTimeout(badgeDebounceTimeout);
     }
     
-    // Aguardar 150ms antes de enviar (evita spam durante digitação rápida)
     badgeDebounceTimeout = setTimeout(() => {
         if (!isExtensaoAtiva()) return;
         
@@ -430,7 +516,7 @@ function processarPontuacao(matches) {
 }
 
 // =============================================
-// REVISÃO DE PÁGINA INTEIRA (COM ESCAPE CORRIGIDO)
+// REVISÃO DE PÁGINA INTEIRA
 // =============================================
 
 function extrairTextosDaPagina() {
@@ -554,74 +640,89 @@ function exibirPainelRevisaoPagina(erros, textosOriginais) {
     `;
     painel.innerHTML = html;
     tornarArrastavelPainel(painel, document.getElementById('syntax-mentor-header'));
-    document.getElementById('btn-fechar-painel').onclick = fecharPainel;
-    document.getElementById('btn-corrigir-tudo')?.addEventListener('click', () => {
-        const correcoes = {};
-        erros.forEach(e => {
-            const o = e.context.text.substr(e.context.offset, e.context.length);
-            const s = e.replacements[0]?.value || '';
-            if (o && s) correcoes[o] = s;
-        });
-        let totalAplicadas = 0;
-        textosOriginais.forEach(({ elemento, texto }) => {
-            let novoTexto = texto;
-            Object.entries(correcoes).forEach(([original, sugestao]) => {
-                const esc = original.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-                const regex = new RegExp(`(?<![\\p{L}])${esc}(?![\\p{L}])`, 'gu');
-                const antes = novoTexto;
-                novoTexto = novoTexto.replace(regex, sugestao);
-                if (novoTexto !== antes) totalAplicadas++;
+    
+    const btnFechar = document.getElementById('btn-fechar-painel');
+    if (btnFechar) btnFechar.onclick = fecharPainel;
+    
+    const btnCorrigir = document.getElementById('btn-corrigir-tudo');
+    if (btnCorrigir) {
+        btnCorrigir.addEventListener('click', () => {
+            const correcoes = {};
+            erros.forEach(e => {
+                const o = e.context.text.substr(e.context.offset, e.context.length);
+                const s = e.replacements[0]?.value || '';
+                if (o && s) correcoes[o] = s;
             });
-            if (novoTexto !== texto) {
-                elemento.innerText = novoTexto;
-                elemento.dispatchEvent(new Event('input', { bubbles: true }));
-            }
+            let totalAplicadas = 0;
+            textosOriginais.forEach(({ elemento, texto }) => {
+                let novoTexto = texto;
+                Object.entries(correcoes).forEach(([original, sugestao]) => {
+                    const esc = original.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                    const regex = new RegExp(`(?<![\\p{L}])${esc}(?![\\p{L}])`, 'gu');
+                    const antes = novoTexto;
+                    novoTexto = novoTexto.replace(regex, sugestao);
+                    if (novoTexto !== antes) totalAplicadas++;
+                });
+                if (novoTexto !== texto) {
+                    elemento.innerText = novoTexto;
+                    elemento.dispatchEvent(new Event('input', { bubbles: true }));
+                }
+            });
+            errosGlobais = [];
+            atualizarInterface();
+            mostrarFeedback(`✅ ${totalAplicadas} correções aplicadas na página!`, 'success');
         });
-        errosGlobais = [];
-        atualizarInterface();
-        mostrarFeedback(`✅ ${totalAplicadas} correções aplicadas na página!`, 'success');
-    });
-    document.getElementById('btn-ignorar-tudo').onclick = () => {
+    }
+    
+    const btnIgnorar = document.getElementById('btn-ignorar-tudo');
+    if (btnIgnorar) btnIgnorar.onclick = () => {
         errosGlobais = [];
         atualizarInterface();
     };
+    
     painel.querySelectorAll('.btn-fix-mini').forEach(b => {
-        b.onclick = () => {
-            const o = b.dataset.o;
-            const s = b.dataset.s;
-            textosOriginais.forEach(({ elemento, texto }) => {
-                if (texto.includes(o)) {
-                    const esc = o.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-                    const regex = new RegExp(`(?<![\\p{L}])${esc}(?![\\p{L}])`, 'gu');
-                    const novoTexto = texto.replace(regex, s);
-                    if (novoTexto !== texto) {
-                        elemento.innerText = novoTexto;
-                        elemento.dispatchEvent(new Event('input', { bubbles: true }));
-                    }
-                }
-            });
-            removerErroGlobal(o);
-            mostrarFeedback(`✅ "${o}" → "${s}" corrigido!`, 'success');
-        };
-    });
-    painel.querySelectorAll('.btn-ignorar-sessao').forEach(b => {
-        b.onclick = () => ignorarTemporariamente(b.dataset.o);
-    });
-    painel.querySelectorAll('.btn-ignorar').forEach(b => {
-        b.onclick = async () => {
-            const o = b.dataset.o;
-            if (isExtensaoAtiva()) {
-                storageGetSeguro(['dicionario_pessoal'], (res) => {
-                    const dic = res.dicionario_pessoal || [];
-                    if (!dic.includes(o)) {
-                        dic.push(o);
-                        storageSetSeguro({ dicionario_pessoal: dic });
+        if (b) {
+            b.onclick = () => {
+                const o = b.dataset.o;
+                const s = b.dataset.s;
+                textosOriginais.forEach(({ elemento, texto }) => {
+                    if (texto.includes(o)) {
+                        const esc = o.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                        const regex = new RegExp(`(?<![\\p{L}])${esc}(?![\\p{L}])`, 'gu');
+                        const novoTexto = texto.replace(regex, s);
+                        if (novoTexto !== texto) {
+                            elemento.innerText = novoTexto;
+                            elemento.dispatchEvent(new Event('input', { bubbles: true }));
+                        }
                     }
                 });
-            }
-            removerErroGlobal(o);
-            mostrarFeedback(`"${o}" → dicionário`, 'success');
-        };
+                removerErroGlobal(o);
+                mostrarFeedback(`✅ "${o}" → "${s}" corrigido!`, 'success');
+            };
+        }
+    });
+    
+    painel.querySelectorAll('.btn-ignorar-sessao').forEach(b => {
+        if (b) b.onclick = () => ignorarTemporariamente(b.dataset.o);
+    });
+    
+    painel.querySelectorAll('.btn-ignorar').forEach(b => {
+        if (b) {
+            b.onclick = async () => {
+                const o = b.dataset.o;
+                if (isExtensaoAtiva()) {
+                    storageGetSeguro(['dicionario_pessoal'], (res) => {
+                        const dic = res.dicionario_pessoal || [];
+                        if (!dic.includes(o)) {
+                            dic.push(o);
+                            storageSetSeguro({ dicionario_pessoal: dic });
+                        }
+                    });
+                }
+                removerErroGlobal(o);
+                mostrarFeedback(`"${o}" → dicionário`, 'success');
+            };
+        }
     });
 }
 
@@ -657,7 +758,7 @@ document.addEventListener('mousemove', (e) => {
 });
 
 // =============================================
-// SHADOW DOM E IFRAMES
+// SHADOW DOM E IFRAMES (BUG 6 CORRIGIDO)
 // =============================================
 
 function observarElemento(elemento) {
@@ -665,16 +766,27 @@ function observarElemento(elemento) {
     if (elemento.shadowRoot) adicionarListenersNoShadowRoot(elemento.shadowRoot);
     elemento.querySelectorAll('*').forEach(el => { if (el.shadowRoot) adicionarListenersNoShadowRoot(el.shadowRoot); });
 }
+
 function adicionarListenersNoShadowRoot(shadowRoot) {
     if (!shadowRoot) return;
+    
+    // Verificar se já existe observer para este shadowRoot
+    if (shadowObservers.has(shadowRoot)) return;
+    
     const campos = shadowRoot.querySelectorAll('textarea, input[type="text"], input[type="search"], [contenteditable="true"], [role="textbox"]');
     campos.forEach(campo => {
         campo.removeEventListener('input', shadowInputHandler);
         campo.addEventListener('input', shadowInputHandler);
     });
+    
     const shadowObserver = new MutationObserver(() => adicionarListenersNoShadowRoot(shadowRoot));
     shadowObserver.observe(shadowRoot, { childList: true, subtree: true, attributes: true, attributeFilter: ['contenteditable'] });
+    
+    // Registrar observer para limpeza posterior
+    shadowObservers.set(shadowRoot, shadowObserver);
+    registrarObserver(shadowObserver, 'shadowRoot');
 }
+
 function shadowInputHandler(e) {
     if (smConfig.disabled) return;
     let el = e.target;
@@ -709,9 +821,11 @@ function shadowInputHandler(e) {
         atualizarVisibilidadeBolha();
     }, parseInt(smConfig.speed) || 500);
 }
+
 function observarShadowDOM() {
     observarElemento(document.body);
     const observer = new MutationObserver((mutations) => {
+        if (isExtensaoMutando) return;
         mutations.forEach(mutation => {
             mutation.addedNodes.forEach(node => {
                 if (node.nodeType === 1) {
@@ -722,7 +836,9 @@ function observarShadowDOM() {
         });
     });
     observer.observe(document.body, { childList: true, subtree: true });
+    registrarObserver(observer, 'shadowDOM');
 }
+
 function tentarInjetarEmIframe(iframe) {
     if (!iframe || processedIframes.has(iframe)) return;
     try {
@@ -732,6 +848,7 @@ function tentarInjetarEmIframe(iframe) {
             observarElemento(iframeDoc.body);
             const iframeMutationObserver = new MutationObserver(() => observarElemento(iframeDoc.body));
             iframeMutationObserver.observe(iframeDoc, { childList: true, subtree: true });
+            registrarObserver(iframeMutationObserver, 'iframe');
         } else {
             iframe.addEventListener('load', () => {
                 try {
@@ -745,8 +862,10 @@ function tentarInjetarEmIframe(iframe) {
         }
     } catch(e) {}
 }
+
 function observarIframes() {
     if (iframeObserver) return;
+    
     iframeObserver = new MutationObserver((mutations) => {
         if (isExtensaoMutando) return;
         mutations.forEach(mutation => {
@@ -760,7 +879,10 @@ function observarIframes() {
             });
         });
     });
+    
     iframeObserver.observe(document.body, { childList: true, subtree: true });
+    registrarObserver(iframeObserver, 'iframeObserver');
+    
     document.querySelectorAll('iframe').forEach(iframe => { if (!processedIframes.has(iframe)) tentarInjetarEmIframe(iframe); });
 }
 
@@ -815,6 +937,7 @@ async function verificarIdioma(texto) {
         });
     });
 }
+
 function mostrarSugestaoIdioma(titulo, mensagem, novoIdioma) {
     const overlay = document.createElement('div');
     overlay.style.cssText = `position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:2147483646;display:flex;align-items:center;justify-content:center;font-family:'Segoe UI',system-ui,sans-serif;`;
@@ -875,7 +998,6 @@ function atualizarEstadoExtensao(ativar) {
 async function verificarTexto(texto, elemento) {
     if (smConfig.disabled) return;
     
-    // INÍCIO DO CARREGAMENTO - ATIVAR PULSAÇÃO
     estaCarregando = true;
     atualizarEstadoCarregamento(true);
     
@@ -893,7 +1015,6 @@ async function verificarTexto(texto, elemento) {
     
     if (smConfig.pickyMode) params.set('level', 'picky');
     
-    // Perfil de voz: prioriza pontuação e capitalização, ignora erros de digitação
     if (elemento._smModoVoz) {
         params.set('enabledRules', 'UPPERCASE_SENTENCE_START,PUNCTUATION_PARAGRAPH_END,COMMA_PARENTHESIS_WHITESPACE,PT_QUESTION_MARK');
         params.set('enabledOnly', 'false');
@@ -943,14 +1064,12 @@ async function verificarTexto(texto, elemento) {
             return;
         }
 
-        // Usar cache em memoria
         const dic = dicCache;
 
         const matchesProcessados = processarPontuacao(data.matches || []);
         const errosPontuacaoLocal = verificarPontuacaoComum(texto);
         const todosMatches = [...matchesProcessados, ...errosPontuacaoLocal];
 
-        // Regras da API que geram muitos falsos positivos em textos informais
         const REGRAS_IGNORADAS = new Set([
             'UPPERCASE_SENTENCE_START',
             'PUNCTUATION_PARAGRAPH_END',
@@ -963,7 +1082,6 @@ async function verificarTexto(texto, elemento) {
         errosGlobais = todosMatches.filter(m => {
             if (!m.replacements?.length) return false;
 
-            // Ignorar regras que geram falsos positivos
             const ruleId = m.rule?.id || '';
             if (REGRAS_IGNORADAS.has(ruleId)) return false;
 
@@ -971,7 +1089,6 @@ async function verificarTexto(texto, elemento) {
             if (!o.trim()) return false;
             const ol = o.toLowerCase();
 
-            // Ignorar numeros puros e URLs
             if (ol.match(/^[0-9]+$/) || ol.match(/^https?:\/\//)) return false;
 
             if (o.trim()) {
@@ -987,7 +1104,6 @@ async function verificarTexto(texto, elemento) {
                 });
             }
 
-            // Dicionario: normalizar para lowercase na comparacao
             return !dic.includes(ol) && !ignoradosTemporarios.includes(ol);
         });
 
@@ -999,7 +1115,6 @@ async function verificarTexto(texto, elemento) {
 
         atualizarInterface();
         
-        // FIM DO CARREGAMENTO - PARAR PULSAÇÃO
         estaCarregando = false;
         atualizarEstadoCarregamento(false);
         
@@ -1012,7 +1127,6 @@ async function verificarTexto(texto, elemento) {
         
         console.warn('SyntaxMentor:', err.message);
         
-        // Mensagens de erro específicas
         let mensagemErro = '⚠️ Erro de conexão com o servidor';
         
         if (err.message.includes('API Key inválida') || err.message.includes('401')) {
@@ -1027,7 +1141,6 @@ async function verificarTexto(texto, elemento) {
         
         mostrarFeedback(mensagemErro, 'error');
         
-        // FIM DO CARREGAMENTO (mesmo em erro)
         estaCarregando = false;
         atualizarEstadoCarregamento(false);
     } finally {
@@ -1045,21 +1158,17 @@ function atualizarEstadoCarregamento(on) {
     if (!b) return;
     
     if (on) {
-        // Estado de carregamento: pulsação + ondas magnéticas
         b.classList.add('sm-loading');
         b.style.cursor = 'wait';
         
-        // Mudar ícone para indicar processamento
         const icon = b.querySelector('.sm-bubble-icon');
         if (icon) {
             icon.textContent = '⏳';
         }
     } else {
-        // Estado normal - remover ondas
         b.classList.remove('sm-loading');
         b.style.cursor = 'grab';
         
-        // Restaurar ícone baseado no total de erros
         const total = errosGlobais.filter(e => e.context.text.substr(e.context.offset, e.context.length).trim()).length;
         const icon = b.querySelector('.sm-bubble-icon');
         if (icon) {
@@ -1074,7 +1183,6 @@ function atualizarEstadoCarregamento(on) {
             }
         }
         
-        // Atualizar badge
         const badge = b.querySelector('.sm-bubble-badge');
         if (badge) {
             badge.textContent = total > 0 ? total : '';
@@ -1089,7 +1197,6 @@ function atualizarEstadoCarregamento(on) {
 function aplicarGrifos(erros, el) {
     if (!el?.isContentEditable || isSiteRestrito) return;
     
-    // Se não há erros, apenas remove os grifos existentes
     if (!erros || erros.length === 0) {
         const marksExistentes = el.querySelectorAll('mark.sm-highlight');
         marksExistentes.forEach(mark => {
@@ -1104,7 +1211,6 @@ function aplicarGrifos(erros, el) {
     isExtensaoMutando = true;
     
     try {
-        // 1. Remover grifos existentes primeiro
         const marksExistentes = el.querySelectorAll('mark.sm-highlight');
         marksExistentes.forEach(mark => {
             const parent = mark.parentNode;
@@ -1113,7 +1219,6 @@ function aplicarGrifos(erros, el) {
             parent.normalize();
         });
         
-        // 2. Extrair palavras únicas para marcar
         const palavrasMap = new Map();
         erros.forEach(e => {
             const palavra = e.context.text.substr(e.context.offset, e.context.length);
@@ -1125,19 +1230,16 @@ function aplicarGrifos(erros, el) {
         const palavras = Array.from(palavrasMap.keys());
         if (palavras.length === 0) return;
         
-        // 3. Criar regex para encontrar as palavras
         const regexPalavras = new RegExp(
             `\\b(${palavras.map(p => p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})\\b`,
             'gi'
         );
         
-        // 4. Coletar todos os nós de texto
         const walker = document.createTreeWalker(
             el,
             NodeFilter.SHOW_TEXT,
             {
                 acceptNode: function(node) {
-                    // Ignorar nós dentro de tags que já têm marcação
                     if (node.parentElement?.closest?.('mark.sm-highlight, script, style')) {
                         return NodeFilter.FILTER_REJECT;
                     }
@@ -1156,7 +1258,6 @@ function aplicarGrifos(erros, el) {
         
         if (nodesToProcess.length === 0) return;
         
-        // 5. Processar em chunks para não travar a UI
         const CHUNK_SIZE = 50;
         let currentIndex = 0;
         let isProcessing = false;
@@ -1200,16 +1301,13 @@ function aplicarGrifos(erros, el) {
             isProcessing = false;
             
             if (currentIndex < nodesToProcess.length) {
-                // Continuar processando no próximo idle frame
                 requestIdleCallback(processarChunk, { timeout: 100 });
             } else {
-                // Finalizou, restaurar flag
                 isExtensaoMutando = false;
                 smLog('Grifos aplicados com sucesso em', nodesToProcess.length, 'nós');
             }
         }
         
-        // Iniciar processamento
         requestIdleCallback(processarChunk, { timeout: 100 });
         
     } catch (err) {
@@ -1243,6 +1341,7 @@ function encontrarPosicaoPalavra(texto, palavra) {
     const match = texto.match(regex);
     return match ? match.index : -1;
 }
+
 function mostrarFeedbackCorrecao(elemento, posicao, original, sugestao) {
     if (!elemento || posicao < 0) return;
     const rect = elemento.getBoundingClientRect();
@@ -1254,6 +1353,7 @@ function mostrarFeedbackCorrecao(elemento, posicao, original, sugestao) {
     document.body.appendChild(feedback);
     setTimeout(() => { if (feedback.parentNode) feedback.remove(); }, 800);
 }
+
 function incrementarStats(qtd) {
     if (!isExtensaoAtiva()) return;
     const bubble = document.getElementById('syntax-mentor-bubble');
@@ -1274,10 +1374,12 @@ function incrementarStats(qtd) {
         verificarConquistas(novoTotal, (res.dicionario_pessoal || []).length);
     });
 }
+
 function removerErroGlobal(original) {
     errosGlobais = errosGlobais.filter(err => { const o = err.context.text.substr(err.context.offset, err.context.length); return o !== original; });
     atualizarInterface();
 }
+
 function ignorarTemporariamente(palavra) {
     const pl = palavra.toLowerCase();
     if (!ignoradosTemporarios.includes(pl)) ignoradosTemporarios.push(pl);
@@ -1289,6 +1391,7 @@ function ignorarTemporariamente(palavra) {
     removerErroGlobal(palavra);
     mostrarFeedback(`"${palavra}" ignorada nesta sessão`, 'info');
 }
+
 function aplicarCorrecao(original, sugestao, el, pularConfirmacao = false) {
     if (!el || !original || !sugestao) return;
     const executarCorrecao = () => {
@@ -1346,6 +1449,7 @@ function aplicarCorrecao(original, sugestao, el, pularConfirmacao = false) {
     if (pularConfirmacao) executarCorrecao();
     else confirmarCorrecao(original, sugestao, (confirmado) => { if (confirmado) executarCorrecao(); });
 }
+
 function confirmarCorrecao(original, sugestao, callback) {
     if (!smConfig.modoConfirmacao && !isModoLeitura()) { callback(true); return; }
     const overlay = document.createElement('div');
@@ -1364,6 +1468,7 @@ function confirmarCorrecao(original, sugestao, callback) {
     btnCancel.onclick = () => { overlay.remove(); callback(false); storageGetSeguro({ totalRecusadas: 0, estatisticasPorSite: {} }, (res) => { storageSetSeguro({ totalRecusadas: (res.totalRecusadas || 0) + 1 }); const host = window.location.hostname; const porSite = res.estatisticasPorSite || {}; if (!porSite[host]) porSite[host] = { erros: {}, corrigidas: 0, aceitas: 0, recusadas: 0 }; porSite[host].recusadas = (porSite[host].recusadas || 0) + 1; storageSetSeguro({ estatisticasPorSite: porSite }); }); };
     overlay.onclick = (e) => { if (e.target === overlay) { overlay.remove(); callback(false); } };
 }
+
 function confirmarCorrecaoEmLote(correcoes) {
     const overlay = document.createElement('div');
     overlay.style.cssText = `position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:2147483646;display:flex;align-items:center;justify-content:center;`;
@@ -1382,6 +1487,7 @@ function confirmarCorrecaoEmLote(correcoes) {
     btnCancel.onclick = () => overlay.remove();
     overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
 }
+
 function corrigirTudo() {
     if (!elementoGlobal) return;
     const unicos = {};
@@ -1391,6 +1497,7 @@ function corrigirTudo() {
     if (smConfig.modoConfirmacao || isModoLeitura()) confirmarCorrecaoEmLote(correcoes);
     else { correcoes.forEach(([o, s]) => aplicarCorrecao(o, s, elementoGlobal)); errosGlobais = []; atualizarInterface(); mostrarFeedbackInteligente('✓ Tudo corrigido!', 'success'); }
 }
+
 function limparTudo() {
     if (!isSiteRestrito && elementoGlobal?.isContentEditable) { elementoGlobal.innerHTML = elementoGlobal.innerHTML.replace(/<mark class="sm-highlight">(.*?)<\/mark>/gi, '$1'); atualizarElementoComEventos(elementoGlobal); }
     errosGlobais = []; atualizarInterface();
@@ -1429,6 +1536,7 @@ function verificarConquistas(totalCorrigidas, dicSize) {
         if (novasConquistas.length > 0) { novasConquistas.forEach(c => { conquistasNotificadas[c.id] = true; }); if (isExtensaoAtiva()) storageSetSeguro({ conquistasNotificadas }); mostrarNotificacaoConquista(novasConquistas[novasConquistas.length - 1].nome); if (novasConquistas.length > 1) setTimeout(() => mostrarNotificacaoConquista(`🎉 +${novasConquistas.length - 1} conquista(s)!`), 3500); }
     });
 }
+
 function mostrarNotificacaoConquista(mensagem) {
     const notif = document.createElement('div');
     notif.style.cssText = `position:fixed;top:20px;left:50%;transform:translateX(-50%);z-index:2147483647;background:linear-gradient(135deg,#f59e0b,#fbbf24);color:#1a1a1a;padding:16px 28px;border-radius:16px;font:700 16px 'Segoe UI',system-ui,sans-serif;text-align:center;box-shadow:0 10px 40px rgba(245,158,11,0.5);animation:sm-conquista-in .5s ease, sm-conquista-out .5s ease 3s forwards;pointer-events:none;max-width:90vw;`;
@@ -1437,6 +1545,7 @@ function mostrarNotificacaoConquista(mensagem) {
     criarConfete();
     setTimeout(() => { if (notif.parentNode) notif.remove(); }, 3700);
 }
+
 function criarConfete() {
     const cores = ['#f59e0b', '#fbbf24', '#fcd34d', '#fde68a', '#fef3c7', '#6f42c1', '#8b5cf6'];
     for (let i = 0; i < 30; i++) {
@@ -1500,21 +1609,14 @@ function exibirPainel() {
         painel.classList.remove('sm-dark');
     }
 
-    // ============================================
-    // CORREÇÃO: NÃO FILTRAR POR POSIÇÃO - MOSTRAR TODOS
-    // ============================================
-    
-    // Array para TODOS os erros (sem nenhum filtro de agrupamento)
     const errosValidos = [];
     
     errosGlobais.forEach(e => {
         const o = e.context.text.substr(e.context.offset, e.context.length);
-        // Ignorar erros inválidos
         if (!o || o.trim().length === 0) return;
         if (o.match(/^[.,;:!?()\[\]{}\s]+$/)) return;
-        if (o === o.sugestao) return; // ignorar se não mudou
+        if (o === o.sugestao) return;
         
-        // Adicionar CADA erro individualmente (SEM filtro de posição)
         errosValidos.push({
             original: o,
             sugestao: e.replacements[0]?.value || '',
@@ -1525,12 +1627,9 @@ function exibirPainel() {
         });
     });
     
-    // Ordenar por posição no texto (apenas para organização)
     errosValidos.sort((a, b) => a.offset - b.offset);
-    
     const totalErros = errosValidos.length;
 
-    // HTML DO PAINEL
     let html = `
         <div id="syntax-mentor-header">
             <div style="display: flex; align-items: center; gap: 8px;">
@@ -1570,7 +1669,6 @@ function exibirPainel() {
             </div>
         `;
         
-        // MOSTRAR CADA ERRO INDIVIDUALMENTE (mesmo palavras repetidas)
         errosValidos.forEach((erro, idx) => {
             html += `
                 <div class="erro-card" data-error-idx="${idx}" data-error-offset="${erro.offset}">
@@ -1621,7 +1719,6 @@ function exibirPainel() {
     painel.innerHTML = html;
     tornarArrastavelPainel(painel, document.getElementById('syntax-mentor-header'));
 
-    // Nível no header
     storageGetSeguro({ totalCorrigidas: 0 }, (res) => {
         const t = res.totalCorrigidas || 0;
         const el = document.getElementById('sm-nivel-painel');
@@ -1635,7 +1732,6 @@ function exibirPainel() {
         el.innerHTML = icone + ' ' + nome + ' <span style="opacity: 0.7;">' + (proximo ? t + '/' + proximo : 'MAX') + '</span>';
     });
 
-    // LÓGICA DAS ABAS
     const grammarContent = document.getElementById('syntax-mentor-content');
     const sentimentContent = document.getElementById('sm-sentiment-content');
     const historicoContent = document.getElementById('sm-historico-content');
@@ -1672,63 +1768,62 @@ function exibirPainel() {
             if(tabHistorico) { tabHistorico.classList.add('active'); tabHistorico.style.color = '#6f42c1'; tabHistorico.style.borderBottom = '2px solid #6f42c1'; }
             if (historicoContent) {
                 historicoContent.style.display = 'block';
-                renderizarHistoricoNoPainel(historicoContent);
+                if (historicoCorrecoes.length === 0) {
+                    historicoContent.innerHTML = '<div style="text-align:center;padding:40px;"><div style="font-size:36px;">📭</div><p>Nenhuma correção ainda.</p></div>';
+                } else {
+                    historicoContent.innerHTML = historicoCorrecoes.slice().reverse().map((item, idx) => {
+                        const realIdx = historicoCorrecoes.length - 1 - idx;
+                        const hora = new Date(item.timestamp).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+                        return `
+                            <div style="border-radius:8px;padding:10px;margin-bottom:8px;border:1px solid #e2e8f0;">
+                                <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+                                    <div style="display:flex;align-items:center;gap:6px;">
+                                        <span style="color:#dc2626;text-decoration:line-through;">${escapeHtml(item.original)}</span>
+                                        <span>→</span>
+                                        <span style="color:#059669;font-weight:bold;">${escapeHtml(item.sugestao)}</span>
+                                    </div>
+                                    <div style="display:flex;align-items:center;gap:8px;">
+                                        <span style="font-size:10px;color:#64748b;">${hora}</span>
+                                        <button data-idx="${realIdx}" class="sm-btn-reverter" style="font-size:10px;padding:4px 10px;border-radius:6px;border:1px solid #e2e8f0;background:white;cursor:pointer;">↩ Reverter</button>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+                    historicoContent.querySelectorAll('.sm-btn-reverter').forEach(btn => {
+                        btn.addEventListener('click', () => {
+                            const idx = parseInt(btn.dataset.idx);
+                            const item = historicoCorrecoes[idx];
+                            if (item?.el) {
+                                const el = item.el;
+                                const novoValor = (el.value || el.textContent || '').replace(item.sugestao, item.original);
+                                if (el.value !== undefined) el.value = novoValor;
+                                else el.textContent = novoValor;
+                                dispararEventosNativos(el);
+                                historicoCorrecoes.splice(idx, 1);
+                                mostrarFeedback('↩ Revertido: "' + item.sugestao + '" → "' + item.original + '"', 'info');
+                                exibirPainel();
+                            }
+                        });
+                    });
+                }
             }
         }
     }
 
-    function renderizarHistoricoNoPainel(container) {
-        if (historicoCorrecoes.length === 0) {
-            container.innerHTML = '<div style="text-align:center;padding:40px;"><div style="font-size:36px;">📭</div><p>Nenhuma correção ainda.</p></div>';
-            return;
-        }
-        container.innerHTML = historicoCorrecoes.slice().reverse().map((item, idx) => {
-            const realIdx = historicoCorrecoes.length - 1 - idx;
-            const hora = new Date(item.timestamp).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-            return `
-                <div style="border-radius:8px;padding:10px;margin-bottom:8px;border:1px solid #e2e8f0;">
-                    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
-                        <div style="display:flex;align-items:center;gap:6px;">
-                            <span style="color:#dc2626;text-decoration:line-through;">${escapeHtml(item.original)}</span>
-                            <span>→</span>
-                            <span style="color:#059669;font-weight:bold;">${escapeHtml(item.sugestao)}</span>
-                        </div>
-                        <div style="display:flex;align-items:center;gap:8px;">
-                            <span style="font-size:10px;color:#64748b;">${hora}</span>
-                            <button data-idx="${realIdx}" class="sm-btn-reverter" style="font-size:10px;padding:4px 10px;border-radius:6px;border:1px solid #e2e8f0;background:white;cursor:pointer;">↩ Reverter</button>
-                        </div>
-                    </div>
-                </div>
-            `;
-        }).join('');
-        
-        container.querySelectorAll('.sm-btn-reverter').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const idx = parseInt(btn.dataset.idx);
-                const item = historicoCorrecoes[idx];
-                if (item?.el) {
-                    const el = item.el;
-                    const novoValor = (el.value || el.textContent || '').replace(item.sugestao, item.original);
-                    if (el.value !== undefined) el.value = novoValor;
-                    else el.textContent = novoValor;
-                    dispararEventosNativos(el);
-                    historicoCorrecoes.splice(idx, 1);
-                    mostrarFeedback('↩ Revertido: "' + item.sugestao + '" → "' + item.original + '"', 'info');
-                    exibirPainel();
-                }
-            });
-        });
-    }
+    if (tabGrammar) tabGrammar.addEventListener('click', () => switchTab('grammar'));
+    if (tabSentiment) tabSentiment.addEventListener('click', () => switchTab('sentiment'));
+    if (tabHistorico) tabHistorico.addEventListener('click', () => switchTab('historico'));
 
-    tabGrammar?.addEventListener('click', () => switchTab('grammar'));
-    tabSentiment?.addEventListener('click', () => switchTab('sentiment'));
-    tabHistorico?.addEventListener('click', () => switchTab('historico'));
+    const btnFechar = document.getElementById('btn-fechar-painel');
+    if (btnFechar) btnFechar.onclick = fecharPainel;
+    
+    const btnCorrigir = document.getElementById('btn-corrigir-tudo');
+    if (btnCorrigir) btnCorrigir.onclick = corrigirTudo;
+    
+    const btnIgnorar = document.getElementById('btn-ignorar-tudo');
+    if (btnIgnorar) btnIgnorar.onclick = limparTudo;
 
-    document.getElementById('btn-fechar-painel').onclick = fecharPainel;
-    document.getElementById('btn-corrigir-tudo').onclick = corrigirTudo;
-    document.getElementById('btn-ignorar-tudo').onclick = limparTudo;
-
-    // Navegação entre erros
     let erroNavIdx = 0;
 
     function atualizarContador() {
@@ -1758,13 +1853,17 @@ function exibirPainel() {
         
         document.querySelectorAll('.erro-card').forEach(card => {
             const btn = card.querySelector('.btn-fix-mini');
-            card.style.background = btn?.dataset.o === palavra ? '#fefce8' : '';
-            card.style.borderColor = btn?.dataset.o === palavra ? '#f59e0b' : '';
+            if (btn) {
+                card.style.background = btn.dataset.o === palavra ? '#fefce8' : '';
+                card.style.borderColor = btn.dataset.o === palavra ? '#f59e0b' : '';
+            }
         });
     }
 
-    document.getElementById('btn-erro-next')?.addEventListener('click', () => navegarParaErro(erroNavIdx + 1));
-    document.getElementById('btn-erro-prev')?.addEventListener('click', () => navegarParaErro(erroNavIdx - 1));
+    const btnNext = document.getElementById('btn-erro-next');
+    const btnPrev = document.getElementById('btn-erro-prev');
+    if (btnNext) btnNext.addEventListener('click', () => navegarParaErro(erroNavIdx + 1));
+    if (btnPrev) btnPrev.addEventListener('click', () => navegarParaErro(erroNavIdx - 1));
 
     atualizarContador();
 
@@ -1776,35 +1875,48 @@ function exibirPainel() {
         }
     }
     
-    painel.querySelectorAll('.btn-fix-mini').forEach(b => {
-        b.onclick = () => {
-            aplicarCorrecao(b.dataset.o, b.dataset.s, elementoGlobal);
-            removerErroGlobal(b.dataset.o);
-            exibirPainel();
-        };
-    });
-    
-    painel.querySelectorAll('.btn-ignorar-sessao').forEach(b => {
-        b.onclick = () => ignorarTemporariamente(b.dataset.o);
-    });
-    
-    painel.querySelectorAll('.btn-ignorar').forEach(b => {
-        b.onclick = () => {
-            const o = b.dataset.o;
-            if (isExtensaoAtiva()) {
-                storageGetSeguro(['dicionario_pessoal'], (res) => {
-                    const dic = res.dicionario_pessoal || [];
-                    if (!dic.includes(o)) {
-                        dic.push(o);
-                        storageSetSeguro({ dicionario_pessoal: dic });
-                    }
-                });
+    const botoesFix = painel.querySelectorAll('.btn-fix-mini');
+    if (botoesFix && botoesFix.length) {
+        botoesFix.forEach(b => {
+            if (b) {
+                b.onclick = () => {
+                    aplicarCorrecao(b.dataset.o, b.dataset.s, elementoGlobal);
+                    removerErroGlobal(b.dataset.o);
+                    exibirPainel();
+                };
             }
-            removerErroGlobal(o);
-            mostrarFeedback('"' + o + '" → dicionário', 'success');
-            exibirPainel();
-        };
-    });
+        });
+    }
+    
+    const botoesIgnorar = painel.querySelectorAll('.btn-ignorar-sessao');
+    if (botoesIgnorar && botoesIgnorar.length) {
+        botoesIgnorar.forEach(b => {
+            if (b) b.onclick = () => ignorarTemporariamente(b.dataset.o);
+        });
+    }
+    
+    const botoesDic = painel.querySelectorAll('.btn-ignorar');
+    if (botoesDic && botoesDic.length) {
+        botoesDic.forEach(b => {
+            if (b) {
+                b.onclick = () => {
+                    const o = b.dataset.o;
+                    if (isExtensaoAtiva()) {
+                        storageGetSeguro(['dicionario_pessoal'], (res) => {
+                            const dic = res.dicionario_pessoal || [];
+                            if (!dic.includes(o)) {
+                                dic.push(o);
+                                storageSetSeguro({ dicionario_pessoal: dic });
+                            }
+                        });
+                    }
+                    removerErroGlobal(o);
+                    mostrarFeedback('"' + o + '" → dicionário', 'success');
+                    exibirPainel();
+                };
+            }
+        });
+    }
     
     const btnDesfazer = document.getElementById('btn-desfazer-ultima');
     if (btnDesfazer) {
@@ -1820,8 +1932,20 @@ function exibirPainel() {
     switchTab('grammar');
 }
 
-function fecharPainel() { const painel = document.getElementById('syntax-mentor-painel'); if (painel) painel.remove(); painelAberto = false; if (smConfig.modoFoco && !usuarioDigitando) setTimeout(() => { modoFocoAtivo = true; iniciarTimeoutFoco(); }, 1000); }
-function fecharPainelComSucesso() { const c = document.getElementById('syntax-mentor-content'); if (c) { c.innerHTML = `<div style="text-align:center;padding:30px;"><div style="font-size:48px;color:#28a745;">✓</div><p>Tudo limpo!</p></div>`; } setTimeout(fecharPainel, 1500); }
+function fecharPainel() { 
+    const painel = document.getElementById('syntax-mentor-painel'); 
+    if (painel) painel.remove(); 
+    painelAberto = false; 
+    if (smConfig.modoFoco && !usuarioDigitando) setTimeout(() => { modoFocoAtivo = true; iniciarTimeoutFoco(); }, 1000); 
+}
+
+function fecharPainelComSucesso() { 
+    const c = document.getElementById('syntax-mentor-content'); 
+    if (c) { 
+        c.innerHTML = `<div style="text-align:center;padding:30px;"><div style="font-size:48px;color:#28a745;">✓</div><p>Tudo limpo!</p></div>`; 
+    } 
+    setTimeout(fecharPainel, 1500); 
+}
 
 // =============================================
 // FUNÇÕES DE ARRASTE
@@ -1834,6 +1958,7 @@ function tornarArrastavel(el) {
     el.addEventListener('mousedown', (e) => { startX = e.clientX; startY = e.clientY; isDragging = true; hasMoved = false; el.style.cursor = 'grabbing'; document.addEventListener('mousemove', onMouseMove); document.addEventListener('mouseup', onMouseUp); });
     el.style.cursor = 'grab';
 }
+
 function tornarArrastavelPainel(painel, handle) {
     if (!handle) return;
     let p1, p2, p3, p4;
@@ -1863,8 +1988,24 @@ document.addEventListener('keydown', (e) => {
     if (e.altKey === ativarShortcut.altKey && e.ctrlKey === ativarShortcut.ctrlKey && e.shiftKey === ativarShortcut.shiftKey && e.key.toLowerCase() === ativarShortcut.key) { e.preventDefault(); e.stopPropagation(); if (!smConfig.disabled) { mostrarFeedback('✅ SyntaxMentor já está ATIVADO neste site', 'info'); return; } smConfig.disabled = false; enviarMensagemSegura({ action: 'toggleSiteGlobal', enabled: true, host: window.location.hostname }); const campoAtivo = document.activeElement; if (campoAtivo && (campoAtivo.tagName === 'TEXTAREA' || campoAtivo.tagName === 'INPUT' || campoAtivo.isContentEditable)) { const texto = campoAtivo.value || campoAtivo.textContent || campoAtivo.innerText || ''; if (texto.trim().length > 1) { textoUltimaVerificacao = texto; elementoGlobal = campoAtivo; verificarTexto(texto, campoAtivo); } } const bubble = document.getElementById('syntax-mentor-bubble'); if (bubble) bubble.style.display = 'flex'; mostrarFeedback('✅ SyntaxMentor ATIVADO neste site', 'success'); atualizarBadgeBackground(errosGlobais.length); return; }
     if (e.altKey === desativarShortcut.altKey && e.ctrlKey === desativarShortcut.ctrlKey && e.shiftKey === desativarShortcut.shiftKey && e.key.toLowerCase() === desativarShortcut.key) { e.preventDefault(); e.stopPropagation(); if (smConfig.disabled) { mostrarFeedback('⛔ SyntaxMentor já está DESATIVADO neste site', 'info'); return; } smConfig.disabled = true; enviarMensagemSegura({ action: 'toggleSiteGlobal', enabled: false, host: window.location.hostname }); if (elementoGlobal && elementoGlobal.isContentEditable && !isSiteRestrito) { elementoGlobal.innerHTML = elementoGlobal.innerHTML.replace(/<mark class="sm-highlight">(.*?)<\/mark>/gi, '$1'); atualizarElementoComEventos(elementoGlobal); } errosGlobais = []; fecharPainel(); const bubble = document.getElementById('syntax-mentor-bubble'); if (bubble) bubble.style.display = 'none'; mostrarFeedback('⛔ SyntaxMentor DESATIVADO neste site', 'info'); resetarBadgeBackground(); return; }
 }, true);
-function mostrarNotificacaoTemp(texto, cor) { const notifAnterior = document.querySelector('.sm-notification-temp'); if (notifAnterior) notifAnterior.remove(); const notif = document.createElement('div'); notif.className = 'sm-notification-temp'; notif.textContent = texto; notif.style.cssText = `position:fixed;top:50%;left:50%;transform:translate(-50%, -50%);background:${cor};color:white;font-size:48px;font-weight:bold;padding:24px 48px;border-radius:16px;z-index:2147483647;font-family:'Segoe UI', sans-serif;text-align:center;box-shadow:0 10px 40px rgba(0,0,0,0.3);animation:sm-notif-fade 1.5s ease-out forwards;pointer-events:none;`; document.body.appendChild(notif); setTimeout(() => { if (notif.parentNode) notif.remove(); }, 1500); }
-if (!document.querySelector('#sm-notif-style')) { const style = document.createElement('style'); style.id = 'sm-notif-style'; style.textContent = `@keyframes sm-notif-fade { 0% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); } 20% { opacity: 1; transform: translate(-50%, -50%) scale(1); } 80% { opacity: 1; transform: translate(-50%, -50%) scale(1); } 100% { opacity: 0; transform: translate(-50%, -50%) scale(1.2); } }`; document.head.appendChild(style); }
+
+function mostrarNotificacaoTemp(texto, cor) { 
+    const notifAnterior = document.querySelector('.sm-notification-temp'); 
+    if (notifAnterior) notifAnterior.remove(); 
+    const notif = document.createElement('div'); 
+    notif.className = 'sm-notification-temp'; 
+    notif.textContent = texto; 
+    notif.style.cssText = `position:fixed;top:50%;left:50%;transform:translate(-50%, -50%);background:${cor};color:white;font-size:48px;font-weight:bold;padding:24px 48px;border-radius:16px;z-index:2147483647;font-family:'Segoe UI', sans-serif;text-align:center;box-shadow:0 10px 40px rgba(0,0,0,0.3);animation:sm-notif-fade 1.5s ease-out forwards;pointer-events:none;`; 
+    document.body.appendChild(notif); 
+    setTimeout(() => { if (notif.parentNode) notif.remove(); }, 1500); 
+}
+
+if (!document.querySelector('#sm-notif-style')) { 
+    const style = document.createElement('style'); 
+    style.id = 'sm-notif-style'; 
+    style.textContent = `@keyframes sm-notif-fade { 0% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); } 20% { opacity: 1; transform: translate(-50%, -50%) scale(1); } 80% { opacity: 1; transform: translate(-50%, -50%) scale(1); } 100% { opacity: 0; transform: translate(-50%, -50%) scale(1.2); } }`; 
+    document.head.appendChild(style); 
+}
 
 // =============================================
 // LISTENERS DE INPUT
@@ -1900,15 +2041,13 @@ document.addEventListener('input', (e) => {
 }, true);
 
 // =============================================
-// LISTENER DE MENSAGENS (VERSÃO FINAL CORRIGIDA)
+// LISTENER DE MENSAGENS - VERSÃO SEGURA
 // =============================================
 
 if (typeof chrome !== 'undefined' && chrome.runtime && isContextoPermitido()) {
     chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-        // Flag para saber se já respondemos
         let responded = false;
         
-        // Função segura para responder (garante apenas uma resposta)
         const responder = (res) => {
             if (responded) return;
             responded = true;
@@ -1919,9 +2058,6 @@ if (typeof chrome !== 'undefined' && chrome.runtime && isContextoPermitido()) {
             }
         };
         
-        // =========================================
-        // togglePainel
-        // =========================================
         if (request.action === 'togglePainel') {
             if (painelAberto) {
                 fecharPainel();
@@ -1932,9 +2068,6 @@ if (typeof chrome !== 'undefined' && chrome.runtime && isContextoPermitido()) {
             return true;
         }
         
-        // =========================================
-        // ignorarErroAtual
-        // =========================================
         if (request.action === 'ignorarErroAtual') {
             if (errosGlobais.length > 0) {
                 const primeiro = errosGlobais[0];
@@ -1945,9 +2078,6 @@ if (typeof chrome !== 'undefined' && chrome.runtime && isContextoPermitido()) {
             return true;
         }
         
-        // =========================================
-        // getErrosAtivos
-        // =========================================
         if (request.action === 'getErrosAtivos') {
             const erros = errosGlobais.slice(0, 10).map(e => ({
                 original: e.context.text.substr(e.context.offset, e.context.length),
@@ -1958,9 +2088,6 @@ if (typeof chrome !== 'undefined' && chrome.runtime && isContextoPermitido()) {
             return true;
         }
         
-        // =========================================
-        // aplicarCorrecaoPopup
-        // =========================================
         if (request.action === 'aplicarCorrecaoPopup') {
             const { original, sugestao } = request;
             if (elementoGlobal && original && sugestao) {
@@ -1970,9 +2097,6 @@ if (typeof chrome !== 'undefined' && chrome.runtime && isContextoPermitido()) {
             return true;
         }
         
-        // =========================================
-        // revisarSelecao
-        // =========================================
         if (request.action === 'revisarSelecao' && request.texto) {
             const texto = request.texto.trim();
             const sel = window.getSelection();
@@ -2032,34 +2156,27 @@ if (typeof chrome !== 'undefined' && chrome.runtime && isContextoPermitido()) {
                     </div>
                 `;
                 
-                tooltip.querySelector('#sm-tooltip-fechar')?.addEventListener('click', () => tooltip.remove());
-                tooltip.querySelector('#sm-tooltip-abrir')?.addEventListener('click', () => {
-                    tooltip.remove();
-                    exibirPainel();
-                });
+                const fecharBtn = document.getElementById('sm-tooltip-fechar');
+                const abrirBtn = document.getElementById('sm-tooltip-abrir');
+                if (fecharBtn) fecharBtn.onclick = () => tooltip.remove();
+                if (abrirBtn) abrirBtn.onclick = () => { tooltip.remove(); exibirPainel(); };
                 setTimeout(() => tooltip.remove(), 8000);
                 responder({ success: true });
             }).catch((err) => {
                 document.body.removeChild(div);
-                tooltip.remove();
+                if (tooltip) tooltip.remove();
                 responder({ success: false, error: err.message });
             });
             
             return true;
         }
         
-        // =========================================
-        // ignorarTemporariamente
-        // =========================================
         if (request.action === 'ignorarTemporariamente' && request.palavra) {
             ignorarTemporariamente(request.palavra);
             responder({ success: true });
             return true;
         }
         
-        // =========================================
-        // corrigirTudo
-        // =========================================
         if (request.action === 'corrigirTudo') {
             if (errosGlobais.length > 0 && elementoGlobal) {
                 corrigirTudo();
@@ -2068,36 +2185,24 @@ if (typeof chrome !== 'undefined' && chrome.runtime && isContextoPermitido()) {
             return true;
         }
         
-        // =========================================
-        // revisarPaginaInteira
-        // =========================================
         if (request.action === 'revisarPaginaInteira') {
             revisarPaginaInteira();
             responder({ success: true });
             return true;
         }
         
-        // =========================================
-        // toggleSite
-        // =========================================
         if (request.action === 'toggleSite') {
             atualizarEstadoExtensao(request.enabled);
             responder({ success: true });
             return true;
         }
         
-        // =========================================
-        // siteToggled
-        // =========================================
         if (request.action === 'siteToggled') {
             atualizarEstadoExtensao(request.enabled);
             responder({ success: true });
             return true;
         }
         
-        // =========================================
-        // Nenhum action reconhecido - IMPORTANTE: responder mesmo assim!
-        // =========================================
         responder({ success: false, error: 'Unknown action: ' + request.action });
         return true;
     });
@@ -2128,11 +2233,49 @@ function adicionarAbaSentimento() {
     historicoContent.className = 'body-cards';
     content.parentNode.insertBefore(sentimentContent, content.nextSibling);
     content.parentNode.insertBefore(historicoContent, sentimentContent.nextSibling);
+    
     function renderizarHistorico() {
-        if (historicoCorrecoes.length === 0) { historicoContent.innerHTML = `<div style="text-align:center;padding:40px;color:var(--color-text-secondary)"><div style="font-size:36px;margin-bottom:12px">📭</div><p style="font-size:13px">Nenhuma correção feita ainda nesta sessão.</p></div>`; return; }
-        historicoContent.innerHTML = historicoCorrecoes.slice().reverse().map((item, idx) => { const realIdx = historicoCorrecoes.length - 1 - idx; const hora = new Date(item.timestamp).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' }); return `<div style="background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:10px 12px;margin-bottom:8px;font-size:13px"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><div style="display:flex;align-items:center;gap:6px;flex:1;min-width:0"><span style="color:var(--color-text-danger);text-decoration:line-through;max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(item.original)}</span><span style="color:var(--color-text-tertiary)">→</span><span style="color:var(--color-text-success);max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(item.sugestao)}</span></div><div style="display:flex;align-items:center;gap:6px;flex-shrink:0"><span style="font-size:11px;color:var(--color-text-tertiary)">${hora}</span><button data-idx="${realIdx}" class="sm-btn-reverter" style="font-size:11px;padding:3px 8px;border-radius:var(--border-radius-sm);border:0.5px solid var(--color-border-secondary);background:var(--color-background-primary);color:var(--color-text-primary);cursor:pointer">↩ Reverter</button></div></div></div>`; }).join('');
-        historicoContent.querySelectorAll('.sm-btn-reverter').forEach(btn => { btn.addEventListener('click', () => { const idx = parseInt(btn.dataset.idx); const item = historicoCorrecoes[idx]; if (!item || !item.el) return; const el = item.el; if (el.value !== undefined) { el.value = el.value.replace(item.sugestao, item.original); } else { el.textContent = el.textContent.replace(item.sugestao, item.original); } dispararEventosNativos(el); historicoCorrecoes.splice(idx, 1); renderizarHistorico(); mostrarFeedback(`↩ Revertido: "${item.sugestao}" → "${item.original}"`, 'info'); }); });
+        if (historicoCorrecoes.length === 0) { 
+            historicoContent.innerHTML = `<div style="text-align:center;padding:40px;"><div style="font-size:36px;">📭</div><p>Nenhuma correção ainda.</p></div>`; 
+            return; 
+        }
+        historicoContent.innerHTML = historicoCorrecoes.slice().reverse().map((item, idx) => { 
+            const realIdx = historicoCorrecoes.length - 1 - idx; 
+            const hora = new Date(item.timestamp).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' }); 
+            return `<div style="background:#f8f9fa;border-radius:8px;padding:10px 12px;margin-bottom:8px;font-size:13px">
+                <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+                    <div style="display:flex;align-items:center;gap:6px;flex:1;min-width:0">
+                        <span style="color:#dc2626;text-decoration:line-through;">${escapeHtml(item.original)}</span>
+                        <span style="color:#9ca3af;">→</span>
+                        <span style="color:#059669;">${escapeHtml(item.sugestao)}</span>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
+                        <span style="font-size:10px;color:#64748b;">${hora}</span>
+                        <button data-idx="${realIdx}" class="sm-btn-reverter" style="font-size:10px;padding:4px 10px;border-radius:6px;border:1px solid #e2e8f0;background:white;cursor:pointer">↩ Reverter</button>
+                    </div>
+                </div>
+            </div>`; 
+        }).join('');
+        
+        historicoContent.querySelectorAll('.sm-btn-reverter').forEach(btn => { 
+            btn.addEventListener('click', () => { 
+                const idx = parseInt(btn.dataset.idx); 
+                const item = historicoCorrecoes[idx]; 
+                if (!item || !item.el) return; 
+                const el = item.el; 
+                if (el.value !== undefined) { 
+                    el.value = el.value.replace(item.sugestao, item.original); 
+                } else { 
+                    el.textContent = el.textContent.replace(item.sugestao, item.original); 
+                } 
+                dispararEventosNativos(el); 
+                historicoCorrecoes.splice(idx, 1); 
+                renderizarHistorico(); 
+                mostrarFeedback(`↩ Revertido: "${item.sugestao}" → "${item.original}"`, 'info'); 
+            }); 
+        });
     }
+    
     tabs.querySelectorAll('.sm-tab-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             tabs.querySelectorAll('.sm-tab-btn').forEach(b => b.classList.remove('active'));
@@ -2141,42 +2284,97 @@ function adicionarAbaSentimento() {
             sentimentContent.style.display = 'none';
             historicoContent.style.display = 'none';
             if (btn.dataset.tab === 'grammar') content.style.display = 'block';
-            else if (btn.dataset.tab === 'sentiment') { sentimentContent.style.display = 'block'; sentimentContent.innerHTML = '<div style="text-align:center;padding:40px;color:var(--color-text-secondary)"><div style="font-size:28px;margin-bottom:12px">⏳</div><p style="font-size:13px">Analisando sentimento...</p></div>'; requestAnimationFrame(() => atualizarAnaliseSentimento(sentimentContent)); }
-            else { historicoContent.style.display = 'block'; renderizarHistorico(); }
+            else if (btn.dataset.tab === 'sentiment') { 
+                sentimentContent.style.display = 'block'; 
+                sentimentContent.innerHTML = '<div style="text-align:center;padding:40px;">⏳ Analisando sentimento...</div>'; 
+                requestAnimationFrame(() => atualizarAnaliseSentimento(sentimentContent)); 
+            } else { 
+                historicoContent.style.display = 'block'; 
+                renderizarHistorico(); 
+            }
         });
     });
 }
+
 function atualizarAnaliseSentimento(container) {
     if (!elementoGlobal) return;
     const texto = elementoGlobal.value || elementoGlobal.textContent || elementoGlobal.innerText || '';
-    if (texto.length < 10) { container.innerHTML = `<div style="text-align:center;padding:40px;color:var(--color-text-secondary);"><div style="font-size:48px;margin-bottom:16px;">📝</div><p>Digite mais texto para analisar o sentimento</p><p style="font-size:12px;">Mínimo de 10 caracteres</p></div>`; return; }
-    const NEGATIVOS = { 'ruim':{ score:-0.5, sug:'insatisfatório' }, 'péssimo':{ score:-1, sug:'aquém do esperado' }, 'horrível':{ score:-1, sug:'não ideal' }, 'odeio':{ score:-0.8, sug:'tenho ressalvas sobre' }, 'detesto':{ score:-0.8, sug:'prefiro não' }, 'problema':{ score:-0.4, sug:'desafio' }, 'impossível':{ score:-0.8, sug:'desafiador' }, 'nunca':{ score:-0.3, sug:'ainda não' }, 'falha':{ score:-0.6, sug:'ponto a melhorar' }, 'péssima':{ score:-1, sug:'aquém do esperado' } };
-    const POSITIVOS = { 'ótimo':0.6, 'excelente':0.8, 'maravilhoso':0.8, 'perfeito':0.7, 'incrível':0.7, 'fantástico':0.7, 'bom':0.3, 'boa':0.3, 'adorei':0.7, 'adoro':0.5 };
+    if (texto.length < 10) { 
+        container.innerHTML = `<div style="text-align:center;padding:40px;"><div style="font-size:48px;">📝</div><p>Digite mais texto para analisar o sentimento</p><p>Mínimo de 10 caracteres</p></div>`; 
+        return; 
+    }
+    
+    const NEGATIVOS = { 
+        'ruim':{ score:-0.5, sug:'insatisfatório' }, 'péssimo':{ score:-1, sug:'aquém do esperado' }, 
+        'horrível':{ score:-1, sug:'não ideal' }, 'odeio':{ score:-0.8, sug:'tenho ressalvas sobre' }, 
+        'detesto':{ score:-0.8, sug:'prefiro não' }, 'problema':{ score:-0.4, sug:'desafio' }, 
+        'impossível':{ score:-0.8, sug:'desafiador' }, 'nunca':{ score:-0.3, sug:'ainda não' }, 
+        'falha':{ score:-0.6, sug:'ponto a melhorar' }, 'péssima':{ score:-1, sug:'aquém do esperado' } 
+    };
+    
+    const POSITIVOS = { 
+        'ótimo':0.6, 'excelente':0.8, 'maravilhoso':0.8, 'perfeito':0.7, 
+        'incrível':0.7, 'fantástico':0.7, 'bom':0.3, 'boa':0.3, 'adorei':0.7, 'adoro':0.5 
+    };
+    
     const INTENSIFICADORES = ['muito', 'extremamente', 'super', 'bem', 'bastante', 'tão'];
     const NEGACOES = ['não', 'nunca', 'jamais', 'nem', 'nenhum', 'nada'];
+    
     const tokens = texto.toLowerCase().split(/\s+/);
     let score = 0;
     const issues = [];
+    
     tokens.forEach((token, i) => {
         const limpo = token.replace(/[^a-záéíóúãõâêîôûç]/g, '');
         const prevToken = i > 0 ? tokens[i-1].replace(/\W/g,'') : '';
         const prev2Token = i > 1 ? tokens[i-2].replace(/\W/g,'') : '';
         const negado = NEGACOES.includes(prevToken) || NEGACOES.includes(prev2Token);
         const intensificado = INTENSIFICADORES.includes(prevToken) ? 1.5 : 1;
-        if (NEGATIVOS[limpo]) { const s = negado ? -NEGATIVOS[limpo].score * 0.7 : NEGATIVOS[limpo].score * intensificado; score += s; if (!negado) issues.push({ palavra: limpo, sug: NEGATIVOS[limpo].sug, tipo: 'negativo' }); }
-        if (POSITIVOS[limpo]) score += negado ? -POSITIVOS[limpo] * 0.7 : POSITIVOS[limpo] * intensificado;
+        
+        if (NEGATIVOS[limpo]) { 
+            const s = negado ? -NEGATIVOS[limpo].score * 0.7 : NEGATIVOS[limpo].score * intensificado; 
+            score += s; 
+            if (!negado) issues.push({ palavra: limpo, sug: NEGATIVOS[limpo].sug, tipo: 'negativo' }); 
+        }
+        if (POSITIVOS[limpo]) { 
+            score += negado ? -POSITIVOS[limpo] * 0.7 : POSITIVOS[limpo] * intensificado; 
+        }
     });
+    
     const scoreNorm = Math.max(-1, Math.min(1, score / Math.max(tokens.length / 10, 1)));
     const pct = Math.round((scoreNorm + 1) / 2 * 100);
+    
     let label, icon, cor;
-    if (scoreNorm < -0.4) { label = 'Negativo'; icon = '😔'; cor = 'var(--color-text-danger)'; }
-    else if (scoreNorm < -0.1) { label = 'Levemente negativo'; icon = '😕'; cor = 'var(--color-text-warning)'; }
-    else if (scoreNorm < 0.15) { label = 'Neutro'; icon = '😐'; cor = 'var(--color-text-secondary)'; }
-    else if (scoreNorm < 0.5) { label = 'Levemente positivo'; icon = '🙂'; cor = 'var(--color-text-success)'; }
-    else { label = 'Positivo'; icon = '😊'; cor = 'var(--color-text-success)'; }
-    let html = `<div style="text-align:center;margin-bottom:20px;"><div style="font-size:52px;margin-bottom:8px;">${icon}</div><p style="font-size:16px;font-weight:500;margin:0 0 4px;color:${cor}">${label}</p><div style="height:8px;background:var(--color-background-secondary);border-radius:4px;margin:12px 20px 0;overflow:hidden"><div style="height:100%;width:${pct}%;background:${cor};border-radius:4px;transition:width .4s"></div></div><p style="font-size:11px;color:var(--color-text-tertiary);margin:6px 0 0">${pct}% positivo</p></div>`;
-    if (issues.length > 0) { html += `<div style="font-size:13px;font-weight:500;margin-bottom:8px;color:var(--color-text-primary)">Pontos de atenção</div>`; issues.slice(0, 5).forEach(issue => { html += `<div style="background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:10px 12px;margin-bottom:8px;display:flex;align-items:center;gap:8px;font-size:13px;"><span style="color:var(--color-text-danger)">"${escapeHtml(issue.palavra)}"</span><span style="color:var(--color-text-tertiary)">→</span><span style="color:var(--color-text-success)">"${escapeHtml(issue.sug)}"</span></div>`; }); }
-    else { html += `<div style="text-align:center;padding:16px;background:var(--color-background-success);border-radius:var(--border-radius-md);"><p style="color:var(--color-text-success);margin:0;font-size:13px;">✨ Texto com tom adequado!</p></div>`; }
+    if (scoreNorm < -0.4) { label = 'Negativo'; icon = '😔'; cor = '#e53e3e'; }
+    else if (scoreNorm < -0.1) { label = 'Levemente negativo'; icon = '😕'; cor = '#f59e0b'; }
+    else if (scoreNorm < 0.15) { label = 'Neutro'; icon = '😐'; cor = '#6b7280'; }
+    else if (scoreNorm < 0.5) { label = 'Levemente positivo'; icon = '🙂'; cor = '#10b981'; }
+    else { label = 'Positivo'; icon = '😊'; cor = '#10b981'; }
+    
+    let html = `<div style="text-align:center;margin-bottom:20px;">
+        <div style="font-size:52px;margin-bottom:8px;">${icon}</div>
+        <p style="font-size:16px;font-weight:500;margin:0 0 4px;color:${cor}">${label}</p>
+        <div style="height:8px;background:#e5e7eb;border-radius:4px;margin:12px 20px 0;overflow:hidden">
+            <div style="height:100%;width:${pct}%;background:${cor};border-radius:4px;transition:width .4s"></div>
+        </div>
+        <p style="font-size:11px;color:#6b7280;margin:6px 0 0">${pct}% positivo</p>
+    </div>`;
+    
+    if (issues.length > 0) { 
+        html += `<div style="font-size:13px;font-weight:500;margin-bottom:8px;">Pontos de atenção</div>`; 
+        issues.slice(0, 5).forEach(issue => { 
+            html += `<div style="background:#f8f9fa;border-radius:8px;padding:10px 12px;margin-bottom:8px;display:flex;align-items:center;gap:8px;font-size:13px;">
+                <span style="color:#dc2626;">"${escapeHtml(issue.palavra)}"</span>
+                <span style="color:#9ca3af;">→</span>
+                <span style="color:#10b981;">"${escapeHtml(issue.sug)}"</span>
+            </div>`; 
+        }); 
+    } else { 
+        html += `<div style="text-align:center;padding:16px;background:#ecfdf5;border-radius:8px;">
+            <p style="color:#059669;margin:0;">✨ Texto com tom adequado!</p>
+        </div>`; 
+    }
+    
     container.innerHTML = html;
 }
 
@@ -2192,21 +2390,21 @@ function mostrarExplicacaoRegra(original, sugestao, mensagem, erroObj) {
     const overlay = document.createElement('div');
     overlay.style.cssText = `position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.4);z-index:2147483646;display:flex;align-items:center;justify-content:center;font-family:'Segoe UI',system-ui,sans-serif;`;
     const dialog = document.createElement('div');
-    dialog.style.cssText = `background:${smConfig.darkMode ? '#1a1a1a' : 'white'};color:${smConfig.darkMode ? '#e0e0e0' : 'inherit'};border-radius:16px;padding:28px;max-width:480px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.3);`;
+    dialog.style.cssText = `background:${smConfig.darkMode ? '#1a1a1a' : 'white'};border-radius:16px;padding:28px;max-width:480px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.3);`;
     const mensagemLimpa = escapeHtml(mensagem);
     const catBadge = categoria ? `<span style="display:inline-block;background:#ede9fe;color:#5b21b6;font-size:11px;font-weight:500;padding:2px 8px;border-radius:4px;margin-bottom:12px">${escapeHtml(categoria)}</span>` : '';
     const linkHtml = linkRef ? `<a href="${escapeHtml(linkRef)}" target="_blank" style="font-size:12px;color:#6f42c1;text-decoration:none">📖 Saiba mais</a>` : '';
-    dialog.innerHTML = `<div style="text-align:center;margin-bottom:16px;"><div style="font-size:40px;margin-bottom:8px;">📚</div><h3 style="margin:0 0 6px;font-size:18px;">Por que corrigir?</h3>${catBadge}</div><div style="background:${smConfig.darkMode ? '#2a2a2a' : '#f8f9fa'};border-radius:12px;padding:16px;margin-bottom:16px;text-align:center;"><span style="color:#e53e3e;text-decoration:line-through;font-size:18px;font-weight:600;">${escapeHtml(original)}</span><span style="margin:0 10px;color:#9ca3af;">→</span><span style="color:#28a745;font-size:18px;font-weight:600;">${escapeHtml(sugestao)}</span></div><div style="background:${smConfig.darkMode ? '#3b2e1a' : '#fef3c7'};border-radius:10px;padding:14px;margin-bottom:16px;"><p style="margin:0 0 6px;font-size:13px;line-height:1.6;color:${smConfig.darkMode ? '#fcd34d' : '#92400e'};">💡 ${mensagemLimpa}</p>${sugestao ? `<p style="margin:0;font-size:12px;color:${smConfig.darkMode ? '#a3a3a3' : '#6b7280'}">✏️ Exemplo: "<em>${escapeHtml(sugestao)}</em>"</p>` : ''}</div><div style="display:flex;justify-content:space-between;align-items:center;">${linkHtml}<button class="sm-dlg-cancel" style="background:#f3f4f6;border:1px solid #d1d5db;color:#374151;padding:8px 16px;border-radius:6px;cursor:pointer;font-weight:600;margin-left:auto">Entendi ✓</button></div>`;
+    dialog.innerHTML = `<div style="text-align:center;margin-bottom:16px;"><div style="font-size:40px;margin-bottom:8px;">📚</div><h3 style="margin:0 0 6px;font-size:18px;">Por que corrigir?</h3>${catBadge}</div><div style="background:${smConfig.darkMode ? '#2a2a2a' : '#f8f9fa'};border-radius:12px;padding:16px;margin-bottom:16px;text-align:center;"><span style="color:#e53e3e;text-decoration:line-through;font-size:18px;font-weight:600;">${escapeHtml(original)}</span><span style="margin:0 10px;color:#9ca3af;">→</span><span style="color:#28a745;font-size:18px;font-weight:600;">${escapeHtml(sugestao)}</span></div><div style="background:${smConfig.darkMode ? '#3b2e1a' : '#fef3c7'};border-radius:10px;padding:14px;margin-bottom:16px;"><p style="margin:0 0 6px;font-size:13px;line-height:1.6;">💡 ${mensagemLimpa}</p>${sugestao ? `<p style="margin:0;font-size:12px;">✏️ Exemplo: "<em>${escapeHtml(sugestao)}</em>"</p>` : ''}</div><div style="display:flex;justify-content:space-between;align-items:center;">${linkHtml}<button class="sm-dlg-cancel" style="background:#f3f4f6;border:1px solid #d1d5db;color:#374151;padding:8px 16px;border-radius:6px;cursor:pointer;font-weight:600;margin-left:auto">Entendi ✓</button></div>`;
     overlay.appendChild(dialog);
     document.body.appendChild(overlay);
     const fechar = () => overlay.remove();
-    dialog.querySelector('.sm-dlg-cancel')?.addEventListener('click', fechar);
+    const btnCancel = dialog.querySelector('.sm-dlg-cancel');
+    if (btnCancel) btnCancel.addEventListener('click', fechar);
     overlay.addEventListener('click', e => { if (e.target === overlay) fechar(); });
     setTimeout(fechar, 12000);
 }
 
 function carregarSmConfig(callback) {
-    // Adicionar verificação de contexto
     if (!isContextoPermitido()) {
         if (callback) callback();
         return;
@@ -2264,23 +2462,55 @@ function carregarPublicAPI() {
     script.onload = () => script.remove();
     (document.head || document.documentElement).appendChild(script);
 }
+
 function limparObservadores() {
+    smLog('Iniciando limpeza de observers...');
+    
     smTimers.forEach(id => clearTimeout(id));
     smTimers = [];
-    if (iframeObserver) { iframeObserver.disconnect(); iframeObserver = null; }
+    
+    // Limpar todos os observers registrados (BUG 6)
+    limparTodosObservadores();
+    
+    // Limpar WeakSet
     if (processedIframes) processedIframes = new WeakSet();
-    if (currentFetchController) { currentFetchController.abort(); currentFetchController = null; }
+    
+    if (currentFetchController) { 
+        currentFetchController.abort(); 
+        currentFetchController = null; 
+    }
+    
+    smLog('Observadores limpos com sucesso');
 }
+
 window.addEventListener('beforeunload', limparObservadores);
 window.addEventListener('pagehide', limparObservadores);
-window.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') limparObservadores(); });
-setInterval(async () => { const conectado = await verificarConexaoExtensao(); if (!conectado && contextoExtensaoValido) { contextoExtensaoValido = false; console.debug('Extensão parece estar inativa'); } else if (conectado && !contextoExtensaoValido) { contextoExtensaoValido = true; console.debug('Extensão reconectada'); } }, 30000);
+window.addEventListener('visibilitychange', () => { 
+    if (document.visibilityState === 'hidden') limparObservadores(); 
+});
+
+setInterval(async () => { 
+    const conectado = await verificarConexaoExtensao(); 
+    if (!conectado && contextoExtensaoValido) { 
+        contextoExtensaoValido = false; 
+        console.debug('Extensão parece estar inativa'); 
+    } else if (conectado && !contextoExtensaoValido) { 
+        contextoExtensaoValido = true; 
+        console.debug('Extensão reconectada'); 
+    } 
+}, 30000);
+
 function iniciar() {
-    if (!isExtensaoAtiva()) { setTimeout(iniciar, 2000); return; }
+    if (!isExtensaoAtiva()) { 
+        setTimeout(iniciar, 2000); 
+        return; 
+    }
+    
     carregarSmConfig(() => {
         carregarPublicAPI();
         observarShadowDOM();
         observarIframes();
+        
         chrome.storage.onChanged.addListener((changes, namespace) => {
             if (namespace !== 'local') return;
             const campos = ['language','pickyMode','speed','darkMode','blacklist','apiUrl','apiKey','strictMode','disabled','autoHideBubble','modoConfirmacao','modoLeituraGlobal','modoLeituraSites','modoWhitelist','whitelist','modoFoco','modoAprendizado','userBlacklistOverrides','toggleShortcut','ignoreShortcut','corrigirTudoShortcut','ativarShortcut','desativarShortcut'];
@@ -2294,4 +2524,5 @@ function iniciar() {
         });
     });
 }
+
 iniciar();

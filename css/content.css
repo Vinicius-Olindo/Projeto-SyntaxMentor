@@ -1,11 +1,10 @@
 /* =========================================================================
-   SyntaxMentor - 2.8.2 - UI Elite (Cards Aprimorados)
+   SyntaxMentor - 2.8.2 - UI Elite (Fully Corrected)
    ========================================================================= */
 
 /* --- 1. BOLINHA FLUTUANTE --- */
 #syntax-mentor-bubble {
     position: fixed;
-    z-index: 2147483646;
     width: 40px;
     height: 40px;
     border-radius: 50%;
@@ -14,14 +13,22 @@
     justify-content: center;
     cursor: grab;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-    transition: transform 0.2s, opacity 0.2s;
     font-family: 'Segoe UI', system-ui, sans-serif;
     user-select: none;
+    will-change: transform, opacity;
+    z-index: 2147483647 !important;
+    isolation: isolate !important;
+    transition: transform 0.15s cubic-bezier(0.2, 0.9, 0.4, 1.1), opacity 0.2s ease;
 }
 
 #syntax-mentor-bubble:active {
     cursor: grabbing;
     transform: scale(0.95);
+}
+
+#syntax-mentor-bubble.sm-loading {
+    animation: sm-pulse 0.8s ease-in-out infinite;
+    transition: none;
 }
 
 #syntax-mentor-bubble.sm-bubble-error {
@@ -51,12 +58,45 @@
     padding: 2px 5px;
     border: 1.5px solid white;
     pointer-events: none;
+    transition: transform 0.1s ease;
+}
+
+/* Ondas magnéticas - devem ficar ATRÁS da bolinha */
+#syntax-mentor-bubble.sm-loading::before,
+#syntax-mentor-bubble.sm-loading::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    width: 30px;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, #6f42c1, #8b5cf6, #6f42c1, transparent);
+    border-radius: 2px;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(-50%);
+    z-index: -1 !important;
+    transition: none;
+}
+
+#syntax-mentor-bubble.sm-loading::before {
+    right: 100%;
+    margin-right: 5px;
+    transform-origin: right center;
+    animation: magnetic-wave-left 0.8s ease-in-out infinite;
+    opacity: 1;
+}
+
+#syntax-mentor-bubble.sm-loading::after {
+    left: 100%;
+    margin-left: 5px;
+    transform-origin: left center;
+    animation: magnetic-wave-right 0.8s ease-in-out infinite;
+    opacity: 1;
 }
 
 /* --- 2. PAINEL DE SUGESTÕES --- */
 #syntax-mentor-painel {
     position: fixed;
-    z-index: 2147483647;
     width: 360px;
     max-width: 90vw;
     max-height: 80vh;
@@ -69,6 +109,10 @@
     color: #1e293b;
     overflow: hidden;
     border: 1px solid #e2e8f0;
+    will-change: top, left;
+    z-index: 2147483647 !important;
+    isolation: isolate !important;
+    transition: none;
 }
 
 #syntax-mentor-header {
@@ -109,6 +153,28 @@
     background: rgba(255, 255, 255, 0.2);
 }
 
+/* Tooltip de seleção */
+#sm-selecao-tooltip {
+    z-index: 2147483647 !important;
+}
+
+/* Feedbacks flutuantes */
+.sm-feedback-flutuante,
+.sm-feedback-correcao {
+    z-index: 2147483647 !important;
+}
+
+/* Modal de confirmação */
+#sm-confirm-modal,
+#sm-confirm-modal-options {
+    z-index: 2147483647 !important;
+}
+
+/* Notificações de conquista */
+.sm-notification-temp {
+    z-index: 2147483647 !important;
+}
+
 /* --- CONTEÚDO PRINCIPAL --- */
 #syntax-mentor-content {
     padding: 12px;
@@ -128,6 +194,7 @@
 #syntax-mentor-content::-webkit-scrollbar-thumb {
     background: #cbd5e1;
     border-radius: 4px;
+    transition: none;
 }
 
 /* --- ESTATÍSTICAS --- */
@@ -143,7 +210,7 @@
     margin: 0;
 }
 
-/* --- CARDS DE ERRO - ELITE --- */
+/* --- CARDS DE ERRO - CORRIGIDO --- */
 .erro-card {
     background: #ffffff;
     border: 1px solid #e2e8f0;
@@ -151,8 +218,10 @@
     padding: 12px 14px;
     margin-bottom: 10px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
+    overflow-x: hidden;
+    will-change: transform;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.2s cubic-bezier(0.2, 0.9, 0.4, 1.1);
 }
 
 .erro-card:hover {
@@ -167,15 +236,17 @@
     box-shadow: 0 4px 12px rgba(245, 158, 11, 0.1);
 }
 
-/* Container da palavra */
+/* Container da palavra - proteção contra palavras longas */
 .palavra-group {
     display: flex;
     align-items: center;
     gap: 8px;
     flex-wrap: wrap;
     margin-bottom: 10px;
+    min-width: 0;
 }
 
+/* Palavra original - com proteção */
 .palavra-original {
     background: #fef2f2;
     color: #ef4444;
@@ -185,8 +256,14 @@
     font-weight: 600;
     text-decoration: line-through;
     border: 1px solid #fee2e2;
+    word-break: break-word;
+    overflow-wrap: break-word;
+    white-space: normal;
+    max-width: 100%;
+    display: inline-block;
 }
 
+/* Palavra sugerida - com proteção */
 .palavra-sugestao {
     background: #ecfdf5;
     color: #10b981;
@@ -195,11 +272,17 @@
     font-size: 13px;
     font-weight: 700;
     border: 1px solid #d1fae5;
+    word-break: break-word;
+    overflow-wrap: break-word;
+    white-space: normal;
+    max-width: 100%;
+    display: inline-block;
 }
 
 .seta {
     color: #cbd5e1;
     font-size: 14px;
+    flex-shrink: 0;
 }
 
 /* Botões */
@@ -208,6 +291,7 @@
     gap: 8px;
     align-items: center;
     flex-wrap: wrap;
+    margin-top: 8px;
 }
 
 .btn-fix-mini {
@@ -219,7 +303,7 @@
     font-size: 11px;
     font-weight: 600;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: background 0.15s ease, transform 0.1s ease, box-shadow 0.15s ease;
 }
 
 .btn-fix-mini:hover {
@@ -237,7 +321,7 @@
     font-size: 11px;
     font-weight: 500;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: background 0.15s ease, transform 0.1s ease, box-shadow 0.15s ease;
 }
 
 .btn-ignorar-sessao:hover,
@@ -247,7 +331,7 @@
     border-color: #cbd5e1;
 }
 
-/* Mensagem de erro / Dica */
+/* Mensagem de erro */
 .erro-msg {
     margin: 10px 0 0 0;
     padding-top: 8px;
@@ -287,7 +371,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all 0.15s ease;
+    transition: background 0.1s ease, transform 0.1s ease;
 }
 
 .nav-btn:hover {
@@ -318,7 +402,7 @@
     font-size: 11px;
     cursor: pointer;
     margin-bottom: 6px;
-    transition: all 0.15s ease;
+    transition: transform 0.1s ease, filter 0.15s ease, background 0.15s ease;
 }
 
 .btn-corrigir-tudo:hover {
@@ -336,7 +420,7 @@
     font-weight: 500;
     font-size: 11px;
     cursor: pointer;
-    transition: all 0.15s ease;
+    transition: transform 0.1s ease, filter 0.15s ease, background 0.15s ease;
 }
 
 .btn-ignorar-tudo:hover {
@@ -370,97 +454,18 @@
     color: #94a3b8;
 }
 
-/* --- MODO ESCURO --- */
-#syntax-mentor-painel.sm-dark {
-    background: #1e1e2e;
-    border-color: #313244;
-}
+/* ============================================
+   ANIMAÇÕES OTIMIZADAS
+   ============================================ */
 
-#syntax-mentor-painel.sm-dark #syntax-mentor-header {
-    background: linear-gradient(135deg, #313244, #45475a);
-}
-
-#syntax-mentor-painel.sm-dark .erro-card {
-    background: #181825;
-    border-color: #313244;
-}
-
-#syntax-mentor-painel.sm-dark .erro-card:hover {
-    border-color: #cba6f7;
-    background: #1e1e2e;
-}
-
-#syntax-mentor-painel.sm-dark .erro-card.active {
-    background: #313244;
-    border-color: #f9e2af;
-}
-
-#syntax-mentor-painel.sm-dark .palavra-original {
-    background: #3f1a1a;
-    color: #fca5a5;
-    border-color: #5c2020;
-}
-
-#syntax-mentor-painel.sm-dark .palavra-sugestao {
-    background: #1a3a2a;
-    color: #6ee7b7;
-    border-color: #2a5a3a;
-}
-
-#syntax-mentor-painel.sm-dark .btn-ignorar-sessao,
-#syntax-mentor-painel.sm-dark .btn-ignorar {
-    background: #181825;
-    border-color: #45475a;
-    color: #a6adc8;
-}
-
-#syntax-mentor-painel.sm-dark .btn-ignorar-sessao:hover,
-#syntax-mentor-painel.sm-dark .btn-ignorar:hover {
-    background: #313244;
-    color: #cdd6f4;
-}
-
-#syntax-mentor-painel.sm-dark .erro-msg {
-    border-top-color: #313244;
-    color: #a6adc8;
-}
-
-#syntax-mentor-painel.sm-dark .painel-footer {
-    background: #181825;
-    border-top-color: #313244;
-}
-
-#syntax-mentor-painel.sm-dark .nav-btn {
-    background: #313244;
-    border-color: #45475a;
-    color: #cdd6f4;
-}
-
-#syntax-mentor-painel.sm-dark .nav-contador {
-    background: #313244;
-    border-color: #45475a;
-    color: #cdd6f4;
-}
-
-#syntax-mentor-painel.sm-dark .btn-ignorar-tudo {
-    background: #313244;
-    border-color: #45475a;
-    color: #a6adc8;
-}
-
-#syntax-mentor-painel.sm-dark .shortcuts {
-    color: #6c7086;
-}
-
-/* Animação de Carregamento (Bolinha pulsando) */
 @keyframes sm-pulse {
     0% {
         transform: scale(1);
-        box-shadow: 0 0 0 0 rgba(111, 66, 193, 0.7);
+        box-shadow: 0 0 0 0 rgba(111, 66, 193, 0.6);
     }
     50% {
-        transform: scale(1.1);
-        box-shadow: 0 0 0 8px rgba(111, 66, 193, 0);
+        transform: scale(1.08);
+        box-shadow: 0 0 0 6px rgba(111, 66, 193, 0);
     }
     100% {
         transform: scale(1);
@@ -468,227 +473,414 @@
     }
 }
 
-/* Pulsação durante carregamento */
-#syntax-mentor-bubble.sm-pulse {
-    animation: sm-pulse 1s ease-in-out infinite !important;
+@keyframes sm-bubble-correction {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.15); }
+    100% { transform: scale(1); }
 }
 
-/* Pulsação para bolinha de erro */
-#syntax-mentor-bubble.sm-bubble-error.sm-pulse {
-    animation: sm-pulse-error 1s ease-in-out infinite !important;
+.sm-bubble-correction {
+    animation: sm-bubble-correction 0.25s cubic-bezier(0.2, 0.9, 0.4, 1.1) !important;
 }
 
-@keyframes sm-pulse-error {
-    0% {
-        transform: scale(1);
-        box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7);
+@keyframes magnetic-wave-left {
+    0% { width: 0px; opacity: 0; }
+    20% { width: 20px; opacity: 0.6; }
+    50% { width: 45px; opacity: 1; }
+    80% { width: 60px; opacity: 0.6; }
+    100% { width: 70px; opacity: 0; }
+}
+
+@keyframes magnetic-wave-right {
+    0% { width: 0px; opacity: 0; }
+    20% { width: 20px; opacity: 0.6; }
+    50% { width: 45px; opacity: 1; }
+    80% { width: 60px; opacity: 0.6; }
+    100% { width: 70px; opacity: 0; }
+}
+
+/* ============================================
+   RESPONSIVIDADE - TELAS PEQUENAS (BUG 8)
+   ============================================ */
+
+/* Painel base - responsivo */
+#syntax-mentor-painel {
+    position: fixed;
+    width: 360px;
+    max-width: calc(100vw - 20px) !important; /* 🔥 Garante que não ultrapasse a tela */
+    max-height: calc(100vh - 20px) !important;
+    background: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+    display: flex;
+    flex-direction: column;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    color: #1e293b;
+    overflow: hidden;
+    border: 1px solid #e2e8f0;
+    will-change: top, left;
+    z-index: 2147483647 !important;
+    isolation: isolate !important;
+}
+
+/* Para telas menores que 400px */
+@media (max-width: 400px) {
+    #syntax-mentor-painel {
+        width: calc(100vw - 16px) !important;
+        max-width: calc(100vw - 16px) !important;
+        left: 8px !important;
+        right: 8px !important;
+        border-radius: 12px !important;
     }
-    50% {
-        transform: scale(1.1);
-        box-shadow: 0 0 0 8px rgba(220, 53, 69, 0);
+    
+    /* Ajustar padding interno */
+    #syntax-mentor-content {
+        padding: 10px !important;
     }
-    100% {
-        transform: scale(1);
-        box-shadow: 0 0 0 0 rgba(220, 53, 69, 0);
+    
+    /* Cards mais compactos */
+    .erro-card {
+        padding: 8px 10px !important;
+        margin-bottom: 8px !important;
+    }
+    
+    /* Palavras com fontes menores */
+    .palavra-original,
+    .palavra-sugestao {
+        font-size: 11px !important;
+        padding: 3px 8px !important;
+    }
+    
+    /* Botões mais compactos */
+    .btn-fix-mini,
+    .btn-ignorar-sessao,
+    .btn-ignorar {
+        padding: 3px 10px !important;
+        font-size: 10px !important;
+    }
+    
+    /* Container da palavra */
+    .palavra-group {
+        gap: 6px !important;
+        margin-bottom: 8px !important;
+    }
+    
+    /* Botões de navegação */
+    .nav-container {
+        gap: 6px !important;
+        margin-bottom: 8px !important;
+    }
+    
+    .nav-btn {
+        width: 28px !important;
+        height: 28px !important;
+        font-size: 12px !important;
+    }
+    
+    .nav-contador {
+        padding: 3px 10px !important;
+        font-size: 10px !important;
+        min-width: 50px !important;
     }
 }
 
-/* Pulsação para bolinha de sucesso */
-#syntax-mentor-bubble.sm-bubble-success.sm-pulse {
-    animation: sm-pulse-success 1s ease-in-out infinite !important;
+/* Para telas muito pequenas (menos de 320px) */
+@media (max-width: 340px) {
+    /* Botões empilhados verticalmente */
+    .botoes-acao {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 6px !important;
+    }
+    
+    .btn-fix-mini,
+    .btn-ignorar-sessao,
+    .btn-ignorar {
+        text-align: center !important;
+    }
+    
+    /* Grupo da palavra */
+    .palavra-group {
+        flex-wrap: wrap !important;
+        justify-content: center !important;
+    }
+    
+    /* Fonte menor */
+    .erro-msg {
+        font-size: 9px !important;
+    }
+    
+    /* Rodapé */
+    .painel-footer {
+        padding: 8px 10px !important;
+    }
+    
+    /* Botões principais empilhados */
+    .btn-corrigir-tudo,
+    .btn-ignorar-tudo {
+        padding: 6px !important;
+        font-size: 10px !important;
+    }
 }
 
-@keyframes sm-pulse-success {
-    0% {
-        transform: scale(1);
-        box-shadow: 0 0 0 0 rgba(40, 167, 69, 0.7);
+/* Para telas em modo paisagem muito estreitas */
+@media (max-height: 500px) and (orientation: landscape) {
+    #syntax-mentor-painel {
+        max-height: calc(100vh - 20px) !important;
+        top: 10px !important;
+        bottom: 10px !important;
     }
-    50% {
-        transform: scale(1.1);
-        box-shadow: 0 0 0 8px rgba(40, 167, 69, 0);
+    
+    #syntax-mentor-content {
+        max-height: 250px !important;
     }
-    100% {
-        transform: scale(1);
-        box-shadow: 0 0 0 0 rgba(40, 167, 69, 0);
+    
+    .erro-card {
+        padding: 6px 8px !important;
+        margin-bottom: 6px !important;
+    }
+}
+
+/* Bolinha em telas pequenas */
+@media (max-width: 400px) {
+    #syntax-mentor-bubble {
+        width: 36px !important;
+        height: 36px !important;
+    }
+    
+    .sm-bubble-icon {
+        font-size: 16px !important;
+    }
+    
+    .sm-bubble-badge {
+        font-size: 9px !important;
+        padding: 1px 4px !important;
     }
 }
 
 /* ============================================
-   ONDAS MAGNÉTICAS PARA A BOLINHA
+   MODO ESCURO COMPLETO
    ============================================ */
 
-/* Container da bolinha para posicionar as ondas */
-#syntax-mentor-bubble {
-    position: fixed;
-    z-index: 2147483646;
-    width: 45px;
-    height: 45px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: grab;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    transition: transform 0.2s, opacity 0.2s, background-color 0.3s;
-    font-family: 'Segoe UI', system-ui, sans-serif;
-    user-select: none;
+/* Painel base */
+#syntax-mentor-painel.sm-dark,
+#syntax-mentor-painel.sm-dark.sm-dark {
+    background: #1e1e2e !important;
+    border-color: #313244 !important;
+    color: #cdd6f4 !important;
 }
 
-/* Ondas magnéticas - efeito nos lados */
-#syntax-mentor-bubble::before,
-#syntax-mentor-bubble::after {
-    content: '';
-    position: absolute;
-    top: 50%;
-    width: 30px;
-    height: 2px;
-    background: linear-gradient(90deg, transparent, #6f42c1, #8b5cf6, #6f42c1, transparent);
-    border-radius: 2px;
-    opacity: 0;
-    pointer-events: none;
-    transform: translateY(-50%);
+/* Cabeçalho */
+#syntax-mentor-painel.sm-dark #syntax-mentor-header {
+    background: linear-gradient(135deg, #313244, #45475a) !important;
+    border-bottom: 1px solid #45475a !important;
 }
 
-/* Onda esquerda */
-#syntax-mentor-bubble::before {
-    right: 100%;
-    margin-right: 5px;
-    transform-origin: right center;
+/* Abas */
+#syntax-mentor-painel.sm-dark #sm-tabs-container {
+    background: #181825 !important;
+    border-bottom: 1px solid #313244 !important;
 }
 
-/* Onda direita */
-#syntax-mentor-bubble::after {
-    left: 100%;
-    margin-left: 5px;
-    transform-origin: left center;
+#syntax-mentor-painel.sm-dark .sm-tab-btn {
+    background: transparent !important;
+    color: #a6adc8 !important;
 }
 
-/* Ondas ativas durante carregamento */
-#syntax-mentor-bubble.sm-loading::before {
-    animation: magnetic-wave-left 0.8s ease-in-out infinite;
-    opacity: 1;
+#syntax-mentor-painel.sm-dark .sm-tab-btn.active,
+#syntax-mentor-painel.sm-dark .sm-tab-btn[class*="active"] {
+    border-bottom: 2px solid #89b4fa !important;
+    color: #89b4fa !important;
 }
 
-#syntax-mentor-bubble.sm-loading::after {
-    animation: magnetic-wave-right 0.8s ease-in-out infinite;
-    opacity: 1;
+/* Cards de erro */
+#syntax-mentor-painel.sm-dark .erro-card,
+#syntax-mentor-painel.sm-dark div.erro-card {
+    background: #181825 !important;
+    border-color: #313244 !important;
 }
 
-/* Ondas para bolinha de erro */
-#syntax-mentor-bubble.sm-bubble-error.sm-loading::before {
-    background: linear-gradient(90deg, transparent, #dc3545, #ff6b6b, #dc3545, transparent);
+#syntax-mentor-painel.sm-dark .erro-card:hover {
+    border-color: #89b4fa !important;
+    background: #1e1e2e !important;
 }
 
-#syntax-mentor-bubble.sm-bubble-error.sm-loading::after {
-    background: linear-gradient(90deg, transparent, #dc3545, #ff6b6b, #dc3545, transparent);
+#syntax-mentor-painel.sm-dark .erro-card.active {
+    background: #313244 !important;
+    border-color: #f9e2af !important;
 }
 
-/* Ondas para bolinha de sucesso */
-#syntax-mentor-bubble.sm-bubble-success.sm-loading::before {
-    background: linear-gradient(90deg, transparent, #28a745, #20c997, #28a745, transparent);
+/* Palavras nos cards - com proteção */
+#syntax-mentor-painel.sm-dark .palavra-original {
+    background: #3f1a1a !important;
+    color: #fca5a5 !important;
+    border-color: #5c2020 !important;
+    word-break: break-word !important;
+    overflow-wrap: break-word !important;
+    white-space: normal !important;
+    max-width: 100% !important;
 }
 
-#syntax-mentor-bubble.sm-bubble-success.sm-loading::after {
-    background: linear-gradient(90deg, transparent, #28a745, #20c997, #28a745, transparent);
+#syntax-mentor-painel.sm-dark .palavra-sugestao {
+    background: #1a3a2a !important;
+    color: #a6e3a1 !important;
+    border-color: #2a5a3a !important;
+    word-break: break-word !important;
+    overflow-wrap: break-word !important;
+    white-space: normal !important;
+    max-width: 100% !important;
 }
 
-/* Animação da onda esquerda */
-@keyframes magnetic-wave-left {
-    0% {
-        width: 0px;
-        opacity: 0;
-    }
-    20% {
-        width: 20px;
-        opacity: 0.6;
-    }
-    50% {
-        width: 45px;
-        opacity: 1;
-    }
-    80% {
-        width: 60px;
-        opacity: 0.6;
-    }
-    100% {
-        width: 70px;
-        opacity: 0;
-    }
+/* Botões dentro dos cards */
+#syntax-mentor-painel.sm-dark .btn-fix-mini {
+    background: linear-gradient(135deg, #89b4fa, #b4befe) !important;
+    color: #1e1e2e !important;
 }
 
-/* Animação da onda direita */
-@keyframes magnetic-wave-right {
-    0% {
-        width: 0px;
-        opacity: 0;
-    }
-    20% {
-        width: 20px;
-        opacity: 0.6;
-    }
-    50% {
-        width: 45px;
-        opacity: 1;
-    }
-    80% {
-        width: 60px;
-        opacity: 0.6;
-    }
-    100% {
-        width: 70px;
-        opacity: 0;
-    }
+#syntax-mentor-painel.sm-dark .btn-fix-mini:hover {
+    background: linear-gradient(135deg, #b4befe, #cba6f7) !important;
 }
 
-/* Ondas magnéticas com pulsação combinada */
-#syntax-mentor-bubble.sm-loading {
-    animation: sm-pulse 1s ease-in-out infinite;
+#syntax-mentor-painel.sm-dark .btn-ignorar-sessao,
+#syntax-mentor-painel.sm-dark .btn-ignorar {
+    background: #313244 !important;
+    border-color: #45475a !important;
+    color: #a6adc8 !important;
 }
 
-/* Versão alternativa com mais ondas (3 ondas de cada lado) */
-#syntax-mentor-bubble.sm-loading-multi::before {
-    animation: magnetic-wave-left 0.8s ease-in-out infinite;
-    box-shadow: 0 0 5px rgba(111, 66, 193, 0.5);
+#syntax-mentor-painel.sm-dark .btn-ignorar-sessao:hover,
+#syntax-mentor-painel.sm-dark .btn-ignorar:hover {
+    background: #45475a !important;
+    color: #cdd6f4 !important;
 }
 
-#syntax-mentor-bubble.sm-loading-multi::after {
-    animation: magnetic-wave-right 0.8s ease-in-out infinite;
-    box-shadow: 0 0 5px rgba(111, 66, 193, 0.5);
+/* Mensagem de erro */
+#syntax-mentor-painel.sm-dark .erro-msg {
+    border-top-color: #313244 !important;
+    color: #a6adc8 !important;
 }
 
-/* Ondas com glow (efeito de brilho) */
-@keyframes magnetic-wave-left-glow {
-    0% {
-        width: 0px;
-        opacity: 0;
-        box-shadow: 0 0 0px rgba(111, 66, 193, 0);
-    }
-    50% {
-        width: 50px;
-        opacity: 1;
-        box-shadow: 0 0 15px rgba(111, 66, 193, 0.8);
-    }
-    100% {
-        width: 80px;
-        opacity: 0;
-        box-shadow: 0 0 0px rgba(111, 66, 193, 0);
-    }
+/* Rodapé */
+#syntax-mentor-painel.sm-dark .painel-footer,
+#syntax-mentor-painel.sm-dark > div:last-child {
+    background: #181825 !important;
+    border-top-color: #313244 !important;
 }
 
-@keyframes magnetic-wave-right-glow {
-    0% {
-        width: 0px;
-        opacity: 0;
-        box-shadow: 0 0 0px rgba(111, 66, 193, 0);
-    }
-    50% {
-        width: 50px;
-        opacity: 1;
-        box-shadow: 0 0 15px rgba(111, 66, 193, 0.8);
-    }
-    100% {
-        width: 80px;
-        opacity: 0;
-        box-shadow: 0 0 0px rgba(111, 66, 193, 0);
-    }
+/* Navegação */
+#syntax-mentor-painel.sm-dark .nav-btn {
+    background: #313244 !important;
+    border-color: #45475a !important;
+    color: #cdd6f4 !important;
+}
+
+#syntax-mentor-painel.sm-dark .nav-btn:hover {
+    background: #45475a !important;
+}
+
+#syntax-mentor-painel.sm-dark .nav-contador,
+#syntax-mentor-painel.sm-dark #sm-nav-contador {
+    background: #313244 !important;
+    border-color: #45475a !important;
+    color: #cdd6f4 !important;
+}
+
+/* Botões principais */
+#syntax-mentor-painel.sm-dark .btn-corrigir-tudo,
+#syntax-mentor-painel.sm-dark #btn-corrigir-tudo {
+    background: linear-gradient(135deg, #a6e3a1, #94e2d5) !important;
+    color: #1e1e2e !important;
+}
+
+#syntax-mentor-painel.sm-dark .btn-ignorar-tudo,
+#syntax-mentor-painel.sm-dark #btn-ignorar-tudo {
+    background: #313244 !important;
+    border-color: #45475a !important;
+    color: #a6adc8 !important;
+}
+
+#syntax-mentor-painel.sm-dark .btn-ignorar-tudo:hover,
+#syntax-mentor-painel.sm-dark #btn-ignorar-tudo:hover {
+    background: #45475a !important;
+    color: #f38ba8 !important;
+}
+
+/* Botão desfazer */
+#syntax-mentor-painel.sm-dark .btn-desfazer button,
+#syntax-mentor-painel.sm-dark #btn-desfazer-ultima {
+    background: #313244 !important;
+    border-color: #45475a !important;
+    color: #a6adc8 !important;
+}
+
+#syntax-mentor-painel.sm-dark .btn-desfazer button:hover,
+#syntax-mentor-painel.sm-dark #btn-desfazer-ultima:hover {
+    background: #45475a !important;
+    color: #f9e2af !important;
+}
+
+/* Dicas/atalhos */
+#syntax-mentor-painel.sm-dark .shortcuts,
+#syntax-mentor-painel.sm-dark div[class*="shortcuts"] {
+    color: #6c7086 !important;
+}
+
+/* Scrollbar */
+#syntax-mentor-painel.sm-dark #syntax-mentor-content::-webkit-scrollbar-track,
+#syntax-mentor-painel.sm-dark #sm-sentiment-content::-webkit-scrollbar-track,
+#syntax-mentor-painel.sm-dark #sm-historico-content::-webkit-scrollbar-track {
+    background: #181825 !important;
+}
+
+#syntax-mentor-painel.sm-dark #syntax-mentor-content::-webkit-scrollbar-thumb,
+#syntax-mentor-painel.sm-dark #sm-sentiment-content::-webkit-scrollbar-thumb,
+#syntax-mentor-painel.sm-dark #sm-historico-content::-webkit-scrollbar-thumb {
+    background: #45475a !important;
+    border-radius: 10px !important;
+}
+
+#syntax-mentor-painel.sm-dark #syntax-mentor-content::-webkit-scrollbar-thumb:hover,
+#syntax-mentor-painel.sm-dark #sm-sentiment-content::-webkit-scrollbar-thumb:hover,
+#syntax-mentor-painel.sm-dark #sm-historico-content::-webkit-scrollbar-thumb:hover {
+    background: #6c7086 !important;
+}
+
+/* Conteúdo do sentimento e histórico */
+#syntax-mentor-painel.sm-dark #sm-sentiment-content,
+#syntax-mentor-painel.sm-dark #sm-historico-content {
+    background: #1e1e2e !important;
+    color: #cdd6f4 !important;
+}
+
+/* Histórico - itens */
+#syntax-mentor-painel.sm-dark .sm-btn-reverter {
+    background: #313244 !important;
+    border-color: #45475a !important;
+    color: #a6adc8 !important;
+}
+
+#syntax-mentor-painel.sm-dark .sm-btn-reverter:hover {
+    background: #45475a !important;
+    color: #89b4fa !important;
+}
+
+/* Bolha flutuante no modo escuro */
+#syntax-mentor-bubble.sm-dark.sm-bubble-error {
+    background: linear-gradient(135deg, #f38ba8, #e64553) !important;
+}
+
+#syntax-mentor-bubble.sm-dark.sm-bubble-success {
+    background: linear-gradient(135deg, #a6e3a1, #74c7ec) !important;
+}
+
+#syntax-mentor-bubble.sm-dark .sm-bubble-badge {
+    background: #1e1e2e !important;
+    border-color: #313244 !important;
+    color: #cdd6f4 !important;
+}
+
+/* Ondas magnéticas no modo escuro */
+#syntax-mentor-bubble.sm-dark.sm-loading::before,
+#syntax-mentor-bubble.sm-dark.sm-loading::after {
+    background: linear-gradient(90deg, transparent, #89b4fa, #b4befe, #89b4fa, transparent) !important;
 }
