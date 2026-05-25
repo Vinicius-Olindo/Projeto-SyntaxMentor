@@ -2,13 +2,15 @@
 
 # ✨ SyntaxMentor
 
-[![Version](https://img.shields.io/badge/version-2.8.2-blue.svg)]()
+**Extensão de correção ortográfica e gramatical gratuita para Chrome**
+
+[![Version](https://img.shields.io/badge/version-2.8.2-blue.svg)](https://github.com/Vinicius-Olindo/Projeto-SyntaxMentor/releases)
 [![Chrome](https://img.shields.io/badge/Chrome-Extension-green.svg)]()
 [![Manifest](https://img.shields.io/badge/Manifest-V3-orange.svg)]()
 [![License](https://img.shields.io/github/license/Vinicius-Olindo/Projeto-SyntaxMentor)](LICENSE)
 [![Stars](https://img.shields.io/github/stars/Vinicius-Olindo/Projeto-SyntaxMentor)](https://github.com/Vinicius-Olindo/Projeto-SyntaxMentor/stargazers)
-
-**Mentor ortográfico e gramatical para Chrome com análise de sentimento, Cloud Sync e API pública.**
+[![GitHub release](https://img.shields.io/github/v/release/Vinicius-Olindo/Projeto-SyntaxMentor)](https://github.com/Vinicius-Olindo/Projeto-SyntaxMentor/releases)
+[![GitHub last commit](https://img.shields.io/github/last-commit/Vinicius-Olindo/Projeto-SyntaxMentor)](https://github.com/Vinicius-Olindo/Projeto-SyntaxMentor/commits/main)
 
 </div>
 <div align="justify">
@@ -43,7 +45,7 @@ Construída sobre **Manifest V3**, usa Service Worker como background script, `c
 
 | Atributo               | Detalhe                      |
 | ---------------------- | ---------------------------- |
-| **Versão atual**       | `2.8.2 Elite`                |
+| **Versão atual**       | `2.8.2`                      |
 | **Manifest**           | V3                           |
 | **Motor de correção**  | LanguageTool API             |
 | **Idiomas suportados** | pt-BR, en-US, es, fr, de, it |
