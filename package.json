@@ -1,14 +1,5 @@
-{
+﻿{
   "name": "syntaxmentor",
-  "version": "2.7.1",
-  "description": "Extensão de correção ortográfica",
-  "scripts": {
-    "test": "jest",
-    "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage"
-  },
-  "devDependencies": {
-    "jest": "^29.7.0",
-    "@types/jest": "^29.5.0"
-  }
+  "version": "2.8.2",
+  "description": "Extensão de correção ortográfica para Chrome"
 }
