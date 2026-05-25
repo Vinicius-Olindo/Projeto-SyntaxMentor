@@ -1,3 +1,0 @@
-Prompt: "Revise a estrutura HTML dessa página e ajuste headings, landmarks e semântica para melhorar SEO e acessibilidade."
-
-O que faz: Estrutura o código para o Google encontrar sua aplicação mais fácil e melhorar a acessibilidade.

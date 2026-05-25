@@ -1,11 +1,14 @@
-# ✨ SyntaxMentor
+<div align="center">
 
-**Extensão de correção ortográfica e gramatical para Chrome — Manifest V3**
+# ✨ SyntaxMentor
 
 [![Version](https://img.shields.io/badge/version-2.8.2-blue.svg)]()
 [![Chrome](https://img.shields.io/badge/Chrome-Extension-green.svg)]()
 [![Manifest](https://img.shields.io/badge/Manifest-V3-orange.svg)]()
-[![License](https://img.shields.io/badge/license-Private-red.svg)]()
+[![License](https://img.shields.io/github/license/Vinicius-Olindo/Projeto-SyntaxMentor)](LICENSE)
+[![Stars](https://img.shields.io/github/stars/Vinicius-Olindo/Projeto-SyntaxMentor)](https://github.com/Vinicius-Olindo/Projeto-SyntaxMentor/stargazers)
+
+</div>
 
 ---
 
@@ -297,108 +300,4 @@ Domínios com suporte especial pré-configurado: `digisac.com.br`, `digisac.io`,
 
 ---
 
-> Desenvolvido com ❤️ — Projeto privado. Todos os direitos reservados.
-
-
-# ✨ SyntaxMentor
-
-**Extensão de correção ortográfica e gramatical para Chrome — Manifest V3**
-
-[![Version](https://img.shields.io/badge/version-2.8.2-blue.svg)]()
-[![Chrome](https://img.shields.io/badge/Chrome-Extension-green.svg)]()
-[![Manifest](https://img.shields.io/badge/Manifest-V3-orange.svg)]()
-[![License](https://img.shields.io/badge/license-Private-red.svg)]()
-
----
-
-## 📋 Índice
-
-- [Visão Geral](#-visão-geral)
-- [Funcionalidades](#-funcionalidades)
-- [Instalação](#-instalação)
-- [Atalhos de Teclado](#-atalhos-de-teclado)
-- [Menu de Contexto](#-menu-de-contexto)
-- [API Pública](#-api-pública)
-- [Configurações](#-configurações)
-- [Estrutura do Projeto](#-estrutura-do-projeto)
-- [Segurança](#-segurança)
-- [Sites Suportados](#-sites-suportados)
-- [Changelog](#-changelog)
-
----
-
-## 🚀 Visão Geral
-
-SyntaxMentor é uma extensão para Chrome que realiza correção ortográfica e gramatical em tempo real diretamente nos campos de texto da web. Integrada ao [LanguageTool](https://languagetool.org), ela suporta múltiplos idiomas, oferece análise de sentimentos, dicionário pessoal, sincronização em nuvem e uma API pública para integração com outras ferramentas.
-
-Desenvolvida com Manifest V3, usa Service Worker como background, `chrome.storage` para sincronização e `chrome.alarms` para tarefas agendadas.
-
-**Versão atual:** `2.8.2 Elite`
-
----
-
-## 🎯 Funcionalidades
-
-### 📝 Correção Gramatical
-
-Correção em tempo real via LanguageTool com suporte a pt-BR, en-US, es, fr, de e it. A extensão detecta automaticamente o idioma do texto e possui perfil dedicado para correção de transcrições de voz. O histórico armazena até 20 ações, com desfazer individual por item (Ctrl+Z).
-
-### 🎨 Interface
-
-Uma bolinha flutuante e arrastável exibe a contagem de erros ativos. Durante a verificação, a bolinha pulsa e emite ondas magnéticas. O painel lateral possui três abas: Gramática, Sentimento e Histórico. Cards compactos com layout responsivo apresentam cada erro com opções de correção, ignorar ou adicionar ao dicionário. Um tooltip flutuante é exibido ao revisar texto selecionado.
-
-Modos especiais disponíveis:
-
-- **Modo Foco** — oculta a interface durante a digitação
-- **Modo Confirmação** — exige aprovação antes de aplicar cada correção
-- **Modo Aprendizado** — explica a categoria, motivo e fornece link de referência para cada correção
-
-### 📊 Análise de Sentimento
-
-Detecta tom negativo, palavras agressivas e intensificadores no texto, sugerindo alternativas mais neutras ou profissionais. Os resultados são exibidos na aba Sentimento do painel.
-
-### 📚 Dashboard de Aprendizado
-
-Acessível pelas configurações, o dashboard exibe estatísticas de uso, streak diário, conquistas desbloqueadas e os erros mais frequentes do usuário.
-
-### ⚙️ Configurações
-
-Todas as configurações são acessíveis em `chrome://extensions` → SyntaxMentor → Detalhes → Opções, ou clicando com o botão direito no ícone da extensão.
-
-| Funcionalidade        | Descrição                                                             |
-| --------------------- | --------------------------------------------------------------------- |
-| Dicionário pessoal    | Adicione palavras que não devem ser sinalizadas (validação Unicode)   |
-| Blacklist / Whitelist | Controle por domínio: bloqueie ou libere sites individualmente        |
-| Modo Whitelist        | Ativa a extensão apenas nos sites autorizados                         |
-| Cloud Sync            | Sincroniza configurações entre dispositivos via `chrome.storage.sync` |
-| API Key Premium       | Remove limites de requisição (armazenada em `chrome.storage.session`) |
-| Exportar / Importar   | Backup completo de configurações em JSON ou TXT                       |
-| Relatórios            | Exportação do histórico de correções em CSV ou HTML                   |
-
----
-
-## 📦 Instalação
-
-### Pré-requisitos
-
-- Google Chrome 88 ou superior
-- Modo desenvolvedor habilitado
-
-### Passo a passo
-
-```bash
-# 1. Clone o repositório ou extraia o ZIP
-git clone https://github.com/seu-usuario/SyntaxMentor.git
-
-# 2. Acesse a página de extensões do Chrome
-# Cole na barra de endereços:
-chrome://extensions
-
-# 3. Ative o "Modo do desenvolvedor" (canto superior direito)
-
-# 4. Clique em "Carregar sem compactação"
-
-# 5. Selecione a pasta raiz do projeto (onde está o manifest.json)
-
---- Após carregar, o ícone do SyntaxMentor aparecerá na barra de ferramentas. Clique nele para abrir o popup e começar a configurar.
-
+> Projeto privado. Todos os direitos reservados.
