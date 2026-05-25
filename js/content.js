@@ -53,6 +53,10 @@ let processedIframes = new WeakSet();
 let badgeDebounceTimeout = null;
 let ultimoTotalEnviado = null;
 
+const securityScript = document.createElement('script');
+securityScript.src = chrome.runtime.getURL('js/security.js');
+(document.head || document.documentElement).appendChild(securityScript);
+
 // =============================================
 // CONTROLE DE OBSERVADORES (BUG 6 CORRIGIDO)
 // =============================================
