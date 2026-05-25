@@ -1,3 +1,0 @@
-Prompt: "Adapte essa seção para tablet e mobile mantendo a hierarquia visual, espaçamentos consistentes e sem quebrar o layout desktop."
-
-O que faz: Ajusta o layout para tela de celular sem destruir a versão de computador.

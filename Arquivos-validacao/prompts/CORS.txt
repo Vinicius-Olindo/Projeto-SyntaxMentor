@@ -1,3 +1,0 @@
-Prompt: "Configure o CORS na minha aplicação para aceitar requisições exclusivamente do domínio oficial do projeto."
-
-O que faz: Garante que apenas o seu próprio site oficial tenha permissão para acessar e trocar informações com a sua aplicação.

@@ -1,3 +1,0 @@
-Prompt: "Ative o Row Level Security (RLS) na minha base de dados e crie as políticas de controle de acesso."
-
-O que faz: Impede que um usuário acesse os dados de outro no seu banco.

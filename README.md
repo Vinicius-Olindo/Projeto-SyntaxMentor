@@ -1,11 +1,14 @@
-# ✨ SyntaxMentor
+<div align="center">
 
-**Extensão de correção ortográfica e gramatical para Chrome — Manifest V3**
+# ✨ SyntaxMentor
 
 [![Version](https://img.shields.io/badge/version-2.8.2-blue.svg)]()
 [![Chrome](https://img.shields.io/badge/Chrome-Extension-green.svg)]()
 [![Manifest](https://img.shields.io/badge/Manifest-V3-orange.svg)]()
-[![License](https://img.shields.io/badge/license-Private-red.svg)]()
+[![License](https://img.shields.io/github/license/Vinicius-Olindo/Projeto-SyntaxMentor)](LICENSE)
+[![Stars](https://img.shields.io/github/stars/Vinicius-Olindo/Projeto-SyntaxMentor)](https://github.com/Vinicius-Olindo/Projeto-SyntaxMentor/stargazers)
+
+</div>
 
 ---
 
@@ -297,4 +300,4 @@ Domínios com suporte especial pré-configurado: `digisac.com.br`, `digisac.io`,
 
 ---
 
-> Desenvolvido com ❤️ — Projeto privado. Todos os direitos reservados.
+> Projeto privado. Todos os direitos reservados.
