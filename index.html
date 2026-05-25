@@ -1,0 +1,1029 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="SyntaxMentor - Extensão de correção ortográfica e gramatical gratuita para Chrome. Corrija textos em tempo real em qualquer site."
+    />
+    <meta
+      name="keywords"
+      content="corretor ortográfico, gramática, chrome extensão, syntaxmentor, corretor de texto, gratuito"
+    />
+    <meta name="author" content="SyntaxMentor" />
+    <meta
+      property="og:title"
+      content="SyntaxMentor - Corretor Ortográfico Grátis para Chrome"
+    />
+    <meta
+      property="og:description"
+      content="Correção ortográfica e gramatical gratuita em tempo real para qualquer site"
+    />
+    <meta property="og:type" content="website" />
+    <meta
+      property="og:url"
+      content="https://vinicius-olindo.github.io/Projeto-SyntaxMentor/"
+    />
+    <title>SyntaxMentor - Corretor Ortográfico Grátis para Chrome</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family:
+          "Inter",
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          Roboto,
+          sans-serif;
+        background: #0f0f1a;
+        color: #ffffff;
+        line-height: 1.6;
+        overflow-x: hidden;
+      }
+
+      /* Animated Background */
+      .animated-bg {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: -2;
+        background: linear-gradient(
+          135deg,
+          #0f0f1a 0%,
+          #1a1a2e 50%,
+          #16213e 100%
+        );
+      }
+
+      .animated-bg::before {
+        content: "";
+        position: absolute;
+        width: 200%;
+        height: 200%;
+        top: -50%;
+        left: -50%;
+        background: radial-gradient(
+          circle,
+          rgba(111, 66, 193, 0.1) 0%,
+          transparent 70%
+        );
+        animation: rotate 20s linear infinite;
+      }
+
+      @keyframes rotate {
+        from {
+          transform: rotate(0deg);
+        }
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      /* Particles */
+      .particles {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: -1;
+        overflow: hidden;
+      }
+
+      .particle {
+        position: absolute;
+        background: rgba(111, 66, 193, 0.3);
+        border-radius: 50%;
+        animation: float 6s ease-in-out infinite;
+      }
+
+      @keyframes float {
+        0%,
+        100% {
+          transform: translateY(0px) translateX(0px);
+        }
+        50% {
+          transform: translateY(-20px) translateX(10px);
+        }
+      }
+
+      /* Header */
+      .header {
+        background: rgba(15, 15, 26, 0.95);
+        backdrop-filter: blur(10px);
+        border-bottom: 1px solid rgba(111, 66, 193, 0.3);
+        position: fixed;
+        width: 100%;
+        top: 0;
+        z-index: 1000;
+        transition: all 0.3s ease;
+      }
+
+      .header.scrolled {
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+      }
+
+      .nav-container {
+        max-width: 1280px;
+        margin: 0 auto;
+        padding: 1rem 2rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .logo {
+        font-size: 1.8rem;
+        font-weight: bold;
+        background: linear-gradient(135deg, #6f42c1, #a855f7);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+
+      .logo span {
+        font-size: 2rem;
+        background: none;
+        -webkit-text-fill-color: initial;
+      }
+
+      .nav-links {
+        display: flex;
+        gap: 2rem;
+      }
+
+      .nav-links a {
+        text-decoration: none;
+        color: #a1a1aa;
+        transition: color 0.3s;
+        font-weight: 500;
+      }
+
+      .nav-links a:hover {
+        color: #a855f7;
+      }
+
+      .mobile-menu-btn {
+        display: none;
+        font-size: 1.5rem;
+        cursor: pointer;
+        color: white;
+      }
+
+      /* Hero Section */
+      .hero {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        padding: 6rem 2rem 4rem;
+        position: relative;
+      }
+
+      .hero-content {
+        max-width: 900px;
+        z-index: 1;
+      }
+
+      .hero-badge {
+        display: inline-block;
+        background: rgba(111, 66, 193, 0.2);
+        border: 1px solid rgba(111, 66, 193, 0.5);
+        border-radius: 50px;
+        padding: 0.5rem 1rem;
+        font-size: 0.8rem;
+        margin-bottom: 2rem;
+        backdrop-filter: blur(10px);
+      }
+
+      .hero h1 {
+        font-size: 4rem;
+        margin-bottom: 1.5rem;
+        background: linear-gradient(135deg, #ffffff, #a855f7, #6f42c1);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        animation: fadeInUp 0.8s ease;
+      }
+
+      .hero p {
+        font-size: 1.2rem;
+        color: #a1a1aa;
+        margin-bottom: 2rem;
+        animation: fadeInUp 1s ease;
+      }
+
+      .hero-buttons {
+        display: flex;
+        gap: 1rem;
+        justify-content: center;
+        flex-wrap: wrap;
+        animation: fadeInUp 1.2s ease;
+      }
+
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 1rem 2rem;
+        border-radius: 50px;
+        text-decoration: none;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        cursor: pointer;
+      }
+
+      .btn-primary {
+        background: linear-gradient(135deg, #6f42c1, #a855f7);
+        color: white;
+        border: none;
+      }
+
+      .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 30px rgba(111, 66, 193, 0.4);
+      }
+
+      .btn-secondary {
+        background: transparent;
+        color: white;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+      }
+
+      .btn-secondary:hover {
+        background: rgba(255, 255, 255, 0.1);
+        transform: translateY(-2px);
+      }
+
+      /* Features Section */
+      .features {
+        padding: 6rem 2rem;
+        background: rgba(15, 15, 26, 0.8);
+      }
+
+      .section-title {
+        text-align: center;
+        font-size: 2.5rem;
+        margin-bottom: 1rem;
+      }
+
+      .section-subtitle {
+        text-align: center;
+        color: #a1a1aa;
+        margin-bottom: 3rem;
+      }
+
+      .features-grid {
+        max-width: 1280px;
+        margin: 0 auto;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+        gap: 2rem;
+      }
+
+      .feature-card {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        border-radius: 20px;
+        padding: 2rem;
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .feature-card::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(
+          90deg,
+          transparent,
+          rgba(111, 66, 193, 0.1),
+          transparent
+        );
+        transition: left 0.5s ease;
+      }
+
+      .feature-card:hover::before {
+        left: 100%;
+      }
+
+      .feature-card:hover {
+        transform: translateY(-5px);
+        border-color: rgba(111, 66, 193, 0.5);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+      }
+
+      .feature-icon {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+      }
+
+      .feature-card h3 {
+        margin-bottom: 1rem;
+        color: #a855f7;
+      }
+
+      .feature-card p {
+        color: #a1a1aa;
+        font-size: 0.9rem;
+      }
+
+      /* Languages Section */
+      .languages {
+        padding: 6rem 2rem;
+        background: linear-gradient(135deg, #1a1a2e, #0f0f1a);
+      }
+
+      .languages-grid {
+        max-width: 1000px;
+        margin: 0 auto;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 1.5rem;
+        text-align: center;
+      }
+
+      .language-card {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        border-radius: 15px;
+        padding: 1rem;
+        transition: all 0.3s ease;
+      }
+
+      .language-card:hover {
+        transform: translateY(-3px);
+        border-color: rgba(111, 66, 193, 0.5);
+      }
+
+      .language-flag {
+        font-size: 2rem;
+        margin-bottom: 0.5rem;
+      }
+
+      .language-name {
+        font-size: 0.9rem;
+        color: #a1a1aa;
+      }
+
+      /* Demo Section */
+      .demo {
+        padding: 6rem 2rem;
+        background: rgba(15, 15, 26, 0.8);
+      }
+
+      .demo-container {
+        max-width: 900px;
+        margin: 0 auto;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        border-radius: 20px;
+        padding: 2rem;
+      }
+
+      .demo-title {
+        text-align: center;
+        margin-bottom: 2rem;
+      }
+
+      .demo-textarea {
+        width: 100%;
+        height: 200px;
+        padding: 1rem;
+        background: rgba(0, 0, 0, 0.3);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 10px;
+        color: white;
+        font-size: 1rem;
+        resize: vertical;
+        transition: all 0.3s ease;
+      }
+
+      .demo-textarea:focus {
+        outline: none;
+        border-color: #a855f7;
+      }
+
+      .demo-textarea::placeholder {
+        color: #4a4a5a;
+      }
+
+      .demo-buttons {
+        display: flex;
+        gap: 1rem;
+        margin-top: 1rem;
+        flex-wrap: wrap;
+      }
+
+      .demo-btn {
+        background: linear-gradient(135deg, #6f42c1, #a855f7);
+        color: white;
+        border: none;
+        padding: 0.8rem 1.5rem;
+        border-radius: 50px;
+        cursor: pointer;
+        font-size: 0.9rem;
+        font-weight: 600;
+        transition: all 0.3s ease;
+      }
+
+      .demo-btn-clear {
+        background: transparent;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+      }
+
+      .demo-btn:hover {
+        transform: translateY(-2px);
+        filter: brightness(1.1);
+      }
+
+      .demo-result {
+        margin-top: 1.5rem;
+        padding: 1rem;
+        background: rgba(0, 0, 0, 0.3);
+        border-radius: 10px;
+        display: none;
+        animation: fadeInUp 0.5s ease;
+      }
+
+      /* Stats Section */
+      .stats {
+        padding: 6rem 2rem;
+      }
+
+      .stats-grid {
+        max-width: 1280px;
+        margin: 0 auto;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 2rem;
+        text-align: center;
+      }
+
+      .stat-card {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        border-radius: 20px;
+        padding: 2rem;
+        transition: all 0.3s ease;
+      }
+
+      .stat-card:hover {
+        transform: translateY(-5px);
+        border-color: rgba(111, 66, 193, 0.5);
+      }
+
+      .stat-number {
+        font-size: 3rem;
+        font-weight: bold;
+        background: linear-gradient(135deg, #6f42c1, #a855f7);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+      }
+
+      .stat-label {
+        color: #a1a1aa;
+        margin-top: 0.5rem;
+      }
+
+      /* CTA Section */
+      .cta {
+        text-align: center;
+        padding: 6rem 2rem;
+        background: linear-gradient(
+          135deg,
+          rgba(111, 66, 193, 0.1),
+          rgba(168, 85, 247, 0.1)
+        );
+      }
+
+      .cta h2 {
+        font-size: 2.5rem;
+        margin-bottom: 1rem;
+      }
+
+      .cta p {
+        color: #a1a1aa;
+        margin-bottom: 2rem;
+      }
+
+      .badge-gratis {
+        display: inline-block;
+        background: linear-gradient(135deg, #10b981, #059669);
+        border-radius: 50px;
+        padding: 0.3rem 1rem;
+        font-size: 0.7rem;
+        font-weight: 600;
+        margin-bottom: 1rem;
+      }
+
+      /* Footer */
+      .footer {
+        background: #0a0a12;
+        text-align: center;
+        padding: 3rem 2rem;
+        border-top: 1px solid rgba(255, 255, 255, 0.05);
+      }
+
+      .footer-links {
+        display: flex;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 2rem;
+        margin-bottom: 2rem;
+      }
+
+      .footer-links a {
+        color: #a1a1aa;
+        text-decoration: none;
+        transition: color 0.3s;
+      }
+
+      .footer-links a:hover {
+        color: #a855f7;
+      }
+
+      .copyright {
+        color: #4a4a5a;
+        font-size: 0.8rem;
+      }
+
+      /* Animations */
+      @keyframes fadeInUp {
+        from {
+          opacity: 0;
+          transform: translateY(30px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      /* Responsive */
+      @media (max-width: 768px) {
+        .nav-links {
+          display: none;
+          position: absolute;
+          top: 100%;
+          left: 0;
+          width: 100%;
+          background: rgba(15, 15, 26, 0.95);
+          flex-direction: column;
+          padding: 1rem;
+          text-align: center;
+          backdrop-filter: blur(10px);
+        }
+
+        .nav-links.active {
+          display: flex;
+        }
+
+        .mobile-menu-btn {
+          display: block;
+        }
+
+        .hero h1 {
+          font-size: 2.5rem;
+        }
+
+        .section-title {
+          font-size: 2rem;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="animated-bg"></div>
+    <div class="particles" id="particles"></div>
+
+    <!-- Header -->
+    <header class="header" id="header">
+      <nav class="nav-container">
+        <div class="logo">
+          <span>✨</span>
+          SyntaxMentor
+        </div>
+        <div class="mobile-menu-btn" onclick="toggleMenu()">☰</div>
+        <div class="nav-links" id="navLinks">
+          <a href="#features">Funcionalidades</a>
+          <a href="#languages">Idiomas</a>
+          <a href="#demo">Demonstração</a>
+          <a href="#stats">Estatísticas</a>
+          <a href="#download">Download</a>
+        </div>
+      </nav>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero">
+      <div class="hero-content">
+        <div class="hero-badge">✨ 100% Gratuito</div>
+        <h1>Escreva Melhor em<br />Todos os Sites</h1>
+        <p>
+          SyntaxMentor corrige erros ortográficos e gramaticais em tempo
+          real,<br />em qualquer lugar que você escrever na web.
+          <strong>Completamente grátis!</strong>
+        </p>
+        <div class="hero-buttons">
+          <a href="#download" class="btn btn-primary">
+            📥 Instalar Extensão Grátis
+          </a>
+          <a href="#demo" class="btn btn-secondary"> 🎬 Ver Demonstração </a>
+          <a
+            href="https://github.com/Vinicius-Olindo/Projeto-SyntaxMentor"
+            target="_blank"
+            class="btn btn-secondary"
+          >
+            🐱 GitHub
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" class="features">
+      <h2 class="section-title">🚀 Funcionalidades Poderosas</h2>
+      <p class="section-subtitle">
+        Tudo que você precisa para uma escrita impecável, totalmente grátis
+      </p>
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="feature-icon">📝</div>
+          <h3>Correção em Tempo Real</h3>
+          <p>
+            Corrige erros ortográficos e gramaticais enquanto você digita, em
+            qualquer site.
+          </p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🌐</div>
+          <h3>9+ Idiomas</h3>
+          <p>
+            Português, Inglês, Espanhol, Francês, Alemão, Italiano, Coreano,
+            Japonês e Russo.
+          </p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🎨</div>
+          <h3>Interface Moderna</h3>
+          <p>
+            Design minimalista com modo escuro, animações suaves e feedback
+            visual.
+          </p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">😊</div>
+          <h3>Análise de Sentimento</h3>
+          <p>
+            Detecta o tom do texto e sugere melhorias para comunicação
+            profissional.
+          </p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">☁️</div>
+          <h3>Cloud Sync</h3>
+          <p>
+            Sincronize dicionário e configurações entre todos seus dispositivos.
+          </p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🔌</div>
+          <h3>API Pública</h3>
+          <p>
+            Integre o corretor no seu próprio site ou aplicação com nossa API
+            gratuita.
+          </p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">📊</div>
+          <h3>Dashboard</h3>
+          <p>Acompanhe estatísticas, conquistas e erros mais comuns.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🔒</div>
+          <h3>Privacidade Garantida</h3>
+          <p>
+            Seus dados são armazenados localmente, nenhum texto é enviado sem
+            permissão.
+          </p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">⚡</div>
+          <h3>Performance</h3>
+          <p>
+            Otimizado para não travar sua navegação, com processamento em
+            segundo plano.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Languages Section -->
+    <section id="languages" class="languages">
+      <h2 class="section-title">🌐 Idiomas Suportados</h2>
+      <p class="section-subtitle">
+        Correção precisa em 9 idiomas com detecção automática
+      </p>
+      <div class="languages-grid">
+        <div class="language-card">
+          <div class="language-flag">🇧🇷</div>
+          <div class="language-name">Português (Brasil)</div>
+        </div>
+        <div class="language-card">
+          <div class="language-flag">🇺🇸</div>
+          <div class="language-name">English (US)</div>
+        </div>
+        <div class="language-card">
+          <div class="language-flag">🇪🇸</div>
+          <div class="language-name">Español</div>
+        </div>
+        <div class="language-card">
+          <div class="language-flag">🇫🇷</div>
+          <div class="language-name">Français</div>
+        </div>
+        <div class="language-card">
+          <div class="language-flag">🇩🇪</div>
+          <div class="language-name">Deutsch</div>
+        </div>
+        <div class="language-card">
+          <div class="language-flag">🇮🇹</div>
+          <div class="language-name">Italiano</div>
+        </div>
+        <div class="language-card">
+          <div class="language-flag">🇰🇷</div>
+          <div class="language-name">한국어</div>
+        </div>
+        <div class="language-card">
+          <div class="language-flag">🇯🇵</div>
+          <div class="language-name">日本語</div>
+        </div>
+        <div class="language-card">
+          <div class="language-flag">🇷🇺</div>
+          <div class="language-name">Русский</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Demo Section -->
+    <section id="demo" class="demo">
+      <div class="demo-container">
+        <div class="demo-title">
+          <h2>🎥 Teste Agora Mesmo</h2>
+          <p>Digite um texto com erros e veja a correção em ação</p>
+        </div>
+        <textarea
+          id="demoText"
+          class="demo-textarea"
+          placeholder='Exemplo: "Este é um testo com erro de ortografia. Preciso testa a extensão direita."'
+        ></textarea>
+        <div class="demo-buttons">
+          <button onclick="corrigirTexto()" class="demo-btn">
+            🔍 Corrigir Texto
+          </button>
+          <button onclick="limparTexto()" class="demo-btn demo-btn-clear">
+            🗑️ Limpar
+          </button>
+          <button onclick="carregarExemplo()" class="demo-btn demo-btn-clear">
+            📋 Carregar Exemplo
+          </button>
+        </div>
+        <div id="demoResult" class="demo-result"></div>
+      </div>
+    </section>
+
+    <!-- Stats Section -->
+    <section id="stats" class="stats">
+      <h2 class="section-title">📊 Números que Impressionam</h2>
+      <p class="section-subtitle">SyntaxMentor em números reais</p>
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-number" id="statCorrecoes">+10K</div>
+          <div class="stat-label">Correções Realizadas</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number">9+</div>
+          <div class="stat-label">Idiomas Suportados</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number">100%</div>
+          <div class="stat-label">Gratuito</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number">24/7</div>
+          <div class="stat-label">Disponível em Qualquer Site</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section id="download" class="cta">
+      <div class="badge-gratis">✨ 100% GRATUITO</div>
+      <h2>Pronto para escrever melhor?</h2>
+      <p>
+        Junte-se a milhares de usuários que já melhoram sua escrita com o
+        SyntaxMentor
+      </p>
+      <a
+        href="https://github.com/Vinicius-Olindo/Projeto-SyntaxMentor/releases"
+        target="_blank"
+        class="btn btn-primary"
+        >📥 Instalar Extensão Gratuitamente</a
+      >
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <div class="footer-links">
+        <a
+          href="https://github.com/Vinicius-Olindo/Projeto-SyntaxMentor"
+          target="_blank"
+          >GitHub</a
+        >
+        <a
+          href="https://github.com/Vinicius-Olindo/Projeto-SyntaxMentor/issues"
+          target="_blank"
+          >Reportar Bug</a
+        >
+        <a
+          href="https://github.com/Vinicius-Olindo/Projeto-SyntaxMentor/blob/main/README.md"
+          target="_blank"
+          >Documentação</a
+        >
+        <a
+          href="https://github.com/Vinicius-Olindo/Projeto-SyntaxMentor/blob/main/LICENSE"
+          target="_blank"
+          >Licença</a
+        >
+      </div>
+      <div class="copyright">
+        &copy; 2025 SyntaxMentor. Todos os direitos reservados.<br />
+        Gratuito para sempre ❤️
+      </div>
+    </footer>
+
+    <script>
+      // Mobile menu toggle
+      function toggleMenu() {
+        const navLinks = document.getElementById("navLinks");
+        navLinks.classList.toggle("active");
+      }
+
+      // Header scroll effect
+      window.addEventListener("scroll", () => {
+        const header = document.getElementById("header");
+        if (window.scrollY > 50) {
+          header.classList.add("scrolled");
+        } else {
+          header.classList.remove("scrolled");
+        }
+      });
+
+      // Particles effect
+      function createParticles() {
+        const particlesContainer = document.getElementById("particles");
+        for (let i = 0; i < 50; i++) {
+          const particle = document.createElement("div");
+          particle.classList.add("particle");
+          const size = Math.random() * 4 + 1;
+          particle.style.width = `${size}px`;
+          particle.style.height = `${size}px`;
+          particle.style.left = `${Math.random() * 100}%`;
+          particle.style.top = `${Math.random() * 100}%`;
+          particle.style.animationDelay = `${Math.random() * 5}s`;
+          particle.style.animationDuration = `${Math.random() * 4 + 3}s`;
+          particlesContainer.appendChild(particle);
+        }
+      }
+
+      // Demo functions
+      const correcoes = {
+        testo: "texto",
+        testa: "testar",
+        extencao: "extensão",
+        direita: "correta",
+        bagunsadu: "bagunçado",
+        dificiu: "difícil",
+        errus: "erros",
+        coizas: "coisas",
+        fasendo: "fazendo",
+        errro: "erro",
+      };
+
+      function corrigirTexto() {
+        const texto = document.getElementById("demoText").value;
+        const resultDiv = document.getElementById("demoResult");
+
+        if (!texto.trim()) {
+          resultDiv.style.display = "block";
+          resultDiv.innerHTML =
+            '<p style="color: #f87171;">⚠️ Digite algum texto para corrigir</p>';
+          return;
+        }
+
+        let textoCorrigido = texto;
+        let correcoesEncontradas = 0;
+        const detalhes = [];
+
+        Object.entries(correcoes).forEach(([erro, correcao]) => {
+          const regex = new RegExp("\\b" + erro + "\\b", "gi");
+          if (regex.test(textoCorrigido)) {
+            const matches = textoCorrigido.match(regex);
+            correcoesEncontradas += matches ? matches.length : 0;
+            textoCorrigido = textoCorrigido.replace(regex, correcao);
+            detalhes.push({
+              erro,
+              correcao,
+              quantidade: matches ? matches.length : 0,
+            });
+          }
+        });
+
+        resultDiv.style.display = "block";
+        if (correcoesEncontradas === 0) {
+          resultDiv.innerHTML = `
+                    <p style="color: #4ade80;">✅ Nenhum erro encontrado! Parabéns!</p>
+                    <p style="color: #a1a1aa; margin-top: 0.5rem;">Seu texto está correto.</p>
+                `;
+        } else {
+          let detalhesHtml = '<ul style="margin-top: 0.5rem;">';
+          detalhes.forEach((d) => {
+            detalhesHtml += `<li style="color: #a1a1aa;">"${d.erro}" → "${d.correcao}" (${d.quantidade}x)</li>`;
+          });
+          detalhesHtml += "</ul>";
+
+          resultDiv.innerHTML = `
+                    <p><strong>📊 ${correcoesEncontradas} erro(s) encontrado(s)</strong></p>
+                    ${detalhesHtml}
+                    <p><strong>📝 Original:</strong> ${texto.substring(0, 100)}${texto.length > 100 ? "..." : ""}</p>
+                    <p><strong>✨ Corrigido:</strong> ${textoCorrigido.substring(0, 100)}${textoCorrigido.length > 100 ? "..." : ""}</p>
+                    <p style="color: #a855f7; margin-top: 0.5rem;">💡 Instale a extensão para correção automática em qualquer site!</p>
+                `;
+        }
+      }
+
+      function limparTexto() {
+        document.getElementById("demoText").value = "";
+        document.getElementById("demoResult").style.display = "none";
+      }
+
+      function carregarExemplo() {
+        const exemplo =
+          "Eu to fasendo um texto aqui com alguns errus pra testar a extencao. Vamos ver se a ferramenta consegue identificar essas coizas sem muito esforso.";
+        document.getElementById("demoText").value = exemplo;
+        corrigirTexto();
+      }
+
+      // Smooth scroll for anchor links
+      document.querySelectorAll('a[href^="#"]').forEach((anchor) => {
+        anchor.addEventListener("click", function (e) {
+          e.preventDefault();
+          const target = document.querySelector(this.getAttribute("href"));
+          if (target) {
+            target.scrollIntoView({ behavior: "smooth" });
+            document.getElementById("navLinks").classList.remove("active");
+          }
+        });
+      });
+
+      // Animate stats counter
+      function animateCounter() {
+        const statElement = document.getElementById("statCorrecoes");
+        if (!statElement) return;
+
+        let current = 0;
+        const target = 10000;
+        const increment = target / 50;
+
+        const interval = setInterval(() => {
+          current += increment;
+          if (current >= target) {
+            statElement.textContent = "+10K";
+            clearInterval(interval);
+          } else {
+            statElement.textContent =
+              "+" + Math.floor(current).toLocaleString();
+          }
+        }, 40);
+      }
+
+      // Initialize
+      createParticles();
+      setTimeout(animateCounter, 500);
+    </script>
+  </body>
+</html>
