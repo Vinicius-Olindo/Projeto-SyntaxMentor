@@ -53,9 +53,8 @@ let processedIframes = new WeakSet();
 let badgeDebounceTimeout = null;
 let ultimoTotalEnviado = null;
 
-const securityScript = document.createElement('script');
-securityScript.src = chrome.runtime.getURL('js/security.js');
-(document.head || document.documentElement).appendChild(securityScript);
+// Keep security helpers passive. Injected page-world scripts must not patch
+// host page globals or intercept native interactions.
 
 // =============================================
 // CONTROLE DE OBSERVADORES (BUG 6 CORRIGIDO)
@@ -345,7 +344,7 @@ function salvarEstadoParaDesfazer(elemento, palavraOriginal, palavraNova, textoA
     if (!textoPosterior && textoAnterior) {
         const esc = palavraOriginal.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
         const regex = new RegExp(`(?<![\\p{L}])${esc}(?![\\p{L}])`, 'gu');
-        textoPosterior = textoAnterior.replace(regex, palavraNova);
+        textoPosterior = textoAnterior.replace(regex, () => palavraNova);
     }
     historicoDesfazer.push({
         elemento: elemento,
@@ -664,7 +663,7 @@ function exibirPainelRevisaoPagina(erros, textosOriginais) {
                     const esc = original.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
                     const regex = new RegExp(`(?<![\\p{L}])${esc}(?![\\p{L}])`, 'gu');
                     const antes = novoTexto;
-                    novoTexto = novoTexto.replace(regex, sugestao);
+                    novoTexto = novoTexto.replace(regex, () => sugestao);
                     if (novoTexto !== antes) totalAplicadas++;
                 });
                 if (novoTexto !== texto) {
@@ -911,9 +910,10 @@ async function verificarIdioma(texto) {
             const idiomaAtual = smConfig.language;
             if (idiomaDetectado === idiomaAtual) return;
             const nomes = { 'pt-BR': 'Português', 'en-US': 'Inglês', 'es': 'Espanhol', 'fr': 'Francês', 'de': 'Alemão', 'it': 'Italiano' };
+            const idiomaNomeSeguro = escapeHtml(nomes[idiomaDetectado] || idiomaDetectado);
             const toast = document.createElement('div');
             toast.style.cssText = `position:fixed;bottom:80px;right:20px;z-index:2147483647;background:#1a1a2e;color:#fff;border-radius:10px;padding:14px 16px;font-size:13px;font-family:'Segoe UI',system-ui,sans-serif;max-width:280px;box-shadow:0 8px 24px rgba(0,0,0,.25);`;
-            toast.innerHTML = `<p style="margin:0 0 10px;line-height:1.5">Texto em <strong>${nomes[idiomaDetectado] || idiomaDetectado}</strong> detectado. Mudar o corretor?</p>
+            toast.innerHTML = `<p style="margin:0 0 10px;line-height:1.5">Texto em <strong>${idiomaNomeSeguro}</strong> detectado. Mudar o corretor?</p>
                 <div style="display:flex;gap:6px;flex-wrap:wrap">
                     <button id="sm-lang-sim" style="padding:5px 10px;border-radius:5px;border:none;background:#6f42c1;color:#fff;cursor:pointer;font-size:12px">Sim</button>
                     <button id="sm-lang-sempre" style="padding:5px 10px;border-radius:5px;border:none;background:#28a745;color:#fff;cursor:pointer;font-size:12px">Sempre neste site</button>
@@ -948,7 +948,7 @@ function mostrarSugestaoIdioma(titulo, mensagem, novoIdioma) {
     const dialog = document.createElement('div');
     dialog.style.cssText = `background:white;border-radius:12px;padding:24px;max-width:420px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.3);`;
     if (smConfig.darkMode) { dialog.style.background = '#1a1a1a'; dialog.style.color = '#e0e0e0'; }
-    dialog.innerHTML = `<h3 style="margin:0 0 8px;font-size:16px;">🌐 ${titulo}</h3><p style="margin:0 0 16px;font-size:14px;">${mensagem}</p><div style="display:flex;gap:8px;justify-content:flex-end;"><button class="sm-dlg-cancel">Manter</button><button class="sm-dlg-confirm">Mudar Idioma</button></div>`;
+    dialog.innerHTML = `<h3 style="margin:0 0 8px;font-size:16px;">🌐 ${escapeHtml(titulo)}</h3><p style="margin:0 0 16px;font-size:14px;">${escapeHtml(mensagem)}</p><div style="display:flex;gap:8px;justify-content:flex-end;"><button class="sm-dlg-cancel">Manter</button><button class="sm-dlg-confirm">Mudar Idioma</button></div>`;
     overlay.appendChild(dialog);
     document.body.appendChild(overlay);
     const btnCancel = dialog.querySelector('.sm-dlg-cancel');
@@ -1389,7 +1389,8 @@ function ignorarTemporariamente(palavra) {
     if (!ignoradosTemporarios.includes(pl)) ignoradosTemporarios.push(pl);
     if (!isSiteRestrito && elementoGlobal?.isContentEditable) {
         const esc = palavra.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        elementoGlobal.innerHTML = elementoGlobal.innerHTML.replace(new RegExp(`<mark class="sm-highlight">${esc}</mark>`, 'g'), palavra);
+        const palavraSegura = escapeHtml(palavra);
+        elementoGlobal.innerHTML = elementoGlobal.innerHTML.replace(new RegExp(`<mark class="sm-highlight">${esc}</mark>`, 'g'), () => palavraSegura);
         atualizarElementoComEventos(elementoGlobal);
     }
     removerErroGlobal(palavra);
@@ -1400,11 +1401,12 @@ function aplicarCorrecao(original, sugestao, el, pularConfirmacao = false) {
     if (!el || !original || !sugestao) return;
     const executarCorrecao = () => {
         const esc = original.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const sugestaoHtml = escapeHtml(sugestao);
         const textoAntes = el.value || el.textContent || el.innerText || '';
         if (el.tagName === 'TEXTAREA' || el.tagName === 'INPUT') {
             const valorAntigo = el.value;
             const posicao = encontrarPosicaoPalavra(el.value, original);
-            el.value = el.value.replace(new RegExp(`(?<![\\p{L}])${esc}(?![\\p{L}])`, 'gu'), sugestao);
+            el.value = el.value.replace(new RegExp(`(?<![\\p{L}])${esc}(?![\\p{L}])`, 'gu'), () => sugestao);
             if (el.value !== valorAntigo) {
                 salvarEstadoParaDesfazer(el, original, sugestao, textoAntes, el.value);
                 mostrarFeedbackCorrecao(el, posicao, original, sugestao);
@@ -1418,15 +1420,16 @@ function aplicarCorrecao(original, sugestao, el, pularConfirmacao = false) {
                 try {
                     const doc = el.ownerDocument || document;
                     if (doc.execCommand('find', false, original)) doc.execCommand('insertText', false, sugestao);
-                    else el.textContent = (el.textContent || '').replace(new RegExp(esc, 'gi'), sugestao);
-                } catch(e) { el.textContent = (el.textContent || '').replace(new RegExp(esc, 'gi'), sugestao); }
+                    else el.textContent = (el.textContent || '').replace(new RegExp(esc, 'gi'), () => sugestao);
+                } catch(e) { el.textContent = (el.textContent || '').replace(new RegExp(esc, 'gi'), () => sugestao); }
                 atualizarElementoComEventos(el);
             } else {
                 let html = el.innerHTML;
                 const htmlAntigo = html;
                 const markRegex = new RegExp(`<mark class="sm-highlight">${esc}</mark>`, 'g');
-                if (markRegex.test(html)) html = html.replace(markRegex, `<span class="sm-correction-feedback">${sugestao}</span>`);
-                else html = html.replace(new RegExp(`(?<!<[^>]*)(?<![\\p{L}])${esc}(?![\\p{L}])(?![^<]*>)`, 'gu'), `<span class="sm-correction-feedback">${sugestao}</span>`);
+                const correctionHtml = `<span class="sm-correction-feedback">${sugestaoHtml}</span>`;
+                if (markRegex.test(html)) html = html.replace(markRegex, () => correctionHtml);
+                else html = html.replace(new RegExp(`(?<!<[^>]*)(?<![\\p{L}])${esc}(?![\\p{L}])(?![^<]*>)`, 'gu'), () => correctionHtml);
                 if (html !== htmlAntigo) {
                     salvarEstadoParaDesfazer(el, original, sugestao, textoAntes, html);
                     el.innerHTML = html;
@@ -1461,7 +1464,7 @@ function confirmarCorrecao(original, sugestao, callback) {
     const dialog = document.createElement('div');
     dialog.style.cssText = `background:white;border-radius:12px;padding:24px;max-width:420px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.3);`;
     if (smConfig.darkMode) { dialog.style.background = '#1a1a1a'; dialog.style.color = '#e0e0e0'; }
-    dialog.innerHTML = `<h3 style="margin:0 0 12px;font-size:16px;">Confirmar Correção</h3><p style="margin:0 0 16px;font-size:14px;line-height:1.5;">Corrigir <strong style="color:#e53e3e;text-decoration:line-through;">${original}</strong> para <strong style="color:#28a745;">${sugestao}</strong>?</p><div style="display:flex;gap:8px;justify-content:flex-end;"><button class="sm-dlg-cancel">Não</button><button class="sm-dlg-confirm">Sim, corrigir</button></div>`;
+    dialog.innerHTML = `<h3 style="margin:0 0 12px;font-size:16px;">Confirmar Correção</h3><p style="margin:0 0 16px;font-size:14px;line-height:1.5;">Corrigir <strong style="color:#e53e3e;text-decoration:line-through;">${escapeHtml(original)}</strong> para <strong style="color:#28a745;">${escapeHtml(sugestao)}</strong>?</p><div style="display:flex;gap:8px;justify-content:flex-end;"><button class="sm-dlg-cancel">Não</button><button class="sm-dlg-confirm">Sim, corrigir</button></div>`;
     overlay.appendChild(dialog);
     document.body.appendChild(overlay);
     const btnCancel = dialog.querySelector('.sm-dlg-cancel');
@@ -1476,7 +1479,7 @@ function confirmarCorrecao(original, sugestao, callback) {
 function confirmarCorrecaoEmLote(correcoes) {
     const overlay = document.createElement('div');
     overlay.style.cssText = `position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:2147483646;display:flex;align-items:center;justify-content:center;`;
-    const lista = correcoes.map(([o, s]) => `<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #e5e7eb;"><span style="color:#e53e3e;text-decoration:line-through;flex:1;">${o}</span><span>→</span><span style="color:#28a745;flex:1;">${s}</span></div>`).join('');
+    const lista = correcoes.map(([o, s]) => `<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #e5e7eb;"><span style="color:#e53e3e;text-decoration:line-through;flex:1;">${escapeHtml(o)}</span><span>→</span><span style="color:#28a745;flex:1;">${escapeHtml(s)}</span></div>`).join('');
     const dialog = document.createElement('div');
     dialog.style.cssText = `background:white;border-radius:12px;padding:24px;max-width:500px;width:90%;max-height:70vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.3);`;
     if (smConfig.darkMode) { dialog.style.background = '#1a1a1a'; dialog.style.color = '#e0e0e0'; }
@@ -1800,7 +1803,7 @@ function exibirPainel() {
                             const item = historicoCorrecoes[idx];
                             if (item?.el) {
                                 const el = item.el;
-                                const novoValor = (el.value || el.textContent || '').replace(item.sugestao, item.original);
+                                const novoValor = (el.value || el.textContent || '').replace(item.sugestao, () => item.original);
                                 if (el.value !== undefined) el.value = novoValor;
                                 else el.textContent = novoValor;
                                 dispararEventosNativos(el);
@@ -2268,9 +2271,9 @@ function adicionarAbaSentimento() {
                 if (!item || !item.el) return; 
                 const el = item.el; 
                 if (el.value !== undefined) { 
-                    el.value = el.value.replace(item.sugestao, item.original); 
+                    el.value = el.value.replace(item.sugestao, () => item.original); 
                 } else { 
-                    el.textContent = el.textContent.replace(item.sugestao, item.original); 
+                    el.textContent = el.textContent.replace(item.sugestao, () => item.original); 
                 } 
                 dispararEventosNativos(el); 
                 historicoCorrecoes.splice(idx, 1); 

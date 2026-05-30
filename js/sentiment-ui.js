@@ -2,6 +2,13 @@
 // SyntaxMentor - UI de Análise de Sentimento
 // =============================================
 
+function smEscapeHtml(texto) {
+    if (!texto) return '';
+    const div = document.createElement('div');
+    div.textContent = texto;
+    return div.innerHTML;
+}
+
 // Adicionar aba de sentimento no painel
 function adicionarAbaSentimento() {
     const painel = document.getElementById('syntax-mentor-painel');
@@ -77,12 +84,15 @@ function atualizarAnaliseSentimento(container) {
     const scoreColor = analysis.score < 0 ? '#e53e3e' : analysis.score > 0 ? '#28a745' : '#6b7280';
     const scoreIcon = analysis.score < 0 ? '😔' : analysis.score > 0 ? '😊' : '😐';
     
+    const sentimentSeguro = smEscapeHtml(analysis.sentiment);
+    const mensagemSegura = smEscapeHtml(analysis.message);
+    
     let html = `
         <div class="sentiment-header" style="text-align:center;margin-bottom:24px;">
             <div style="font-size:64px;">${scoreIcon}</div>
-            <h3 style="margin:8px 0 4px;">Sentimento: ${analysis.sentiment}</h3>
+            <h3 style="margin:8px 0 4px;">Sentimento: ${sentimentSeguro}</h3>
             <p style="color:${scoreColor};font-weight:bold;margin:0;">Score: ${analysis.score}</p>
-            <p style="font-size:12px;color:#666;margin-top:8px;">${analysis.message}</p>
+            <p style="font-size:12px;color:#666;margin-top:8px;">${mensagemSegura}</p>
         </div>
     `;
     
@@ -94,17 +104,20 @@ function atualizarAnaliseSentimento(container) {
         `;
         
         analysis.issues.forEach(issue => {
+            const originalSeguro = smEscapeHtml(issue.original);
+            const sugestaoSegura = smEscapeHtml(issue.suggestion);
+            const mensagemSegura = smEscapeHtml(issue.message);
             const icon = issue.type === 'negative' ? '⚠️' : '🔊';
             html += `
                 <div class="issue-card" style="background:#f8f9fa;border-radius:8px;padding:12px;margin-bottom:12px;">
                     <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
                         <span>${icon}</span>
-                        <strong>"${issue.original}"</strong>
+                        <strong>"${originalSeguro}"</strong>
                         <span>→</span>
-                        <span style="color:#28a745;">"${issue.suggestion}"</span>
+                        <span style="color:#28a745;">"${sugestaoSegura}"</span>
                     </div>
-                    <p style="margin:0;font-size:12px;color:#666;">${issue.message}</p>
-                    <button class="btn-fix-sentiment" data-word="${issue.original}" data-suggestion="${issue.suggestion}" 
+                    <p style="margin:0;font-size:12px;color:#666;">${mensagemSegura}</p>
+                    <button class="btn-fix-sentiment" data-word="${originalSeguro}" data-suggestion="${sugestaoSegura}" 
                             style="margin-top:8px;background:#6f42c1;color:white;border:none;padding:4px 12px;border-radius:4px;cursor:pointer;font-size:12px;">
                         🔧 Aplicar sugestão
                     </button>
@@ -136,12 +149,13 @@ function atualizarAnaliseSentimento(container) {
             
             if (elementoGlobal) {
                 // Aplicar correção de sentimento
-                const regex = new RegExp(`\\b${original}\\b`, 'gi');
+                const esc = original.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                const regex = new RegExp(`\\b${esc}\\b`, 'gi');
                 if (elementoGlobal.tagName === 'TEXTAREA' || elementoGlobal.tagName === 'INPUT') {
-                    elementoGlobal.value = elementoGlobal.value.replace(regex, sugestao);
+                    elementoGlobal.value = elementoGlobal.value.replace(regex, () => sugestao);
                     dispararEventosNativos(elementoGlobal);
                 } else if (elementoGlobal.isContentEditable) {
-                    elementoGlobal.innerHTML = elementoGlobal.innerHTML.replace(regex, sugestao);
+                    elementoGlobal.innerHTML = elementoGlobal.innerHTML.replace(regex, () => smEscapeHtml(sugestao));
                     atualizarElementoComEventos(elementoGlobal);
                 }
                 

@@ -3,6 +3,16 @@
 // Gera relatórios em CSV e PDF das estatísticas
 // =============================================
 
+function escapeReportHtml(texto) {
+    if (texto === null || texto === undefined) return '';
+    return String(texto)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
 const reportExporter = {
     
     // Gerar relatório CSV
@@ -206,9 +216,9 @@ const reportExporter = {
     <div class="section">
         <div class="section-title">📊 Informações Gerais</div>
         <table>
-            <tr><th>Nível</th><td><span class="nivel-badge">${nivel}</span></td></tr>
+            <tr><th>Nível</th><td><span class="nivel-badge">${escapeReportHtml(nivel)}</span></td></tr>
             <tr><th>Palavras no Dicionário</th><td>${dicSize}</td></tr>
-            <tr><th>Idioma</th><td>${res.language === 'pt-BR' ? 'Português (Brasil)' : res.language || 'Português'}</td></tr>
+            <tr><th>Idioma</th><td>${escapeReportHtml(res.language === 'pt-BR' ? 'Português (Brasil)' : res.language || 'Português')}</td></tr>
         </table>
     </div>
     
@@ -217,7 +227,7 @@ const reportExporter = {
         <div class="section-title">🔝 Erros Mais Comuns</div>
         <table>
             <tr><th>Palavra</th><th>Quantidade</th></tr>
-            ${topErros.map(([palavra, count]) => `<tr><td><strong>${palavra}</strong></td><td>${count}x</td></tr>`).join('')}
+            ${topErros.map(([palavra, count]) => `<tr><td><strong>${escapeReportHtml(palavra)}</strong></td><td>${escapeReportHtml(count)}x</td></tr>`).join('')}
         </table>
     </div>
     ` : ''}

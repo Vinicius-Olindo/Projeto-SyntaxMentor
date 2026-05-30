@@ -179,8 +179,8 @@
     function isSafeEvent(event) {
         if (!event || !event.target) return false;
         
-        // Prevenir eventos de elementos maliciosos
-        const dangerousTags = ['script', 'iframe', 'object', 'embed', 'form'];
+        // Pure validation only. Do not block normal form or iframe clicks.
+        const dangerousTags = ['script', 'object', 'embed'];
         let target = event.target;
         
         while (target && target !== document.body) {
@@ -246,38 +246,10 @@
     // =============================================
     
     function initSecurity() {
-        // Proteger contra eventos maliciosos
-        document.addEventListener('click', (e) => {
-            if (!isSafeEvent(e)) {
-                e.preventDefault();
-                e.stopPropagation();
-                console.warn('[SyntaxMentor] Evento bloqueado por segurança');
-            }
-        }, true);
-        
-        // Prevenir injeção de DOM
-        const originalInnerHTML = Object.getOwnPropertyDescriptor(Element.prototype, 'innerHTML');
-        if (originalInnerHTML) {
-            Object.defineProperty(Element.prototype, 'innerHTML', {
-                get: originalInnerHTML.get,
-                set: function(value) {
-                    if (typeof value === 'string' && (
-                        value.includes('<script') ||
-                        value.includes('javascript:') ||
-                        value.includes('onload=') ||
-                        value.includes('onerror=')
-                    )) {
-                        console.warn('[SyntaxMentor] Tentativa de injeção bloqueada');
-                        return;
-                    }
-                    originalInnerHTML.set.call(this, value);
-                }
-            });
-        }
-        
-        console.log('[SyntaxMentor] Módulo de segurança ativado');
+        // Deprecated: kept for compatibility. Never alter host page behavior.
+        return false;
     }
     
-    // Inicializar
-    initSecurity();
+    // Auto-init removed to avoid changing host pages.
+    // Passive module: do not automatically hook host pages.
 })();
