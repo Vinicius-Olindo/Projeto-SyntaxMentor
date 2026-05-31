@@ -4,10 +4,10 @@
 
 **Extensão de correção ortográfica e gramatical gratuita para Chrome**
 
-[![Version](https://img.shields.io/badge/version-2.8.2-blue.svg)](https://github.com/Vinicius-Olindo/Projeto-SyntaxMentor/releases)
+[![Version](https://img.shields.io/badge/version-2.8.0-blue.svg)](https://github.com/Vinicius-Olindo/Projeto-SyntaxMentor/releases)
 [![Chrome](https://img.shields.io/badge/Chrome-Extension-green.svg)]()
 [![Manifest](https://img.shields.io/badge/Manifest-V3-orange.svg)]()
-[![License](https://img.shields.io/github/license/Vinicius-Olindo/Projeto-SyntaxMentor)](LICENSE)
+[![License](https://img.shields.io/github/license/Vinicius-Olindo/Projeto-SyntaxMentor)](../../Projeto-SyntaxMentor - Codex/LICENSE)
 [![Stars](https://img.shields.io/github/stars/Vinicius-Olindo/Projeto-SyntaxMentor)](https://github.com/Vinicius-Olindo/Projeto-SyntaxMentor/stargazers)
 [![GitHub release](https://img.shields.io/github/v/release/Vinicius-Olindo/Projeto-SyntaxMentor)](https://github.com/Vinicius-Olindo/Projeto-SyntaxMentor/releases)
 [![GitHub last commit](https://img.shields.io/github/last-commit/Vinicius-Olindo/Projeto-SyntaxMentor)](https://github.com/Vinicius-Olindo/Projeto-SyntaxMentor/commits/main)
@@ -19,21 +19,21 @@
 
 ## 📋 Índice
 
-- [Visão Geral](#-visão-geral)
-- [Funcionalidades](#-funcionalidades)
-- [Instalação](#-instalação)
-- [Atalhos de Teclado](#-atalhos-de-teclado)
-- [Menu de Contexto](#-menu-de-contexto)
-- [API Pública](#-api-pública)
-- [Configurações](#-configurações)
-- [Estrutura do Projeto](#-estrutura-do-projeto)
-- [Testes](#-testes)
-- [Segurança e Permissões](#-segurança-e-permissões)
-- [Sites Suportados](#-sites-suportados)
-- [Arquitetura Técnica](#-arquitetura-técnica)
-- [Changelog](#-changelog)
-- [Contribuindo](#-contribuindo)
-- [Licença](#-licença)
+- [Visão Geral](../../Projeto-SyntaxMentor - Codex/README.md#-visão-geral)
+- [Funcionalidades](../../Projeto-SyntaxMentor - Codex/README.md#-funcionalidades)
+- [Instalação](../../Projeto-SyntaxMentor - Codex/README.md#-instalação)
+- [Atalhos de Teclado](../../Projeto-SyntaxMentor - Codex/README.md#-atalhos-de-teclado)
+- [Menu de Contexto](../../Projeto-SyntaxMentor - Codex/README.md#-menu-de-contexto)
+- [API Pública](../../Projeto-SyntaxMentor - Codex/README.md#-api-pública)
+- [Configurações](../../Projeto-SyntaxMentor - Codex/README.md#-configurações)
+- [Estrutura do Projeto](../../Projeto-SyntaxMentor - Codex/README.md#-estrutura-do-projeto)
+- [Testes](../../Projeto-SyntaxMentor - Codex/README.md#-testes)
+- [Segurança e Permissões](../../Projeto-SyntaxMentor - Codex/README.md#-segurança-e-permissões)
+- [Sites Suportados](../../Projeto-SyntaxMentor - Codex/README.md#-sites-suportados)
+- [Arquitetura Técnica](../../Projeto-SyntaxMentor - Codex/README.md#-arquitetura-técnica)
+- [Changelog](../../Projeto-SyntaxMentor - Codex/README.md#-changelog)
+- [Contribuindo](../../Projeto-SyntaxMentor - Codex/README.md#-contribuindo)
+- [Licença](../../Projeto-SyntaxMentor - Codex/README.md#-licença)
 
 ---
 
@@ -45,7 +45,7 @@ Construída sobre **Manifest V3**, usa Service Worker como background script, `c
 
 | Atributo               | Detalhe                      |
 | ---------------------- | ---------------------------- |
-| **Versão atual**       | `2.8.2`                      |
+| **Versão atual**       | `2.8.0`                      |
 | **Manifest**           | V3                           |
 | **Motor de correção**  | LanguageTool API             |
 | **Idiomas suportados** | pt-BR, en-US, es, fr, de, it |
@@ -216,7 +216,7 @@ const status = window.SyntaxMentor.getStatus();
 SyntaxMentor/
 │
 ├── manifest.json                   # Configuração da extensão (Manifest V3)
-├── package.json                    # Dependências de desenvolvimento (Jest)
+├── package.json                    # Scripts do projeto
 │
 ├── popup.html                      # Interface do popup da barra de ferramentas
 ├── options.html                    # Página principal de configurações
@@ -229,25 +229,30 @@ SyntaxMentor/
 │
 ├── js/
 │   ├── background.js               # Service Worker — núcleo da extensão
-│   ├── content.js                  # Script injetado nas páginas (UI + correção)
+│   ├── content.js                  # Entrada legada do content script
 │   ├── popup.js                    # Lógica do popup
 │   ├── public-api.js               # API pública (window.SyntaxMentor)
 │   ├── sentiment-analysis.js       # Motor de análise de sentimento
 │   ├── sentiment-ui.js             # Interface da análise de sentimento
 │   ├── options.js                  # Entrypoint das opções
-│   ├── options-geral.js            # Lógica das configurações gerais
+│   ├── options-geral.js            # Entrada das configurações gerais
 │   ├── options-seguranca.js        # Lógica das configurações de segurança
 │   ├── options-dashboard.js        # Lógica do dashboard
 │   ├── options-utils.js            # Utilitários compartilhados de opções
 │   ├── export-reports.js           # Exportação de relatórios (CSV/HTML)
 │   ├── security.js                 # Validações e proteções de segurança
-│   └── api-usage.js                # Monitor de consumo da API
+│   ├── api-usage.js                # Monitor de consumo da API
+│   ├── content/                    # Módulos do content script
+│   └── options/geral/              # Módulos da página de opções gerais
 │
 ├── css/
-│   ├── style.css                   # Estilos globais / páginas de opções
-│   ├── content.css                 # Estilos injetados nas páginas
-│   ├── popup.css                   # Estilos do popup
-│   └── sentiment.css               # Estilos do painel de sentimento
+│   ├── style.css                   # Entrada dos estilos das opções
+│   ├── content.css                 # Entrada legada dos estilos injetados
+│   ├── popup.css                   # Entrada dos estilos do popup
+│   ├── sentiment.css               # Entrada legada do painel de sentimento
+│   ├── options/                    # Módulos das telas de opções
+│   ├── content/                    # Módulos do content script
+│   └── popup/                      # Módulos do popup
 │
 ├── icons/
 │   ├── icon16.png
@@ -272,7 +277,7 @@ SyntaxMentor/
 
 ## 🧪 Testes
 
-O projeto usa **Jest** para testes unitários. O arquivo `setup.js` configura os mocks necessários para simular o ambiente de extensão Chrome (`chrome.storage`, `chrome.runtime`, etc.).
+O projeto usa um runner local em Node.js, sem dependências externas, para validar sintaxe, referências do manifest/HTML e pontos críticos de segurança.
 
 ```bash
 # Instalar dependências
@@ -281,14 +286,14 @@ npm install
 # Rodar todos os testes
 npm test
 
-# Rodar em modo watch (re-executa ao salvar)
+# Rodar em modo watch simples (re-executa ao salvar)
 npm run test:watch
 
-# Gerar relatório de cobertura
+# Rodar a mesma suíte com aviso de cobertura estática
 npm run test:coverage
 ```
 
-Os testes cobrem as principais funções de `content.js`, as configurações gerais e a API pública. A página `teste.html` também pode ser carregada no browser para testes manuais de interface.
+Os testes cobrem validações importantes de `content.js`, configurações gerais, API pública, manifest e referências de arquivos. A página `teste.html` também pode ser carregada no browser para testes manuais de interface.
 
 ---
 
@@ -384,7 +389,7 @@ O SyntaxMentor segue o modelo padrão de extensões Manifest V3:
 
 ## 📝 Changelog
 
-### v2.8.2 — Atual
+### v2.8.0 — Atual
 
 - Efeito visual aprimorado: pulsação e ondas magnéticas na bolinha durante verificação
 - Cards de erro compactos com largura adaptada ao conteúdo
@@ -397,13 +402,9 @@ O SyntaxMentor segue o modelo padrão de extensões Manifest V3:
 - API pública com rate limit de 10 req/s e cache LRU de 1 minuto (50 entradas)
 - Desfazer (`Ctrl+Z`) totalmente funcional e confiável
 
-### v2.8.1
-
 - Migração completa para Manifest V3
 - Service Worker como background script
 - Uso de `chrome.alarms` para gerenciamento do badge "NEW"
-
-### v2.8.0
 
 - Lançamento da API pública (`window.SyntaxMentor`)
 - Dashboard de estatísticas e conquistas
@@ -413,7 +414,7 @@ O SyntaxMentor segue o modelo padrão de extensões Manifest V3:
 
 ## 🤝 Contribuindo
 
-Contribuições são bem-vindas! Por favor, leia o [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) antes de abrir issues ou pull requests.
+Contribuições são bem-vindas! Por favor, leia o [CODE_OF_CONDUCT.md](../../Projeto-SyntaxMentor - Codex/CODE_OF_CONDUCT.md) antes de abrir issues ou pull requests.
 
 1. Faça um fork do repositório
 2. Crie uma branch para sua feature (`git checkout -b feature/minha-feature`)
@@ -424,7 +425,7 @@ Contribuições são bem-vindas! Por favor, leia o [CODE_OF_CONDUCT.md](CODE_OF_
 
 ## 📄 Licença
 
-Distribuído sob os termos descritos em [LICENSE](LICENSE). Consulte o arquivo para detalhes completos.
+Distribuído sob os termos descritos em [LICENSE](../../Projeto-SyntaxMentor - Codex/LICENSE). Consulte o arquivo para detalhes completos.
 
 ---
 
