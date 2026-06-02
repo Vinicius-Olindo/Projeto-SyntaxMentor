@@ -1,5 +1,5 @@
 // =============================================
-// SyntaxMentor - options-seguranca.js v2.7.1
+// SyntaxMentor - options-seguranca.js v2.8.0
 // Lógica da página de configurações de segurança
 // =============================================
 
@@ -9,7 +9,6 @@ if (document.body.classList.contains('seguranca-page')) {
     // =============================================
     // ELEMENTOS DOM
     // =============================================
-    const elApiUrl = document.getElementById('api-url');
     const elApiKey = document.getElementById('api-key');
     const btnTestarApi = document.getElementById('btn-testar-api');
     const btnToggleVisibilidade = document.getElementById('btn-toggle-visibilidade');
@@ -29,9 +28,8 @@ if (document.body.classList.contains('seguranca-page')) {
     const btnAddWhitelist = document.getElementById('btn-add-whitelist');
     const whitelistUl = document.getElementById('whitelist-list');
     let currentWhitelist = [];
-    const elCloudSync = document.getElementById('cloudSync');
     const btnSalvar = document.getElementById('btn-salvar');
-    
+
     // =============================================
     // STATUS BADGES
     // =============================================
@@ -39,12 +37,10 @@ if (document.body.classList.contains('seguranca-page')) {
     function atualizarStatusSeguranca() {
         const statusApiBadge = document.getElementById('status-api-badge');
         const statusModoBadge = document.getElementById('status-modo-badge');
-        const statusCloudBadge = document.getElementById('status-cloud-badge');
-        
         if (!statusApiBadge) return;
         
-        chrome.storage.session.get({ apiKey: '' }, (sess) => {
-        chrome.storage.local.get({ modoLeituraGlobal: false, cloudSync: false }, (res) => {
+        smStorageSessionGet({ apiKey: '' }, (sess) => {
+        smStorageLocalGet({ modoLeituraGlobal: false }, (res) => {
         res.apiKey = sess.apiKey || '';
             if (statusApiBadge) {
                 if (res.apiKey && res.apiKey.trim() !== '') {
@@ -65,16 +61,6 @@ if (document.body.classList.contains('seguranca-page')) {
                     statusModoBadge.className = 'seguranca-status-value modo-normal';
                 }
             }
-            
-            if (statusCloudBadge) {
-                if (res.cloudSync) {
-                    statusCloudBadge.textContent = '☁️ Ligado';
-                    statusCloudBadge.className = 'seguranca-status-value cloud-on';
-                } else {
-                    statusCloudBadge.textContent = 'Desligado';
-                    statusCloudBadge.className = 'seguranca-status-value cloud-off';
-                }
-            }
         }); // fecha local.get
         }); // fecha session.get
     }
@@ -87,8 +73,8 @@ if (document.body.classList.contains('seguranca-page')) {
         if (!btnTestarApi) return;
         
         btnTestarApi.addEventListener('click', async () => {
-            const url = (elApiUrl?.value || 'https://api.languagetool.org/v2/check').trim();
             const key = elApiKey?.value?.trim() || '';
+            const url = 'https://api.languagetool.org/v2/check';
             
             if (statusApi) {
                 statusApi.textContent = '⏳ Testando...';
@@ -114,11 +100,9 @@ if (document.body.classList.contains('seguranca-page')) {
                         statusApi.style.color = '#28a745';
                     }
                     if (detalhesApi) detalhesApi.style.display = 'block';
-                    if (apiInfo) apiInfo.textContent = `Idioma: ${data.language?.name || 'OK'} | ${new URL(url).hostname}`;
+                    if (apiInfo) apiInfo.textContent = `Idioma: ${data.language?.name || 'OK'} | api.languagetool.org`;
                     
-                    chrome.storage.local.set({ apiUrl: url }, () => {
-                    chrome.storage.session.set({ apiKey: key }, atualizarStatusSeguranca);
-                });
+                    smStorageSessionSet({ apiKey: key }, atualizarStatusSeguranca);
                 } else {
                     throw new Error(`HTTP ${resp.status}`);
                 }
@@ -153,17 +137,24 @@ if (document.body.classList.contains('seguranca-page')) {
     function renderizarModoLeitura() {
         if (!modoLeituraUl) return;
         
-        modoLeituraUl.innerHTML = '';
+        modoLeituraUl.replaceChildren();
         
         currentModoLeitura.forEach((domain, index) => {
-            const li = document.createElement('li');
-            li.innerHTML = `
-                <span class="item-text">${escapeHtml(domain)}</span>
-                <div class="action-btns">
-                    <span style="font-size:10px;background:#fef3c7;color:#92400e;padding:2px 8px;border-radius:10px;margin-right:10px;">📖 Leitura</span>
-                    <button class="btn-remove" data-index="${index}">✕</button>
-                </div>
-            `;
+            const texto = smCriarElemento('span', {
+                className: 'item-text',
+                textContent: domain
+            });
+            const badge = smCriarElemento('span', {
+                textContent: 'Leitura',
+                style: 'font-size:10px;background:#fef3c7;color:#92400e;padding:2px 8px;border-radius:10px;margin-right:10px;'
+            });
+            const remover = smCriarElemento('button', {
+                className: 'btn-remove',
+                textContent: 'x',
+                dataset: { index }
+            });
+            const actions = smCriarElemento('div', { className: 'action-btns' }, [badge, remover]);
+            const li = smCriarElemento('li', {}, [texto, actions]);
             modoLeituraUl.appendChild(li);
         });
         
@@ -179,8 +170,12 @@ if (document.body.classList.contains('seguranca-page')) {
     function configurarModoLeitura() {
         if (btnAddModoLeitura) {
             btnAddModoLeitura.addEventListener('click', () => {
-                const domain = modoLeituraInput.value.trim().toLowerCase();
+                const domain = normalizarDominio(modoLeituraInput.value);
                 if (domain && !currentModoLeitura.includes(domain)) {
+                    if (!isValidDomain(domain)) {
+                        mostrarNotificacao('⚠️ Informe um domínio válido', 'warning');
+                        return;
+                    }
                     currentModoLeitura.unshift(domain);
                     modoLeituraInput.value = '';
                     salvarListaStorage(currentModoLeitura, 'modoLeituraSites', renderizarModoLeitura);
@@ -197,17 +192,24 @@ if (document.body.classList.contains('seguranca-page')) {
     function renderizarWhitelist() {
         if (!whitelistUl) return;
         
-        whitelistUl.innerHTML = '';
+        whitelistUl.replaceChildren();
         
         currentWhitelist.forEach((domain, index) => {
-            const li = document.createElement('li');
-            li.innerHTML = `
-                <span class="item-text">${escapeHtml(domain)}</span>
-                <div class="action-btns">
-                    <span style="font-size:10px;background:#dcfce7;color:#166534;padding:2px 8px;border-radius:10px;margin-right:10px;">✅ Permitido</span>
-                    <button class="btn-remove" data-index="${index}">✕</button>
-                </div>
-            `;
+            const texto = smCriarElemento('span', {
+                className: 'item-text',
+                textContent: domain
+            });
+            const badge = smCriarElemento('span', {
+                textContent: 'Permitido',
+                style: 'font-size:10px;background:#dcfce7;color:#166534;padding:2px 8px;border-radius:10px;margin-right:10px;'
+            });
+            const remover = smCriarElemento('button', {
+                className: 'btn-remove',
+                textContent: 'x',
+                dataset: { index }
+            });
+            const actions = smCriarElemento('div', { className: 'action-btns' }, [badge, remover]);
+            const li = smCriarElemento('li', {}, [texto, actions]);
             whitelistUl.appendChild(li);
         });
         
@@ -223,8 +225,12 @@ if (document.body.classList.contains('seguranca-page')) {
     function configurarWhitelist() {
         if (btnAddWhitelist) {
             btnAddWhitelist.addEventListener('click', () => {
-                const domain = whitelistInput.value.trim().toLowerCase();
+                const domain = normalizarDominio(whitelistInput.value);
                 if (domain && !currentWhitelist.includes(domain)) {
+                    if (!isValidDomain(domain)) {
+                        mostrarNotificacao('⚠️ Informe um domínio válido', 'warning');
+                        return;
+                    }
                     currentWhitelist.unshift(domain);
                     whitelistInput.value = '';
                     salvarListaStorage(currentWhitelist, 'whitelist', renderizarWhitelist);
@@ -245,15 +251,13 @@ if (document.body.classList.contains('seguranca-page')) {
             const apiKey = elApiKey?.value?.trim() || '';
 
             // apiKey fica em session storage (nao persiste entre sessoes)
-            chrome.storage.session.set({ apiKey }, () => {
-                chrome.storage.local.set({
-                    apiUrl: elApiUrl?.value?.trim() || '',
+            smStorageSessionSet({ apiKey }, () => {
+                smStorageLocalSet({
                     modoConfirmacao: elModoConfirmacao?.checked || false,
                     modoLeituraGlobal: elModoLeituraGlobal?.checked || false,
                     modoFoco: elModoFoco?.checked || false,
                     modoAprendizado: elModoAprendizado?.checked || false,
-                    modoWhitelist: elModoWhitelist?.checked || false,
-                    cloudSync: elCloudSync?.checked || false
+                    modoWhitelist: elModoWhitelist?.checked || false
                 }, () => {
                     mostrarNotificacao('✓ Guardado com sucesso!', 'success');
                     atualizarStatusSeguranca();
@@ -269,56 +273,31 @@ if (document.body.classList.contains('seguranca-page')) {
     function configurarEventosRealtime() {
         if (elModoConfirmacao) {
             elModoConfirmacao.addEventListener('change', (e) => {
-                chrome.storage.local.set({ modoConfirmacao: e.target.checked });
+                smStorageLocalSet({ modoConfirmacao: e.target.checked });
             });
         }
         
         if (elModoLeituraGlobal) {
             elModoLeituraGlobal.addEventListener('change', (e) => {
-                chrome.storage.local.set({ modoLeituraGlobal: e.target.checked }, atualizarStatusSeguranca);
+                smStorageLocalSet({ modoLeituraGlobal: e.target.checked }, atualizarStatusSeguranca);
             });
         }
         
         if (elModoFoco) {
             elModoFoco.addEventListener('change', (e) => {
-                chrome.storage.local.set({ modoFoco: e.target.checked });
+                smStorageLocalSet({ modoFoco: e.target.checked });
             });
         }
         
         if (elModoAprendizado) {
             elModoAprendizado.addEventListener('change', (e) => {
-                chrome.storage.local.set({ modoAprendizado: e.target.checked });
+                smStorageLocalSet({ modoAprendizado: e.target.checked });
             });
         }
         
         if (elModoWhitelist) {
             elModoWhitelist.addEventListener('change', (e) => {
-                chrome.storage.local.set({ modoWhitelist: e.target.checked });
-            });
-        }
-        
-        if (elCloudSync) {
-            elCloudSync.addEventListener('change', (e) => {
-                const ativo = e.target.checked;
-                chrome.storage.local.set({ cloudSync: ativo }, atualizarStatusSeguranca);
-
-                if (ativo) {
-                    // Enviar dados locais para o storage.sync
-                    chrome.storage.local.get([
-                        'dicionario_pessoal', 'blacklist', 'language', 'pickyMode',
-                        'toggleShortcut', 'ignoreShortcut', 'corrigirTudoShortcut',
-                        'ativarShortcut', 'desativarShortcut', 'modoWhitelist', 'whitelist'
-                    ], (res) => {
-                        chrome.storage.sync.set(res, () => {
-                            if (chrome.runtime.lastError) {
-                                console.warn('SyntaxMentor: erro ao sincronizar:', chrome.runtime.lastError.message);
-                            }
-                        });
-                    });
-                } else {
-                    // Limpar dados do storage.sync ao desativar
-                    chrome.storage.sync.clear();
-                }
+                smStorageLocalSet({ modoWhitelist: e.target.checked });
             });
         }
     }
@@ -328,26 +307,22 @@ if (document.body.classList.contains('seguranca-page')) {
     // =============================================
     
     function carregarConfiguracoesIniciais() {
-        chrome.storage.session.get({ apiKey: '' }, (sess) => {
-        chrome.storage.local.get({
-            apiUrl: '',
+        smStorageSessionGet({ apiKey: '' }, (sess) => {
+        smStorageLocalGet({
             modoConfirmacao: false,
             modoLeituraGlobal: false,
             modoLeituraSites: [],
             modoWhitelist: false,
             whitelist: [],
-            cloudSync: false,
             modoFoco: false,
             modoAprendizado: false
         }, (res) => {
-            if (elApiUrl) elApiUrl.value = res.apiUrl || '';
             if (elApiKey) elApiKey.value = sess.apiKey || '';
             if (elModoConfirmacao) elModoConfirmacao.checked = res.modoConfirmacao || false;
             if (elModoLeituraGlobal) elModoLeituraGlobal.checked = res.modoLeituraGlobal || false;
             if (elModoFoco) elModoFoco.checked = res.modoFoco || false;
             if (elModoAprendizado) elModoAprendizado.checked = res.modoAprendizado || false;
             if (elModoWhitelist) elModoWhitelist.checked = res.modoWhitelist || false;
-            if (elCloudSync) elCloudSync.checked = res.cloudSync || false;
 
             currentModoLeitura = res.modoLeituraSites || [];
             renderizarModoLeitura();
@@ -398,11 +373,7 @@ if (document.body.classList.contains('seguranca-page')) {
                 elModoWhitelist.checked = changes.modoWhitelist.newValue;
             }
             
-            if (changes.cloudSync && elCloudSync) {
-                elCloudSync.checked = changes.cloudSync.newValue;
-            }
-            
-            if (changes.apiKey || changes.modoLeituraGlobal || changes.cloudSync) {
+            if (changes.apiKey || changes.modoLeituraGlobal) {
                 atualizarStatusSeguranca();
             }
         });

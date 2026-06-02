@@ -1,5 +1,5 @@
 // =============================================
-// SyntaxMentor - options.js v2.7.1
+// SyntaxMentor - options.js v2.8.0
 // Arquivo principal que carrega os módulos
 // =============================================
 
@@ -8,13 +8,13 @@
 // - options-utils.js (utilitários)
 // - options-geral.js (página Geral)
 // - options-seguranca.js (página Segurança)
-// - options-dashboard.js (página Dashboard)
 
-// Nota: Os scripts já são carregados na ordem correta no HTML:
+// Nota: Os scripts ja sao carregados na ordem correta no HTML:
+// <script src="js/shared/texts.js"></script>
+// <script src="js/shared/dom.js"></script>
+// <script src="js/shared/storage.js"></script>
 // <script src="js/options-utils.js"></script>
-// <script src="js/options-geral.js"></script>
-// <script src="js/options-seguranca.js"></script>
-// <script src="js/options-dashboard.js"></script>
+// <script src="js/options/geral/*.js"></script>
 // <script src="js/options.js"></script>
 
-console.log('🚀 SyntaxMentor Options v2.7.1 - Modulos carregados');
+smLog('SyntaxMentor Options v2.8.0 - modulos carregados');

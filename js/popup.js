@@ -1,5 +1,5 @@
 // =============================================
-// SyntaxMentor - popup.js v2.7.1
+// SyntaxMentor - popup.js v2.8.0
 // Live Sync + Corrigir Tudo + Revisar Página + Toggle Site
 // =============================================
 
@@ -11,8 +11,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const addBtn = document.getElementById('add-btn');
     const wordList = document.getElementById('word-list');
     const linkOpcoes = document.getElementById('link-opcoes');
-    const btnCorrigirTudo = document.getElementById('btn-corrigir-tudo');
-    const btnRevisarPagina = document.getElementById('btn-revisar-pagina');
     const toggleSiteActive = document.getElementById('toggle-site-active');
     const currentSiteLabel = document.getElementById('current-site-label');
     const siteStatusDot = document.getElementById('site-status-dot');
@@ -24,6 +22,51 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentTabId = null;
     let currentHost = null;
     let isExtensionActive = true;
+
+    function isSmDebugAtivo() {
+        try {
+            return localStorage.getItem('sm_debug') === 'true';
+        } catch (e) {
+            return false;
+        }
+    }
+
+    const smLog = (...args) => { if (isSmDebugAtivo()) console.log('[SM]', ...args); };
+    const smDebug = (...args) => { if (isSmDebugAtivo()) console.debug('[SM]', ...args); };
+    const smWarn = (...args) => { if (isSmDebugAtivo()) console.warn('[SM]', ...args); };
+    const smError = (...args) => { if (isSmDebugAtivo()) console.error('[SM]', ...args); };
+
+    function normalizarDominio(valor) {
+        return String(valor || '')
+            .trim()
+            .toLowerCase()
+            .replace(/^https?:\/\//, '')
+            .replace(/^www\./, '')
+            .split('/')[0];
+    }
+
+    function hostCorrespondeDominio(host, dominio) {
+        const hostNormalizado = normalizarDominio(host);
+        const dominioNormalizado = normalizarDominio(dominio);
+        return !!dominioNormalizado && (
+            hostNormalizado === dominioNormalizado ||
+            hostNormalizado.endsWith(`.${dominioNormalizado}`)
+        );
+    }
+
+    function listaTemDominio(host, lista) {
+        return (lista || []).some(d => hostCorrespondeDominio(host, d));
+    }
+
+    function criarElemento(tag, opcoes = {}, filhos = []) {
+        return smCriarElemento(tag, opcoes, filhos);
+    }
+
+    function isValidDictionaryWord(palavra) {
+        const valor = String(palavra || '').trim();
+        if (valor.length < 2 || valor.length > 60) return false;
+        return /^[\p{L}\p{M}\p{N}'’.+#_-]+$/u.test(valor);
+    }
 
     // =============================================
     // FUNÇÕES AUXILIARES - TABS
@@ -37,7 +80,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return new Promise((resolve) => {
             chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
                 if (chrome.runtime.lastError) {
-                    console.debug('Erro ao obter aba:', chrome.runtime.lastError.message);
+                    smDebug('Erro ao obter aba:', chrome.runtime.lastError.message);
                     resolve(null);
                     return;
                 }
@@ -62,41 +105,11 @@ document.addEventListener('DOMContentLoaded', () => {
         chrome.tabs.sendMessage(currentTabId, { action, ...data }, () => {
             if (chrome.runtime.lastError) {
                 // A extensão pode não estar injetada nesta página
-                console.debug('Não foi possível enviar mensagem:', chrome.runtime.lastError.message);
+                smDebug('Não foi possível enviar mensagem:', chrome.runtime.lastError.message);
             }
         });
     }
 
-    /**
-     * Envia ação e fecha o popup após confirmação
-     * @param {string} action - Ação a ser executada
-     */
-    function enviarAcaoParaAba(action) {
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-        if (chrome.runtime.lastError) {
-            mostrarFeedbackPopup('Erro ao comunicar com a página', 'error');
-            return;
-        }
-        
-        if (tabs[0] && tabs[0].id) {
-            chrome.tabs.sendMessage(tabs[0].id, { action: action }, () => {
-                if (chrome.runtime.lastError) {
-                    console.warn('Erro:', chrome.runtime.lastError.message);
-                    mostrarFeedbackPopup('Recarregue a página para usar esta função', 'warning');
-                } else {
-                    const mensagens = {
-                        'corrigirTudo': 'Corrigindo tudo...',
-                        'revisarPaginaInteira': 'Revisando página...'
-                    };
-                    mostrarFeedbackPopup(mensagens[action] || 'Comando enviado!', 'success');
-                    setTimeout(() => window.close(), 500);
-                }
-            });
-        } else {
-            mostrarFeedbackPopup('Nenhuma página válida encontrada', 'error');
-        }
-    });
-}
     // =============================================
     // FUNÇÕES DE FEEDBACK VISUAL
     // =============================================
@@ -123,13 +136,17 @@ document.addEventListener('DOMContentLoaded', () => {
         msgContainer.style.display = 'block';
         msgContainer.style.backgroundColor = cor.bg;
         msgContainer.style.color = cor.text;
-        msgContainer.innerHTML = `${cor.icon} ${escapeHtml(mensagem)}`;
+        msgContainer.textContent = `${cor.icon} ${mensagem}`;
         
         // Esconder após 3 segundos
         clearTimeout(msgContainer._timeout);
         msgContainer._timeout = setTimeout(() => {
             msgContainer.style.display = 'none';
         }, 3000);
+    }
+
+    function mostrarFeedbackTemporario(mensagem, tipo = 'info') {
+        mostrarFeedbackPopup(mensagem, tipo);
     }
 
     // =============================================
@@ -164,21 +181,22 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         // Verificar status atual da extensão para este site
-        chrome.storage.local.get(
-            ['blacklist', 'disabled', 'modoWhitelist', 'whitelist', 'userBlacklistOverrides'],
-            (res) => {
-                if (chrome.runtime.lastError) return;
+        smStorageLocalGet(
+            ['blacklist', 'disabled', 'modoWhitelist', 'whitelist', 'userBlacklistOverrides', 'userWhitelistOverrides'],
+            (res, erro) => {
+                if (erro) return;
                 
                 let isActive = true;
                 
-                // Verificar override do usuário primeiro
-                const userOverrides = res.userBlacklistOverrides || [];
-                if (userOverrides.includes(currentHost)) {
+                // Verificar overrides do usuario primeiro
+                if (listaTemDominio(currentHost, res.userBlacklistOverrides)) {
                     isActive = false;
+                } else if (listaTemDominio(currentHost, res.userWhitelistOverrides)) {
+                    isActive = true;
                 } else if (res.modoWhitelist) {
-                    isActive = (res.whitelist || []).some(d => currentHost.includes(d));
+                    isActive = listaTemDominio(currentHost, res.whitelist);
                 } else {
-                    const isBlocked = (res.blacklist || []).some(d => currentHost.includes(d));
+                    const isBlocked = listaTemDominio(currentHost, res.blacklist);
                     isActive = !isBlocked && !res.disabled;
                 }
                 
@@ -211,22 +229,25 @@ document.addEventListener('DOMContentLoaded', () => {
             mostrarFeedbackTemporario('⚠️ Não foi possível identificar o site atual');
             return;
         }
-        
-        const storageKey = `site_override_${currentHost}`;
-        
         if (!ativar) {
             // Desativar: adicionar à blacklist de overrides do usuário
-            chrome.storage.local.get(['userBlacklistOverrides'], (res) => {
-                if (chrome.runtime.lastError) {
+            smStorageLocalGet(['userBlacklistOverrides', 'userWhitelistOverrides'], (res, erro) => {
+                if (erro) {
                     mostrarFeedbackTemporario('❌ Erro ao salvar preferência');
                     return;
                 }
                 
                 const overrides = res.userBlacklistOverrides || [];
+                const enabledOverrides = res.userWhitelistOverrides || [];
+                const enabledIndex = enabledOverrides.indexOf(currentHost);
+                if (enabledIndex > -1) enabledOverrides.splice(enabledIndex, 1);
                 if (!overrides.includes(currentHost)) {
                     overrides.push(currentHost);
-                    chrome.storage.local.set({ userBlacklistOverrides: overrides }, () => {
-                        if (chrome.runtime.lastError) {
+                    smStorageLocalSet({
+                        userBlacklistOverrides: overrides,
+                        userWhitelistOverrides: enabledOverrides
+                    }, (erroSalvar) => {
+                        if (erroSalvar) {
                             mostrarFeedbackTemporario('❌ Erro ao salvar preferência');
                             return;
                         }
@@ -234,34 +255,38 @@ document.addEventListener('DOMContentLoaded', () => {
                         atualizarInterfaceAposToggle(false);
                     });
                 } else {
-                    enviarMensagemParaAba('toggleSite', { enabled: false, host: currentHost });
-                    atualizarInterfaceAposToggle(false);
+                    smStorageLocalSet({ userWhitelistOverrides: enabledOverrides }, () => {
+                        enviarMensagemParaAba('toggleSite', { enabled: false, host: currentHost });
+                        atualizarInterfaceAposToggle(false);
+                    });
                 }
             });
         } else {
             // Ativar: remover da blacklist de overrides
-            chrome.storage.local.get(['userBlacklistOverrides'], (res) => {
-                if (chrome.runtime.lastError) {
+            smStorageLocalGet(['userBlacklistOverrides', 'userWhitelistOverrides'], (res, erro) => {
+                if (erro) {
                     mostrarFeedbackTemporario('❌ Erro ao salvar preferência');
                     return;
                 }
                 
                 const overrides = res.userBlacklistOverrides || [];
+                const enabledOverrides = res.userWhitelistOverrides || [];
                 const index = overrides.indexOf(currentHost);
                 if (index > -1) {
                     overrides.splice(index, 1);
-                    chrome.storage.local.set({ userBlacklistOverrides: overrides }, () => {
-                        if (chrome.runtime.lastError) {
+                }
+                if (!enabledOverrides.includes(currentHost)) enabledOverrides.push(currentHost);
+                smStorageLocalSet({
+                    userBlacklistOverrides: overrides,
+                    userWhitelistOverrides: enabledOverrides
+                }, (erroSalvar) => {
+                        if (erroSalvar) {
                             mostrarFeedbackTemporario('❌ Erro ao salvar preferência');
                             return;
                         }
                         enviarMensagemParaAba('toggleSite', { enabled: true, host: currentHost });
                         atualizarInterfaceAposToggle(true);
                     });
-                } else {
-                    enviarMensagemParaAba('toggleSite', { enabled: true, host: currentHost });
-                    atualizarInterfaceAposToggle(true);
-                }
             });
         }
     }
@@ -294,9 +319,9 @@ document.addEventListener('DOMContentLoaded', () => {
      * Carrega o dicionário pessoal do storage
      */
     function carregarDicionario() {
-        chrome.storage.local.get(['dicionario_pessoal'], (res) => {
-            if (chrome.runtime.lastError) {
-                console.warn('Erro ao carregar dicionário:', chrome.runtime.lastError.message);
+        smStorageLocalGet(['dicionario_pessoal'], (res, erro) => {
+            if (erro) {
+                smWarn('Erro ao carregar dicionário:', erro.message);
                 currentDictionary = [];
             } else {
                 currentDictionary = res.dicionario_pessoal || [];
@@ -310,8 +335,8 @@ document.addEventListener('DOMContentLoaded', () => {
      * Carrega o tema (dark mode) do storage
      */
     function carregarTema() {
-        chrome.storage.local.get(['darkMode'], (res) => {
-            if (chrome.runtime.lastError) return;
+        smStorageLocalGet(['darkMode'], (res, erro) => {
+            if (erro) return;
             document.body.classList.toggle('dark-mode', res.darkMode);
         });
     }
@@ -321,25 +346,32 @@ document.addEventListener('DOMContentLoaded', () => {
      */
     function renderizarLista() {
         if (!wordList) return;
-        
-        wordList.innerHTML = '';
-        
+
+        wordList.replaceChildren();
+
         if (currentDictionary.length === 0) {
-            wordList.innerHTML = '<li style="color:#9ca3af;text-align:center;padding:15px;font-size:12px;">📭 Nenhuma palavra adicionada</li>';
+            wordList.appendChild(criarElemento('li', {
+                textContent: SM_TEXTOS.popup.dicionarioVazio,
+                style: 'color:#9ca3af;text-align:center;padding:15px;font-size:12px;'
+            }));
             return;
         }
-        
+
         currentDictionary.forEach((word, index) => {
-            const li = document.createElement('li');
-            li.innerHTML = `
-                <span style="flex:1;word-break:break-word;">${escapeHtml(word)}</span>
-                <button class="btn-remove" data-index="${index}" title="Remover">✕</button>
-            `;
-            wordList.appendChild(li);
+            const span = criarElemento('span', {
+                textContent: word,
+                style: 'flex:1;word-break:break-word;'
+            });
+            const remover = criarElemento('button', {
+                className: 'btn-remove',
+                textContent: 'x',
+                title: 'Remover',
+                dataset: { index }
+            });
+            wordList.appendChild(criarElemento('li', {}, [span, remover]));
         });
-        
-        // Adicionar event listeners aos botões de remover
-        document.querySelectorAll('.btn-remove').forEach(btn => {
+
+        wordList.querySelectorAll('.btn-remove').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 e.stopPropagation();
                 const idx = parseInt(e.target.getAttribute('data-index'));
@@ -347,18 +379,18 @@ document.addEventListener('DOMContentLoaded', () => {
                     const palavraRemovida = currentDictionary[idx];
                     currentDictionary.splice(idx, 1);
                     salvarDicionario();
-                    mostrarFeedbackTemporario(`🗑️ "${palavraRemovida}" removido`);
+                    mostrarFeedbackTemporario('"' + palavraRemovida + '" removido');
                 }
             });
         });
     }
-    
+
     /**
      * Salva o dicionário no storage
      */
     function salvarDicionario() {
-        chrome.storage.local.set({ dicionario_pessoal: currentDictionary }, () => {
-            if (chrome.runtime.lastError) return;
+        smStorageLocalSet({ dicionario_pessoal: currentDictionary }, (erro) => {
+            if (erro) return;
             renderizarLista();
             if (wordInput) wordInput.focus();
         });
@@ -377,12 +409,12 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         
-        if (word.length < 2) {
+        if (!isValidDictionaryWord(word)) {
             wordInput.style.borderColor = '#e53e3e';
             setTimeout(() => {
                 wordInput.style.borderColor = '';
             }, 1000);
-            mostrarFeedbackPopup('A palavra deve ter pelo menos 2 caracteres', 'warning');
+            mostrarFeedbackPopup('Informe uma palavra válida', 'warning');
             return;
         }
         
@@ -405,18 +437,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // UTILITÁRIOS
     // =============================================
     
-    /**
-     * Escapa caracteres HTML para evitar XSS
-     * @param {string} texto - Texto a ser escapado
-     * @returns {string}
-     */
-    function escapeHtml(texto) {
-        if (!texto) return '';
-        const div = document.createElement('div');
-        div.textContent = texto;
-        return div.innerHTML;
-    }
-
     // =============================================
     // EVENT LISTENERS
     // =============================================
@@ -431,18 +451,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 e.preventDefault();
                 adicionarPalavra();
             }
-        });
-    }
-    
-    if (btnCorrigirTudo) {
-        btnCorrigirTudo.addEventListener('click', () => {
-            enviarAcaoParaAba('corrigirTudo');
-        });
-    }
-    
-    if (btnRevisarPagina) {
-        btnRevisarPagina.addEventListener('click', () => {
-            enviarAcaoParaAba('revisarPaginaInteira');
         });
     }
     
@@ -481,7 +489,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         // Se blacklist/whitelist/overrides mudar, recarregar status do site
-        if (changes.blacklist || changes.modoWhitelist || changes.whitelist || changes.userBlacklistOverrides) {
+        if (changes.blacklist || changes.modoWhitelist || changes.whitelist || changes.userBlacklistOverrides || changes.userWhitelistOverrides) {
             carregarStatusDoSite();
         }
     });
@@ -495,6 +503,67 @@ document.addEventListener('DOMContentLoaded', () => {
     carregarStatusDoSite();
     carregarErrosAtivos();
 
+    function renderizarPreviewErros(container, erros, total, tab) {
+        container.replaceChildren();
+
+        container.appendChild(criarElemento('div', {
+            textContent: `${total} erro${total > 1 ? 's' : ''} encontrado${total > 1 ? 's' : ''}`,
+            style: 'padding:8px 14px 4px;font-size:11px;font-weight:500;color:#6b7280;text-transform:uppercase;letter-spacing:.04em'
+        }));
+
+        erros.forEach(erro => {
+            const original = criarElemento('span', {
+                textContent: erro.original,
+                style: 'color:#e53e3e;text-decoration:line-through;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100px'
+            });
+            const seta = criarElemento('span', {
+                textContent: '->',
+                style: 'color:#9ca3af;font-size:12px'
+            });
+            const sugestao = criarElemento('span', {
+                textContent: erro.sugestao,
+                style: 'color:#28a745;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100px'
+            });
+            const textos = criarElemento('div', {
+                style: 'display:flex;align-items:center;gap:6px;min-width:0'
+            }, [original, seta, sugestao]);
+            const aplicar = criarElemento('button', {
+                className: 'sm-btn-aplicar',
+                textContent: 'Aplicar',
+                dataset: { original: erro.original, sugestao: erro.sugestao },
+                style: 'flex-shrink:0;font-size:11px;padding:3px 8px;border-radius:4px;border:0.5px solid #6f42c1;background:transparent;color:#6f42c1;cursor:pointer;font-weight:500'
+            });
+            const item = criarElemento('div', {
+                className: 'sm-erro-item',
+                dataset: { original: erro.original, sugestao: erro.sugestao },
+                style: 'display:flex;align-items:center;justify-content:space-between;padding:6px 14px;gap:8px;cursor:pointer;border-top:0.5px solid rgba(0,0,0,.06)'
+            }, [textos, aplicar]);
+
+            aplicar.addEventListener('click', (ev) => {
+                ev.stopPropagation();
+                chrome.tabs.sendMessage(tab.id, {
+                    action: 'aplicarCorrecaoPopup',
+                    original: aplicar.dataset.original,
+                    sugestao: aplicar.dataset.sugestao
+                }, () => {
+                    item.style.opacity = '0.4';
+                    aplicar.textContent = 'ok';
+                    aplicar.disabled = true;
+                    setTimeout(carregarErrosAtivos, 800);
+                });
+            });
+
+            container.appendChild(item);
+        });
+
+        if (total > erros.length) {
+            container.appendChild(criarElemento('div', {
+                textContent: `+${total - erros.length} mais no painel`,
+                style: 'padding:4px 14px 8px;font-size:11px;color:#9ca3af'
+            }));
+        }
+    }
+
     /**
      * Carrega os erros ativos do content.js e exibe preview no popup
      */
@@ -507,41 +576,13 @@ document.addEventListener('DOMContentLoaded', () => {
             chrome.tabs.sendMessage(tab.id, { action: 'getErrosAtivos' }, (res) => {
                 if (chrome.runtime.lastError || !res || !res.erros || res.erros.length === 0) {
                     container.style.display = 'none';
+                    container.replaceChildren();
                     return;
                 }
 
                 const erros = res.erros.slice(0, 5);
                 container.style.display = 'block';
-                container.innerHTML = `
-                    <div style="padding:8px 14px 4px;font-size:11px;font-weight:500;color:#6b7280;text-transform:uppercase;letter-spacing:.04em">
-                        ${res.erros.length} erro${res.erros.length > 1 ? 's' : ''} encontrado${res.erros.length > 1 ? 's' : ''}
-                    </div>
-                    ${erros.map(e => `
-                        <div class="sm-erro-item" data-original="${escapeHtml(e.original)}" data-sugestao="${escapeHtml(e.sugestao)}" style="display:flex;align-items:center;justify-content:space-between;padding:6px 14px;gap:8px;cursor:pointer;border-top:0.5px solid rgba(0,0,0,.06)">
-                            <div style="display:flex;align-items:center;gap:6px;min-width:0">
-                                <span style="color:#e53e3e;text-decoration:line-through;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100px">${escapeHtml(e.original)}</span>
-                                <span style="color:#9ca3af;font-size:12px">→</span>
-                                <span style="color:#28a745;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100px">${escapeHtml(e.sugestao)}</span>
-                            </div>
-                            <button class="sm-btn-aplicar" data-original="${escapeHtml(e.original)}" data-sugestao="${escapeHtml(e.sugestao)}" style="flex-shrink:0;font-size:11px;padding:3px 8px;border-radius:4px;border:0.5px solid #6f42c1;background:transparent;color:#6f42c1;cursor:pointer;font-weight:500">Aplicar</button>
-                        </div>
-                    `).join('')}
-                    ${res.erros.length > 5 ? `<div style="padding:4px 14px 8px;font-size:11px;color:#9ca3af">+${res.erros.length - 5} mais no painel</div>` : ''}
-                `;
-
-                container.querySelectorAll('.sm-btn-aplicar').forEach(btn => {
-                    btn.addEventListener('click', (ev) => {
-                        ev.stopPropagation();
-                        const original = btn.dataset.original;
-                        const sugestao = btn.dataset.sugestao;
-                        chrome.tabs.sendMessage(tab.id, { action: 'aplicarCorrecaoPopup', original, sugestao }, () => {
-                            btn.closest('.sm-erro-item').style.opacity = '0.4';
-                            btn.textContent = '✓';
-                            btn.disabled = true;
-                            setTimeout(carregarErrosAtivos, 800);
-                        });
-                    });
-                });
+                renderizarPreviewErros(container, erros, res.erros.length, tab);
             });
         });
     }
@@ -558,13 +599,5 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         `;
         document.head.appendChild(style);
-    }
-    // Link para documentação da API
-    const linkApi = document.getElementById('link-api');
-    if (linkApi) {
-        linkApi.addEventListener('click', (e) => {
-            e.preventDefault();
-            chrome.tabs.create({ url: chrome.runtime.getURL('api-docs.html') });
-        });
     }
 });

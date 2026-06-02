@@ -1,0 +1,159 @@
+/* ============================================
+   RESPONSIVIDADE - TELAS PEQUENAS (BUG 8)
+   ============================================ */
+
+/* Painel base - responsivo */
+#syntax-mentor-painel {
+    position: fixed;
+    width: 360px;
+    max-width: calc(100vw - 20px) !important; /* 🔥 Garante que não ultrapasse a tela */
+    max-height: calc(100vh - 20px) !important;
+    background: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+    display: flex;
+    flex-direction: column;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    color: #1e293b;
+    overflow: hidden;
+    border: 1px solid #e2e8f0;
+    will-change: top, left;
+    z-index: 2147483647 !important;
+    isolation: isolate !important;
+}
+
+/* Para telas menores que 400px */
+@media (max-width: 400px) {
+    #syntax-mentor-painel {
+        width: calc(100vw - 16px) !important;
+        max-width: calc(100vw - 16px) !important;
+        left: 8px !important;
+        right: 8px !important;
+        border-radius: 12px !important;
+    }
+    
+    /* Ajustar padding interno */
+    #syntax-mentor-content {
+        padding: 10px !important;
+    }
+    
+    /* Cards mais compactos */
+    .erro-card {
+        padding: 8px 10px !important;
+        margin-bottom: 8px !important;
+    }
+    
+    /* Palavras com fontes menores */
+    .palavra-original,
+    .palavra-sugestao {
+        font-size: 11px !important;
+        padding: 3px 8px !important;
+    }
+    
+    /* Botões mais compactos */
+    .btn-fix-mini,
+    .btn-ignorar-sessao,
+    .btn-ignorar {
+        padding: 3px 10px !important;
+        font-size: 10px !important;
+    }
+    
+    /* Container da palavra */
+    .palavra-group {
+        gap: 6px !important;
+        margin-bottom: 8px !important;
+    }
+    
+    /* Botões de navegação */
+    .nav-container {
+        gap: 6px !important;
+        margin-bottom: 8px !important;
+    }
+    
+    .nav-btn {
+        width: 28px !important;
+        height: 28px !important;
+        font-size: 12px !important;
+    }
+    
+    .nav-contador {
+        padding: 3px 10px !important;
+        font-size: 10px !important;
+        min-width: 50px !important;
+    }
+}
+
+/* Para telas muito pequenas (menos de 320px) */
+@media (max-width: 340px) {
+    /* Botões empilhados verticalmente */
+    .botoes-acao {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 6px !important;
+    }
+    
+    .btn-fix-mini,
+    .btn-ignorar-sessao,
+    .btn-ignorar {
+        text-align: center !important;
+    }
+    
+    /* Grupo da palavra */
+    .palavra-group {
+        flex-wrap: wrap !important;
+        justify-content: center !important;
+    }
+    
+    /* Fonte menor */
+    .erro-msg {
+        font-size: 9px !important;
+    }
+    
+    /* Rodapé */
+    .painel-footer {
+        padding: 8px 10px !important;
+    }
+    
+    /* Botões principais empilhados */
+    .btn-corrigir-tudo,
+    .btn-ignorar-tudo {
+        padding: 6px !important;
+        font-size: 10px !important;
+    }
+}
+
+/* Para telas em modo paisagem muito estreitas */
+@media (max-height: 500px) and (orientation: landscape) {
+    #syntax-mentor-painel {
+        max-height: calc(100vh - 20px) !important;
+        top: 10px !important;
+        bottom: 10px !important;
+    }
+    
+    #syntax-mentor-content {
+        max-height: 250px !important;
+    }
+    
+    .erro-card {
+        padding: 6px 8px !important;
+        margin-bottom: 6px !important;
+    }
+}
+
+/* Bolinha em telas pequenas */
+@media (max-width: 400px) {
+    #syntax-mentor-bubble {
+        width: 36px !important;
+        height: 36px !important;
+    }
+    
+    .sm-bubble-icon {
+        font-size: 16px !important;
+    }
+    
+    .sm-bubble-badge {
+        font-size: 9px !important;
+        padding: 1px 4px !important;
+    }
+}
+

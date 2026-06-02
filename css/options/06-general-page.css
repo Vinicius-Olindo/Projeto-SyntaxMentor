@@ -1,0 +1,193 @@
+/* ============================================
+   SyntaxMentor - general options page styles v2.8.0
+   ============================================ */
+
+/* Fundo da página geral */
+.geral-page {
+    background: linear-gradient(180deg, #f8f9fc 0%, #f0f4ff 100%);
+}
+
+body.dark-mode.geral-page {
+    background: linear-gradient(180deg, #121212 0%, #1a1025 100%);
+}
+
+/* Conteúdo principal - OCUPA TELA TODA */
+.geral-page .main-content {
+    margin-left: 260px;
+    padding: 30px 40px;
+    flex: 1;
+    max-width: none;
+    width: auto;
+}
+
+.geral-page .header-titles {
+    padding: 0;
+    margin-bottom: 24px;
+}
+
+/* ============================================
+   ROW DE STATUS RÁPIDO
+   ============================================ */
+.geral-status-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+    margin-bottom: 24px;
+    width: 100%;
+}
+
+.geral-status-card {
+    background: white;
+    border-radius: 14px;
+    padding: 18px 20px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    border: 1px solid #f0f0f0;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.03);
+}
+
+.geral-status-icon {
+    font-size: 28px;
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f8f9fa;
+    border-radius: 12px;
+    flex-shrink: 0;
+}
+
+.geral-status-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.geral-status-label {
+    font-size: 11px;
+    color: #6b7280;
+    font-weight: 500;
+    margin-bottom: 2px;
+}
+
+.geral-status-value {
+    font-size: 14px;
+    font-weight: 600;
+    color: #6f42c1;
+}
+
+body.dark-mode .geral-status-card {
+    background: #1a1a1a;
+    border-color: #2a2a2a;
+}
+
+body.dark-mode .geral-status-icon {
+    background: #2a2a2a;
+}
+
+body.dark-mode .geral-status-value {
+    color: #d8b4fe;
+}
+
+/* ============================================
+   GRID PRINCIPAL DA PÁGINA GERAL
+   ============================================ */
+.geral-main-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+    width: 100%;
+}
+
+.geral-col {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    min-width: 0;
+}
+
+/* ============================================
+   CARDS COM CABEÇALHO (GERAL)
+   ============================================ */
+.card-analise .card-header,
+.card-aparencia .card-header,
+.card-blacklist .card-header,
+.card-performance .card-header,
+.card-atalhos .card-header,
+.card-dicionario .card-header,
+.card-backup .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.card-analise .card-header h3,
+.card-aparencia .card-header h3,
+.card-blacklist .card-header h3,
+.card-performance .card-header h3,
+.card-atalhos .card-header h3,
+.card-dicionario .card-header h3,
+.card-backup .card-header h3 {
+    margin: 0;
+    font-size: 16px;
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+body.dark-mode .card-analise .card-header,
+body.dark-mode .card-aparencia .card-header,
+body.dark-mode .card-blacklist .card-header,
+body.dark-mode .card-performance .card-header,
+body.dark-mode .card-atalhos .card-header,
+body.dark-mode .card-dicionario .card-header,
+body.dark-mode .card-backup .card-header {
+    border-bottom-color: #2a2a2a;
+}
+
+/* ============================================
+   BADGES DOS CARDS
+   ============================================ */
+.card-blacklist .card-badge,
+.card-dicionario .card-badge {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+body.dark-mode .card-blacklist .card-badge,
+body.dark-mode .card-dicionario .card-badge {
+    background: #3b2e1a;
+    color: #fbbf24;
+}
+
+/* ============================================
+   RESPONSIVO
+   ============================================ */
+@media (max-width: 1200px) {
+    .geral-main-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .geral-status-row {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 900px) {
+    .geral-page .main-content {
+        padding: 20px;
+    }
+
+    .geral-main-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 600px) {
+    .geral-status-row {
+        grid-template-columns: 1fr;
+    }
+}

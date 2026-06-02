@@ -1,5 +1,5 @@
 <!-- ============================================= -->
-<!-- SyntaxMentor - options-seguranca.html v2.7.0 -->
+<!-- SyntaxMentor - options-seguranca.html v2.8.0 -->
 <!-- ============================================= -->
  
 <!DOCTYPE html>
@@ -9,18 +9,17 @@
         <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
         <meta http-equiv="Pragma" content="no-cache">
         <meta http-equiv="Expires" content="0">
-        <title>Segurança - SyntaxMentor Elite</title>
+        <title>Segurança - SyntaxMentor</title>
         <link rel="stylesheet" href="css/style.css">
     </head>
     <body class="seguranca-page">
 
         <!-- BARRA LATERAL -->
         <div class="sidebar">
-            <h2 class="logo">✨ SyntaxMentor <span style="font-size: 10px; color: #aaa;">v2.7.0 Elite</span></h2>
+            <h2 class="logo">✨ SyntaxMentor <span style="font-size: 10px; color: #aaa;">v2.8.0</span></h2>
             <ul class="menu">
                 <li><a href="options.html">Geral</a></li>
                 <li class="active"><a href="options-seguranca.html">Segurança</a></li>
-                <li><a href="options-dashboard.html">Dashboard</a></li>
             </ul>
         </div>
 
@@ -28,7 +27,7 @@
         <div class="main-content">
             <div class="header-titles">
                 <h1>🛡️ Segurança &amp; Privacidade</h1>
-                <p>Configure a API, modo de correção, whitelist e sincronização.</p>
+                <p>Configure a chave da API, modos de correção e controle por site.</p>
             </div>
 
             <!-- 🆕 ROW DE STATUS RÁPIDO -->
@@ -47,13 +46,6 @@
                         <div class="seguranca-status-value" id="status-modo-badge">Normal</div>
                     </div>
                 </div>
-                <div class="seguranca-status-card" id="status-cloud-card">
-                    <div class="seguranca-status-icon">☁️</div>
-                    <div class="seguranca-status-info">
-                        <div class="seguranca-status-label">Cloud Sync</div>
-                        <div class="seguranca-status-value" id="status-cloud-badge">Desligado</div>
-                    </div>
-                </div>
             </div>
 
             <!-- 🆕 GRID PRINCIPAL (2 colunas) -->
@@ -65,17 +57,12 @@
                     <!-- API KEY -->
                     <div class="config-card card-api-key">
                         <div class="card-header">
-                            <h3>🔑 Chave de API Personalizada</h3>
-                            <span class="card-badge">Premium</span>
+                            <h3>🔑 Chave da API LanguageTool</h3>
+                            <span class="card-badge">Opcional</span>
                         </div>
-                        <p class="desc">Use sua própria chave da API LanguageTool Cloud ou um servidor self-hosted.</p>
+                        <p class="desc">Use sua própria chave da API LanguageTool Cloud quando quiser limites maiores.</p>
                         
                         <div class="api-form">
-                            <div class="api-field">
-                                <label>URL do Servidor</label>
-                                <input type="text" id="api-url" class="full-input" placeholder="https://api.languagetool.org/v2/check">
-                            </div>
-                            
                             <div class="api-field">
                                 <label>API Key</label>
                                 <div class="api-key-row">
@@ -182,25 +169,6 @@
                         </div>
                     </div>
 
-                    <!-- CLOUD SYNC -->
-                    <div class="config-card card-cloud-sync">
-                        <div class="card-header">
-                            <h3>☁️ Sincronização em Nuvem</h3>
-                            <span class="card-badge">Google</span>
-                        </div>
-                        <p class="desc">Seus dados (dicionário, blacklist, configurações) sincronizam entre dispositivos via sua conta Google.</p>
-                        
-                        <div class="config-item">
-                            <div class="info-text">
-                                <label>Cloud Sync</label>
-                                <p class="desc">Ative para sincronizar entre Chrome do trabalho e de casa.</p>
-                            </div>
-                            <label class="switch"><input type="checkbox" id="cloudSync"><span class="slider"></span></label>
-                        </div>
-                        
-                        <p class="api-hint">⚠️ A API Key NÃO é sincronizada por segurança. Configure-a em cada dispositivo.</p>
-                    </div>
-
                 </div>
             </div>
 
@@ -212,6 +180,9 @@
             </div>
         </div>
         
+        <script src="js/shared/texts.js"></script>
+        <script src="js/shared/dom.js"></script>
+        <script src="js/shared/storage.js"></script>
         <script src="js/options-utils.js"></script>
         <script src="js/options-seguranca.js"></script>
         <script src="js/options.js"></script>

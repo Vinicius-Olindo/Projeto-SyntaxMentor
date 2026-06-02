@@ -1,0 +1,96 @@
+/* ============================================
+   3. PÁGINA SEGURANÇA (options-seguranca.html)
+   ============================================ */
+
+/* Grid da segurança (2 colunas) */
+.options-seguranca .grid-container,
+body.seguranca-page .grid-container {
+    grid-template-columns: 1fr 1fr;
+}
+
+.full-width-seguranca {
+    grid-column: span 2 !important;
+}
+
+.full-input {
+    width: 100%;
+    padding: 10px 14px;
+    border-radius: 8px;
+    border: 1px solid #d1d5db;
+    outline: none;
+    font-size: 14px;
+    transition: 0.3s;
+    background: #fff;
+    color: #333;
+    box-sizing: border-box;
+}
+
+.full-input:focus {
+    border-color: #6f42c1;
+    box-shadow: 0 0 0 3px rgba(111, 66, 193, 0.1);
+}
+
+#modo-leitura-input,
+#whitelist-input {
+    flex: 1;
+    padding: 10px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    outline: none;
+    background: #fff;
+    color: #333;
+}
+
+.btn-seguranca-outline {
+    background: white;
+    color: #6b7280;
+    border: 1px solid #d1d5db;
+    padding: 10px 16px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-seguranca-outline:hover {
+    background: #f3f4f6;
+    border-color: #9ca3af;
+}
+
+.btn-backup-export {
+    background: linear-gradient(135deg, #6f42c1 0%, #8b5cf6 100%);
+    color: white;
+    border: none;
+    padding: 10px 16px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 8px rgba(111, 66, 193, 0.2);
+}
+
+.btn-backup-export:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(111, 66, 193, 0.3);
+}
+
+.btn-backup-import {
+    background: white;
+    color: #6f42c1;
+    border: 2px solid #6f42c1;
+    padding: 10px 16px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-backup-import:hover {
+    background: #f3e8ff;
+    border-color: #5a32a3;
+    color: #5a32a3;
+}
+

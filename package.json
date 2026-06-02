@@ -1,5 +1,10 @@
 ﻿{
   "name": "syntaxmentor",
-  "version": "2.8.2",
-  "description": "Extensão de correção ortográfica para Chrome"
+  "version": "2.8.0",
+  "description": "Extensão de correção ortográfica para Chrome",
+  "scripts": {
+    "test": "node tests/run-tests.js",
+    "test:watch": "node tests/run-tests.js --watch",
+    "test:coverage": "node tests/run-tests.js --coverage"
+  }
 }

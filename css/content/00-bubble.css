@@ -1,0 +1,96 @@
+/* =========================================================================
+   SyntaxMentor - bubble styles v2.8.0
+   ========================================================================= */
+
+/* --- 1. BOLINHA FLUTUANTE --- */
+#syntax-mentor-bubble {
+    position: fixed;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: grab;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    user-select: none;
+    will-change: transform, opacity;
+    z-index: 2147483647 !important;
+    isolation: isolate !important;
+    transition: transform 0.15s cubic-bezier(0.2, 0.9, 0.4, 1.1), opacity 0.2s ease;
+}
+
+#syntax-mentor-bubble:active {
+    cursor: grabbing;
+    transform: scale(0.95);
+}
+
+#syntax-mentor-bubble.sm-loading {
+    animation: sm-pulse 0.8s ease-in-out infinite;
+    transition: none;
+}
+
+#syntax-mentor-bubble.sm-bubble-error {
+    background: linear-gradient(135deg, #ff6b6b 0%, #dc3545 100%);
+    color: white;
+}
+
+#syntax-mentor-bubble.sm-bubble-success {
+    background: linear-gradient(135deg, #20c997 0%, #28a745 100%);
+    color: white;
+}
+
+.sm-bubble-icon {
+    font-size: 18px;
+    pointer-events: none;
+}
+
+.sm-bubble-badge {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    background: #111;
+    color: white;
+    font-size: 10px;
+    font-weight: bold;
+    border-radius: 10px;
+    padding: 2px 5px;
+    border: 1.5px solid white;
+    pointer-events: none;
+    transition: transform 0.1s ease;
+}
+
+/* Ondas magnéticas - devem ficar ATRÁS da bolinha */
+#syntax-mentor-bubble.sm-loading::before,
+#syntax-mentor-bubble.sm-loading::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    width: 30px;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, #6f42c1, #8b5cf6, #6f42c1, transparent);
+    border-radius: 2px;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(-50%);
+    z-index: -1 !important;
+    transition: none;
+}
+
+#syntax-mentor-bubble.sm-loading::before {
+    right: 100%;
+    margin-right: 5px;
+    transform-origin: right center;
+    animation: magnetic-wave-left 0.8s ease-in-out infinite;
+    opacity: 1;
+}
+
+#syntax-mentor-bubble.sm-loading::after {
+    left: 100%;
+    margin-left: 5px;
+    transform-origin: left center;
+    animation: magnetic-wave-right 0.8s ease-in-out infinite;
+    opacity: 1;
+}
+

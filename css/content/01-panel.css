@@ -1,0 +1,226 @@
+/* --- 2. PAINEL DE SUGESTÕES --- */
+#syntax-mentor-painel {
+    position: fixed;
+    width: 380px;
+    max-width: 90vw;
+    max-height: 80vh;
+    background: #ffffff;
+    border-radius: 10px;
+    box-shadow: 0 14px 38px rgba(15, 23, 42, 0.18);
+    display: flex;
+    flex-direction: column;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    color: #1e293b;
+    overflow: hidden;
+    border: 1px solid #e2e8f0;
+    will-change: top, left;
+    z-index: 2147483647 !important;
+    isolation: isolate !important;
+    transition: none;
+}
+
+#syntax-mentor-header {
+    background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+    color: white;
+    padding: 12px 14px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: grab;
+    user-select: none;
+    flex-shrink: 0;
+}
+
+.sm-panel-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+}
+
+.sm-panel-icon {
+    min-width: 28px;
+    height: 24px;
+    padding: 0 6px;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.16);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.sm-panel-title-text {
+    font-weight: 700;
+    font-size: 14px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.sm-panel-badge {
+    background: rgba(255, 255, 255, 0.18);
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 10px;
+    font-weight: 600;
+}
+
+#syntax-mentor-header:active {
+    cursor: grabbing;
+}
+
+#btn-fechar-painel {
+    background: none;
+    border: none;
+    color: white;
+    cursor: pointer;
+    font-size: 16px;
+    opacity: 0.8;
+    transition: 0.2s;
+    padding: 0;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+}
+
+#sm-tabs-container {
+    display: flex;
+    border-bottom: 1px solid #e5e7eb;
+    background: #fbfdff;
+    flex-shrink: 0;
+}
+
+.sm-tab-btn {
+    flex: 1;
+    min-height: 38px;
+    padding: 9px 10px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    font-weight: 650;
+    font-size: 12px;
+    color: #64748b;
+    border-bottom: 2px solid transparent;
+    transition: color 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+}
+
+.sm-tab-btn:hover {
+    background: #f8fafc;
+    color: #334155;
+}
+
+.sm-tab-btn.active {
+    color: #4f46e5;
+    border-bottom-color: #4f46e5;
+    background: #ffffff;
+}
+
+#btn-fechar-painel:hover {
+    opacity: 1;
+    background: rgba(255, 255, 255, 0.2);
+}
+
+/* Tooltip de seleção */
+#sm-selecao-tooltip {
+    z-index: 2147483647 !important;
+}
+
+/* Feedbacks flutuantes */
+.sm-feedback-flutuante,
+.sm-feedback-correcao {
+    z-index: 2147483647 !important;
+}
+
+/* Modal de confirmação */
+#sm-confirm-modal,
+#sm-confirm-modal-options {
+    z-index: 2147483647 !important;
+}
+
+/* Notificações temporárias */
+.sm-notification-temp {
+    z-index: 2147483647 !important;
+}
+
+/* --- CONTEÚDO PRINCIPAL --- */
+#syntax-mentor-content {
+    padding: 14px;
+    overflow-y: auto;
+    flex: 1;
+    max-height: 350px;
+}
+
+#sm-historico-content {
+    display: none;
+    padding: 14px;
+    overflow-y: auto;
+    flex: 1;
+    max-height: 350px;
+}
+
+.sm-empty-state {
+    text-align: center;
+    padding: 34px 20px;
+}
+
+.sm-empty-icon {
+    width: 52px;
+    height: 52px;
+    margin: 0 auto 14px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #ecfdf5;
+    color: #059669;
+    font-size: 15px;
+    font-weight: 800;
+    border: 1px solid #bbf7d0;
+}
+
+.sm-empty-title {
+    color: #059669;
+    font-weight: 700;
+    margin: 0 0 6px;
+}
+
+.sm-empty-desc {
+    font-size: 12px;
+    color: #64748b;
+    margin: 0;
+}
+
+/* Scrollbar */
+#syntax-mentor-content::-webkit-scrollbar {
+    width: 4px;
+}
+
+#sm-historico-content::-webkit-scrollbar {
+    width: 4px;
+}
+
+#sm-historico-content::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+#sm-historico-content::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 4px;
+    transition: none;
+}
+
+#syntax-mentor-content::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+#syntax-mentor-content::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 4px;
+    transition: none;
+}
+

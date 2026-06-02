@@ -1,7 +1,20 @@
 // =============================================
-// SyntaxMentor - options-utils.js v2.7.1
+// SyntaxMentor - options-utils.js v2.8.0
 // Utilitários compartilhados entre as páginas de configuração
 // =============================================
+
+function isSmDebugAtivo() {
+    try {
+        return localStorage.getItem('sm_debug') === 'true';
+    } catch (e) {
+        return false;
+    }
+}
+
+const smLog = (...args) => { if (isSmDebugAtivo()) console.log('[SM]', ...args); };
+const smDebug = (...args) => { if (isSmDebugAtivo()) console.debug('[SM]', ...args); };
+const smWarn = (...args) => { if (isSmDebugAtivo()) console.warn('[SM]', ...args); };
+const smError = (...args) => { if (isSmDebugAtivo()) console.error('[SM]', ...args); };
 
 /**
  * Mostra notificação temporária na interface
@@ -44,11 +57,39 @@ function escapeHtml(texto) {
     return div.innerHTML;
 }
 
+function normalizarDominio(valor) {
+    const raw = String(valor || '').trim().toLowerCase();
+    if (!raw) return '';
+
+    try {
+        const url = new URL(raw.includes('://') ? raw : `https://${raw}`);
+        return url.hostname.replace(/^www\./, '');
+    } catch (e) {
+        return raw
+            .replace(/^https?:\/\//, '')
+            .replace(/^www\./, '')
+            .split('/')[0];
+    }
+}
+
+function isValidDomain(dominio) {
+    const normalizado = normalizarDominio(dominio);
+    if (!normalizado || normalizado.length > 255) return false;
+    if (normalizado === 'localhost') return true;
+    return /^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/.test(normalizado);
+}
+
+function isValidDictionaryWord(palavra) {
+    const valor = String(palavra || '').trim();
+    if (valor.length < 2 || valor.length > 60) return false;
+    return /^[\p{L}\p{M}\p{N}'’.+#_-]+$/u.test(valor);
+}
+
 /**
  * Carrega o tema escuro do storage
  */
 function carregarTema() {
-    chrome.storage.local.get({ darkMode: false }, (res) => {
+    smStorageLocalGet({ darkMode: false }, (res) => {
         document.body.classList.toggle('dark-mode', res.darkMode);
     });
 }
@@ -60,8 +101,8 @@ function carregarTema() {
  * @param {Function} callback - Callback opcional
  */
 function salvarListaStorage(lista, storageKey, callback) {
-    chrome.storage.local.set({ [storageKey]: lista }, () => {
-        if (chrome.runtime.lastError) {
+    smStorageLocalSet({ [storageKey]: lista }, (erro) => {
+        if (erro) {
             mostrarNotificacao('❌ Erro ao salvar', 'error');
         } else {
             if (callback) callback();

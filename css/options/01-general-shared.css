@@ -1,0 +1,349 @@
+/* ============================================
+   2. PÁGINA GERAL (options.html)
+   ============================================ */
+
+/* Grid */
+.grid-container {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+    align-items: start;
+}
+
+.config-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.config-item:last-child {
+    margin-bottom: 0;
+}
+
+.config-item-vertical {
+    display: flex;
+    flex-direction: column;
+}
+
+.info-text label {
+    font-weight: 600;
+    font-size: 14px;
+    display: block;
+    margin-bottom: 4px;
+    transition: color 0.3s;
+}
+
+.speed-title {
+    transition: color 0.3s;
+}
+
+/* Inputs e Selects */
+.select-box {
+    padding: 8px 12px;
+    border-radius: 6px;
+    border: 1px solid #d1d5db;
+    outline: none;
+    background: #fff;
+    cursor: pointer;
+    transition: 0.3s;
+    color: #333;
+    width: 160px;
+}
+
+.input-group {
+    display: flex;
+    gap: 10px;
+    margin-top: 15px;
+}
+
+#blacklist-input,
+#dictionary-input {
+    flex: 1;
+    padding: 10px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    outline: none;
+    transition: 0.3s;
+    background: #fff;
+    color: #333;
+    width: 100%;
+}
+
+.btn-dark {
+    background: #1f2937;
+    color: white;
+    border: none;
+    padding: 0 15px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: 0.3s;
+}
+
+/* Listas */
+.blacklist-ul {
+    list-style: none;
+    padding: 0;
+    margin-top: 15px;
+    max-height: 180px;
+    overflow-y: auto;
+    padding-right: 5px;
+}
+
+.blacklist-ul li {
+    background: #f8f9fa;
+    padding: 8px 12px;
+    border-radius: 4px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 5px;
+    font-size: 13px;
+    border: 1px solid #eee;
+    transition: 0.3s;
+    word-break: break-all;
+    min-height: 35px;
+}
+
+.action-btns {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin-left: 10px;
+    flex-shrink: 0;
+}
+
+.btn-remove {
+    color: #dc3545;
+    cursor: pointer;
+    border: none;
+    background: none;
+    font-weight: bold;
+    font-size: 14px;
+    padding: 0;
+}
+
+.btn-edit {
+    color: #6f42c1;
+    cursor: pointer;
+    border: none;
+    background: none;
+    font-weight: bold;
+    font-size: 14px;
+    padding: 0;
+    transition: 0.2s;
+}
+
+.btn-edit:hover {
+    color: #5a32a3;
+}
+
+.edit-input {
+    flex: 1;
+    padding: 4px 8px;
+    border: 1px solid #d8b4fe;
+    border-radius: 4px;
+    outline: none;
+    font-size: 13px;
+    color: #333;
+    margin-right: 10px;
+}
+
+/* Botão Limpar Tudo (Geral) */
+.btn-clear-all {
+    margin-top: 12px;
+    width: 100%;
+    padding: 8px;
+    background: #fff5f5;
+    color: #e53e3e;
+    border: 1px dashed #feb2b2;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 12px;
+    transition: 0.2s;
+}
+
+.btn-clear-all:hover {
+    background: #fee2e2;
+    border-color: #fc8181;
+}
+
+/* Switch */
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 44px;
+    height: 24px;
+    flex-shrink: 0;
+}
+
+.switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    transition: .4s;
+    border-radius: 24px;
+}
+
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 18px;
+    width: 18px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    transition: .4s;
+    border-radius: 50%;
+}
+
+input:checked+.slider {
+    background-color: #6f42c1;
+}
+
+input:checked+.slider:before {
+    transform: translateX(20px);
+}
+
+/* Velocidade */
+.speed-selector {
+    display: flex;
+    background: #f1f3f5;
+    border-radius: 8px;
+    overflow: hidden;
+    padding: 4px;
+    transition: 0.3s;
+}
+
+.speed-option {
+    flex: 1;
+    text-align: center;
+    cursor: pointer;
+}
+
+.speed-option input {
+    display: none;
+}
+
+.speed-option span {
+    display: block;
+    padding: 8px 0;
+    border-radius: 6px;
+    font-size: 13px;
+    color: #666;
+    font-weight: 500;
+    transition: 0.2s;
+}
+
+.speed-option input:checked+span {
+    background: white;
+    color: #6f42c1;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    font-weight: bold;
+}
+
+/* Atalhos */
+.atalho-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+}
+
+.atalho-title {
+    font-weight: 600;
+    color: #333;
+    font-size: 14px;
+    display: block;
+    margin-bottom: 2px;
+    transition: color 0.3s;
+}
+
+.atalho-sub {
+    font-size: 11px;
+    color: #888;
+    transition: color 0.3s;
+}
+
+.atalho-label {
+    color: #555;
+    font-size: 13px;
+    font-weight: 500;
+    transition: color 0.3s;
+}
+
+.divisor {
+    border: 0;
+    border-top: 1px solid #f0f0f0;
+    margin: 15px 0;
+    transition: 0.3s;
+}
+
+.tecla-kbd {
+    background-color: #ffffff;
+    border: 1px solid #d1d5db;
+    border-bottom: 3px solid #cbd5e1;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    color: #475569;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    transition: 0.3s;
+    white-space: nowrap;
+}
+
+.btn-gravar {
+    padding: 6px 16px;
+    background-color: #f8f9fa;
+    border: 1px solid #d8b4fe;
+    color: #6f42c1;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-width: 90px;
+    white-space: nowrap;
+}
+
+.btn-gravar:hover {
+    background-color: #f3e8ff;
+    border-color: #6f42c1;
+}
+
+.btn-gravar.gravando {
+    background-color: #e9d8fd;
+    border-style: dashed;
+    border-color: #8b5cf6;
+    color: #553c9a;
+    animation: pulsar 1.5s infinite;
+}
+
+@keyframes pulsar {
+    0% {
+        box-shadow: 0 0 0 0 rgba(139, 92, 246, 0.4);
+    }
+
+    70% {
+        box-shadow: 0 0 0 6px rgba(139, 92, 246, 0);
+    }
+
+    100% {
+        box-shadow: 0 0 0 0 rgba(139, 92, 246, 0);
+    }
+}
+

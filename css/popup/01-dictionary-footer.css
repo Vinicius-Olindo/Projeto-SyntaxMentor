@@ -1,0 +1,86 @@
+/* --- 3. CONTEÚDO E DICIONÁRIO --- */
+.content {
+    padding: 15px;
+}
+
+.input-container {
+    display: flex;
+    margin-bottom: 15px;
+}
+
+#word-input {
+    flex: 1;
+    padding: 10px 12px;
+    border: 2px solid #e9d8fd;
+    border-right: none;
+    border-radius: 8px 0 0 8px;
+    outline: none;
+    font-size: 13px;
+    transition: 0.3s;
+}
+
+#add-btn {
+    background-color: #28a745;
+    color: white;
+    border: 2px solid #28a745;
+    border-radius: 0 8px 8px 0;
+    padding: 0 16px;
+    font-size: 18px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+#word-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+#word-list li {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: #fff;
+    padding: 10px 12px;
+    margin-bottom: 6px;
+    border-radius: 8px;
+    border: 1px solid #f0f0f0;
+    border-left: 4px solid #8b5cf6;
+    font-size: 13px;
+    font-weight: 600;
+    color: #4b5563;
+}
+
+.btn-remove {
+    background: none;
+    border: none;
+    color: #9ca3af;
+    font-size: 14px;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+/* --- 4. RODAPÉ CENTRALIZADO (ATUALIZADO) --- */
+.footer-link {
+    display: flex;
+    justify-content: center;
+    /* Centraliza o texto */
+    align-items: center;
+    background-color: #f8f9fa;
+    color: #4b5563;
+    text-decoration: none;
+    padding: 14px 20px;
+    font-size: 12px;
+    font-weight: 700;
+    border-top: 1px solid #e5e7eb;
+    transition: all 0.2s ease;
+    margin-top: auto;
+}
+
+.footer-link:hover {
+    background-color: #f3f0ff;
+    color: #6f42c1;
+}
+

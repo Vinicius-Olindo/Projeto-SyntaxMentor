@@ -1,0 +1,222 @@
+/* ============================================
+   5. 🌙 DARK MODE (UNIFICADO)
+   ============================================ */
+body.dark-mode {
+    background-color: #121212;
+    color: #e0e0e0;
+}
+
+body.dark-mode .sidebar {
+    background-color: #1a1a1a;
+    border-right-color: #2a2a2a;
+}
+
+body.dark-mode .menu li a:hover {
+    background: #222;
+}
+
+body.dark-mode .menu li {
+    color: #888;
+}
+
+body.dark-mode .menu li.active {
+    background-color: #2d1b4e;
+    color: #d8b4fe;
+    border-left-color: #d8b4fe;
+}
+
+body.dark-mode .header-titles h1 {
+    color: #f1f1f1;
+}
+
+body.dark-mode .header-titles p {
+    color: #888;
+}
+
+body.dark-mode .config-card {
+    background-color: #1a1a1a;
+    border-color: #2a2a2a;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.4);
+}
+
+body.dark-mode .config-card h3 {
+    color: #f1f1f1;
+    border-bottom-color: #2a2a2a;
+}
+
+body.dark-mode .desc {
+    color: #888;
+}
+
+body.dark-mode .info-text label,
+body.dark-mode .speed-title,
+body.dark-mode .atalho-title {
+    color: #ddd;
+}
+
+body.dark-mode .atalho-sub,
+body.dark-mode .atalho-label {
+    color: #888;
+}
+
+body.dark-mode .select-box,
+body.dark-mode #blacklist-input,
+body.dark-mode #dictionary-input {
+    background-color: #2a2a2a;
+    color: #f1f1f1;
+    border-color: #444;
+}
+
+body.dark-mode #blacklist-input::placeholder,
+body.dark-mode #dictionary-input::placeholder {
+    color: #666;
+}
+
+body.dark-mode .select-box {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23888' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    -webkit-appearance: none;
+    appearance: none;
+    padding-right: 30px;
+}
+
+body.dark-mode .select-box option {
+    background-color: #2a2a2a;
+    color: #f1f1f1;
+}
+
+body.dark-mode .full-input,
+body.dark-mode #modo-leitura-input,
+body.dark-mode #whitelist-input {
+    background-color: #2a2a2a;
+    color: #f1f1f1;
+    border-color: #444;
+}
+
+body.dark-mode .full-input:focus {
+    border-color: #8b5cf6;
+}
+
+body.dark-mode .btn-dark {
+    background-color: #444;
+    color: #fff;
+}
+
+body.dark-mode .btn-dark:hover {
+    background-color: #555;
+}
+
+body.dark-mode .btn-seguranca-outline {
+    background: #2a2a2a;
+    color: #aaa;
+    border-color: #444;
+}
+
+body.dark-mode .btn-seguranca-outline:hover {
+    background: #333;
+    border-color: #666;
+    color: #fff;
+}
+
+body.dark-mode .btn-backup-export {
+    background: linear-gradient(135deg, #4a2b85 0%, #6f42c1 100%);
+}
+
+body.dark-mode .btn-backup-import {
+    background: #2a2a2a;
+    color: #d8b4fe;
+    border-color: #6f42c1;
+}
+
+body.dark-mode .btn-backup-import:hover {
+    background: #3b285e;
+}
+
+body.dark-mode .btn-gravar {
+    background-color: #2a2a2a;
+    border-color: #6f42c1;
+    color: #d8b4fe;
+}
+
+body.dark-mode .btn-gravar:hover {
+    background-color: #4a2b85;
+    color: #fff;
+    border-color: #8b5cf6;
+}
+
+body.dark-mode .btn-gravar.gravando {
+    background-color: #3b285e;
+    border-color: #d8b4fe;
+    color: #e9d8fd;
+}
+
+body.dark-mode .btn-clear-all {
+    background: #3f1a1a;
+    color: #fca5a5;
+    border-color: #742a2a;
+}
+
+body.dark-mode .btn-clear-all:hover {
+    background: #5c2020;
+    border-color: #9b2c2c;
+}
+
+body.dark-mode .blacklist-ul li {
+    background-color: #2a2a2a;
+    border-color: #444;
+    color: #ddd;
+}
+
+body.dark-mode .blacklist-ul li:hover {
+    background-color: #333;
+}
+
+body.dark-mode .blacklist-ul::-webkit-scrollbar-thumb {
+    background: #555;
+}
+
+body.dark-mode .blacklist-ul::-webkit-scrollbar-thumb:hover {
+    background: #777;
+}
+
+body.dark-mode .edit-input {
+    background: #1a1a1a;
+    color: #f1f1f1;
+    border-color: #6f42c1;
+}
+
+body.dark-mode .btn-edit {
+    color: #d8b4fe;
+}
+
+body.dark-mode .btn-edit:hover {
+    color: #fff;
+}
+
+body.dark-mode .speed-selector {
+    background-color: #2a2a2a;
+}
+
+body.dark-mode .speed-option span {
+    color: #888;
+}
+
+body.dark-mode .speed-option input:checked+span {
+    background-color: #444;
+    color: #d8b4fe;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+body.dark-mode .tecla-kbd {
+    background-color: #2a2a2a;
+    border-color: #444;
+    border-bottom-color: #111;
+    color: #aaa;
+}
+
+body.dark-mode .divisor,
+body.dark-mode .footer-save {
+    border-top-color: #2a2a2a;
+}
+
