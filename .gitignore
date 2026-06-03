@@ -1,36 +1,43 @@
-# Dependências
+# Dependencies
 node_modules/
-package-lock.json
 
-# Arquivos do sistema
-.DS_Store
-Thumbs.db
-desktop.ini
+# Build and coverage output
+dist/
+build/
+coverage/
+*.lcov
 
-# Arquivos de IDE
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Local environment files
+.env
+.env.*
+!.env.example
+
+# Editor and IDE files
 .vscode/
 .idea/
 *.swp
 *.swo
 
-# Arquivos de teste
-tests/
-*.test.js
-coverage/
+# Operating system files
+.DS_Store
+Thumbs.db
+desktop.ini
 
-# Arquivos de log
-*.log
-npm-debug.log*
-
-# Arquivos temporários
+# Temporary and backup files
 *.tmp
 *.temp
 *.bak
-
-# Arquivos de backup
 *.backup
 *.old
 
-# Arquivos de configuração local
-.env
-.env.local
+# Extension packaging artifacts
+*.crx
+*.pem
+*.zip

@@ -1,19 +1,32 @@
-# Código de Conduta do SyntaxMentor
+# Codigo de Conduta
 
-## Nosso Compromisso
+## Nosso compromisso
 
-Nós, como membros, contribuidores e líderes, nos comprometemos a fazer com que a participação em nossa comunidade seja uma experiência livre de assédio para todos, independentemente de idade, tamanho corporal, deficiência aparente ou não aparente, etnia, características sexuais, identidade ou expressão de gênero, nível de experiência, educação, situação socioeconômica, nacionalidade, aparência pessoal, raça, religião ou identidade e orientação sexual.
+O projeto SyntaxMentor busca manter um ambiente colaborativo, respeitoso e seguro para pessoas usuarias, contribuidoras e mantenedoras. Esperamos que toda interacao relacionada ao projeto seja conduzida com respeito, boa-fe e foco na melhoria do produto.
 
-## Nossos Padrões
+## Comportamentos esperados
 
-Exemplos de comportamentos que contribuem para criar um ambiente positivo incluem:
+- Usar linguagem profissional, inclusiva e respeitosa.
+- Considerar diferentes niveis de experiencia tecnica.
+- Apresentar criticas de forma construtiva e objetiva.
+- Receber feedback com abertura e cordialidade.
+- Priorizar a qualidade, a seguranca e a utilidade do projeto.
+- Evitar ataques pessoais, ironias hostis ou discussoes fora do escopo.
 
-- Uso de linguagem acolhedora e inclusiva
-- Respeito pelos diferentes pontos de vista e experiências
-- Aceitar críticas construtivas com elegância
-- Foco no que é melhor para a comunidade
-- Demonstrar empatia com outros membros da comunidade
+## Comportamentos inaceitaveis
 
-## Aplicação
+- Assedio, intimidacao, insultos ou ameacas.
+- Comentarios discriminatorios ou ofensivos.
+- Exposicao de dados pessoais sem consentimento.
+- Spam, provocacoes repetidas ou interrupcoes deliberadas.
+- Uso do projeto para promover abuso, fraude ou atividades ilegais.
 
-Instâncias de comportamento abusivo, de assédio ou inaceitáveis podem ser relatadas aos líderes do projeto no GitHub. Todas as reclamações serão revisadas e investigadas.
+## Aplicacao
+
+Relatos de comportamento inadequado podem ser feitos por meio dos canais do repositorio no GitHub. As pessoas mantenedoras avaliarao cada caso com seriedade, buscando preservar a seguranca da comunidade e a integridade do projeto.
+
+Medidas possiveis incluem orientacao, remocao de conteudo, restricao de participacao ou bloqueio de contribuicoes futuras.
+
+## Escopo
+
+Este codigo se aplica a interacoes em issues, pull requests, comentarios, documentacao, discussoes e qualquer outro espaco diretamente relacionado ao SyntaxMentor.

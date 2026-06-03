@@ -1,72 +1,93 @@
 # SyntaxMentor
 
-Extensao Chrome para correcao ortografica e gramatical em campos de texto da web.
+SyntaxMentor e uma extensao para Chrome focada em revisao ortografica e gramatical em campos de texto da web. Ela acompanha a digitacao, consulta o LanguageTool e apresenta sugestoes em uma interface leve, com configuracoes por idioma, site e modo de uso.
 
-## Ideia Principal
+## Principais recursos
 
-O SyntaxMentor fica ativo nas paginas permitidas, detecta texto digitado, consulta o LanguageTool e mostra sugestoes em um painel leve. O foco do projeto e corrigir texto com pouca friccao, sem transformar a extensao em plataforma ou produto gamificado.
+- Revisao ortografica e gramatical via LanguageTool.
+- Painel lateral com sugestoes, acoes de corrigir, ignorar e adicionar ao dicionario.
+- Correcao em lote e desfazer ultima correcao.
+- Dicionario pessoal para nomes, termos tecnicos e palavras recorrentes.
+- Blacklist, whitelist e controles por dominio.
+- Modos de confirmacao, leitura, foco e aprendizado.
+- Pagina de boas-vindas aberta automaticamente na instalacao.
+- Configuracoes de idioma, velocidade, tema e chave de API em armazenamento seguro de sessao.
 
-## Funcionalidades
-
-- Correcao ortografica e gramatical via LanguageTool.
-- Painel lateral com sugestoes, acao de corrigir, ignorar e adicionar ao dicionario.
-- Correcao em lote.
-- Desfazer ultima correcao.
-- Dicionario pessoal.
-- Blacklist e whitelist por dominio.
-- Modo confirmacao, modo leitura, modo foco e modo aprendizado.
-- Configuracao de idioma, velocidade, tema e API personalizada.
-
-## Estrutura
+## Estrutura do projeto
 
 ```text
 SyntaxMentor/
-├── manifest.json
-├── popup.html
-├── options.html
-├── options-seguranca.html
-├── css/
-│   ├── style.css
-│   ├── popup.css
-│   ├── content/
-│   ├── options/
-│   └── popup/
-├── js/
-│   ├── background.js
-│   ├── popup.js
-│   ├── options.js
-│   ├── options-geral.js
-│   ├── options-seguranca.js
-│   ├── options-utils.js
-│   ├── content/
-│   └── options/geral/
-├── icons/
-├── docs/
-└── tests/
+|-- manifest.json
+|-- popup.html
+|-- options.html
+|-- options-seguranca.html
+|-- welcome.html
+|-- css/
+|   |-- content/
+|   |-- options/
+|   |-- popup/
+|   |-- popup.css
+|   |-- style.css
+|   `-- welcome.css
+|-- js/
+|   |-- background/
+|   |-- content/
+|   |-- options/
+|   |-- shared/
+|   |-- background.js
+|   |-- popup.js
+|   |-- options.js
+|   |-- options-geral.js
+|   |-- options-seguranca.js
+|   |-- options-utils.js
+|   `-- welcome.js
+|-- icons/
+|-- docs/
+`-- tests/
 ```
 
 ## Permissoes
 
-- `storage`: salvar configuracoes, dicionario e listas de sites.
-- `activeTab`: comunicar com a aba ativa.
-- `contextMenus`: adicionar acoes rapidas no menu de contexto.
-- `https://api.languagetool.org/*`: motor externo de correcao.
+- `storage`: salva configuracoes, dicionario pessoal e listas de sites.
+- `activeTab`: permite comunicacao com a aba ativa.
+- `contextMenus`: adiciona acoes rapidas ao menu de contexto.
+- `https://api.languagetool.org/*`: permite consultar o motor de revisao.
 
 ## Desenvolvimento
+
+Requisitos:
+
+- Node.js instalado.
+- Chrome ou navegador compativel com extensoes Manifest V3.
+
+Executar validacoes:
 
 ```bash
 npm test
 ```
 
-Os testes validam sintaxe, referencias de arquivos, manifest e pontos criticos do content script/configuracoes.
+A suite verifica sintaxe, referencias de arquivos, manifesto e pontos criticos dos scripts de conteudo, background e configuracoes.
 
-## Seguranca
+## Como testar no Chrome
 
-- A API publica para desenvolvedores foi removida.
-- `web_accessible_resources` nao expoe scripts para paginas externas.
-- URLs de API personalizada sao validadas antes do uso.
-- Textos renderizados na interface passam por escape de HTML.
+1. Abra `chrome://extensions`.
+2. Ative o modo de desenvolvedor.
+3. Clique em `Carregar sem compactacao`.
+4. Selecione a pasta do projeto.
+5. Recarregue a extensao apos alteracoes em scripts, CSS ou manifesto.
+
+## Seguranca e privacidade
+
+- O content script nao chama diretamente o LanguageTool; a consulta passa pelo background.
+- A chave de API e mantida em `chrome.storage.session`.
+- Scripts nao sao expostos em `web_accessible_resources`.
+- Conteudos dinamicos da interface sao renderizados por APIs de DOM, evitando HTML injetado.
+- URLs externas exibidas na interface passam por validacao antes de renderizar links.
 
 ## Versao
 
-Atual: `2.8.0`
+Versao atual: `2.8.0`
+
+## Licenca
+
+Distribuido sob a licenca MIT. Consulte [LICENSE](LICENSE) para mais detalhes.
