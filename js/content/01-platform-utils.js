@@ -214,7 +214,7 @@ function storageSetSeguro(dados) {
 
 function isModoLeitura() {
     if (smConfig.modoLeituraGlobal) return true;
-    return (smConfig.modoLeituraSites || []).some(d => window.location.hostname.includes(d));
+    return (smConfig.modoLeituraSites || []).some(d => hostCorrespondeDominio(window.location.hostname, d));
 }
 
 function atualizarBadgeBackground(total) {

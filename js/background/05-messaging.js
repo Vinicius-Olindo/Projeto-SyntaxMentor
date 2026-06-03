@@ -21,7 +21,7 @@ function registrarMensagensBackground() {
 
         if (request.action === 'checkBlacklist') {
             smStorageLocalGet(
-                ['blacklist', 'modoWhitelist', 'whitelist', 'userBlacklistOverrides', 'userWhitelistOverrides'],
+                ['blacklist', 'disabled', 'modoWhitelist', 'whitelist', 'userBlacklistOverrides', 'userWhitelistOverrides'],
                 (res, erro) => {
                     if (erro) {
                         sendResponse({ blocked: false });

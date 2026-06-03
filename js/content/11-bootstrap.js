@@ -129,7 +129,7 @@ function carregarSmConfig(callback) {
             if (listaTemDominio(host, res.userBlacklistOverrides)) smConfig.disabled = true;
             else if (listaTemDominio(host, res.userWhitelistOverrides)) smConfig.disabled = false;
             else if (res.modoWhitelist) smConfig.disabled = !listaTemDominio(host, res.whitelist);
-            else smConfig.disabled = listaTemDominio(host, res.blacklist);
+            else smConfig.disabled = !!res.disabled || listaTemDominio(host, res.blacklist);
             
             if (callback) callback();
         });
@@ -199,7 +199,7 @@ function iniciar() {
             if (listaTemDominio(host, smConfig.userBlacklistOverrides)) smConfig.disabled = true;
             else if (listaTemDominio(host, smConfig.userWhitelistOverrides)) smConfig.disabled = false;
             else if (smConfig.modoWhitelist) smConfig.disabled = !listaTemDominio(host, smConfig.whitelist);
-            else smConfig.disabled = listaTemDominio(host, smConfig.blacklist);
+            else smConfig.disabled = !!smConfig.disabled || listaTemDominio(host, smConfig.blacklist);
         });
     });
 }

@@ -5,10 +5,34 @@
 // APLICAÇÃO DE CORREÇÕES
 // =============================================
 
+function escaparRegexCorrecao(valor) {
+    return String(valor).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function usarLimiteDePalavra(original) {
+    return /^[\p{L}\p{N}]/u.test(original) && /[\p{L}\p{N}]$/u.test(original);
+}
+
+function criarRegexCorrecaoTexto(original, flags = 'gu') {
+    const esc = escaparRegexCorrecao(original);
+    if (usarLimiteDePalavra(original)) {
+        return new RegExp(`(?<![\\p{L}])${esc}(?![\\p{L}])`, flags);
+    }
+    return new RegExp(esc, flags);
+}
+
+function criarRegexCorrecaoHtml(original) {
+    const esc = escaparRegexCorrecao(original);
+    if (usarLimiteDePalavra(original)) {
+        return new RegExp(`(?<!<[^>]*)(?<![\\p{L}])${esc}(?![\\p{L}])(?![^<]*>)`, 'gu');
+    }
+    return new RegExp(`(?<!<[^>]*)${esc}(?![^<]*>)`, 'gu');
+}
+
 function encontrarPosicaoPalavra(texto, palavra) {
-    const regex = new RegExp(`\\b${palavra.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
+    const regex = criarRegexCorrecaoTexto(palavra, 'iu');
     const match = texto.match(regex);
-    return match ? match.index : -1;
+    return match ? match.index : texto.indexOf(palavra);
 }
 
 function mostrarFeedbackCorrecao(elemento, posicao, original, sugestao) {
@@ -60,14 +84,13 @@ function ignorarTemporariamente(palavra) {
 }
 
 function aplicarCorrecao(original, sugestao, el, pularConfirmacao = false) {
-    if (!el || !original || !sugestao) return;
+    if (!el || original == null || original === '' || sugestao == null) return;
     const executarCorrecao = () => {
-        const esc = original.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
         const textoAntes = el.value || el.textContent || el.innerText || '';
         if (el.tagName === 'TEXTAREA' || el.tagName === 'INPUT') {
             const valorAntigo = el.value;
             const posicao = encontrarPosicaoPalavra(el.value, original);
-            el.value = el.value.replace(new RegExp(`(?<![\\p{L}])${esc}(?![\\p{L}])`, 'gu'), sugestao);
+            el.value = el.value.replace(criarRegexCorrecaoTexto(original), sugestao);
             if (el.value !== valorAntigo) {
                 salvarEstadoParaDesfazer(el, original, sugestao, textoAntes, el.value);
                 mostrarFeedbackCorrecao(el, posicao, original, sugestao);
@@ -82,8 +105,8 @@ function aplicarCorrecao(original, sugestao, el, pularConfirmacao = false) {
                 try {
                     const doc = el.ownerDocument || document;
                     if (doc.execCommand('find', false, original)) doc.execCommand('insertText', false, sugestao);
-                    else el.textContent = (el.textContent || '').replace(new RegExp(esc, 'gi'), sugestao);
-                } catch(e) { el.textContent = (el.textContent || '').replace(new RegExp(esc, 'gi'), sugestao); }
+                    else el.textContent = (el.textContent || '').replace(criarRegexCorrecaoTexto(original), sugestao);
+                } catch(e) { el.textContent = (el.textContent || '').replace(criarRegexCorrecaoTexto(original), sugestao); }
                 if (el.innerHTML !== htmlAntigo) {
                     salvarEstadoParaDesfazer(el, original, sugestao, htmlAntigo, el.innerHTML);
                 }
@@ -91,10 +114,11 @@ function aplicarCorrecao(original, sugestao, el, pularConfirmacao = false) {
             } else {
                 let html = el.innerHTML;
                 const htmlAntigo = html;
+                const esc = escaparRegexCorrecao(original);
                 const markRegex = new RegExp(`<mark class="sm-highlight">${esc}</mark>`, 'g');
                 const sugestaoSegura = escapeHtml(sugestao);
                 if (markRegex.test(html)) html = html.replace(markRegex, `<span class="sm-correction-feedback">${sugestaoSegura}</span>`);
-                else html = html.replace(new RegExp(`(?<!<[^>]*)(?<![\\p{L}])${esc}(?![\\p{L}])(?![^<]*>)`, 'gu'), `<span class="sm-correction-feedback">${sugestaoSegura}</span>`);
+                else html = html.replace(criarRegexCorrecaoHtml(original), `<span class="sm-correction-feedback">${sugestaoSegura}</span>`);
                 if (html !== htmlAntigo) {
                     salvarEstadoParaDesfazer(el, original, sugestao, htmlAntigo, html);
                     el.innerHTML = html;
@@ -228,7 +252,7 @@ function confirmarCorrecaoEmLote(correcoes) {
 function corrigirTudo() {
     if (!elementoGlobal) return;
     const unicos = {};
-    errosGlobais.forEach(err => { const o = err.context.text.substr(err.context.offset, err.context.length); const s = err.replacements[0]?.value || ""; if (o.trim() && s && !unicos[o]) unicos[o] = s; });
+    errosGlobais.forEach(err => { const o = err.context.text.substr(err.context.offset, err.context.length); const s = err.replacements[0]?.value; if (o.trim() && s != null && !Object.hasOwn(unicos, o)) unicos[o] = s; });
     const correcoes = Object.entries(unicos);
     if (correcoes.length === 0) return;
     if (smConfig.modoConfirmacao || isModoLeitura()) confirmarCorrecaoEmLote(correcoes);

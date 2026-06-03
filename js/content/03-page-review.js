@@ -8,7 +8,7 @@
 function verificarPontuacaoComum(texto) {
     const errosPontuacao = [];
     const regras = [
-        { regex: /\s+(?=[.,;:](?!\.{2}))/g, msg: 'Espaço desnecessário antes da pontuação', replace: '' },
+        { regex: /\s+([.,;:](?!\.{2}))/g, msg: 'Espaço desnecessário antes da pontuação', replace: (m, p1) => p1 },
         { regex: /(?<!\.)\.{2}(?!\.)/g, msg: 'Pontuação duplicada. Use apenas um ponto ou reticências (...).', replace: '.' },
         { regex: /,([a-zA-Zà-úÀ-Ú])/g, msg: 'Falta um espaço após a vírgula', replace: (m, p1) => ', ' + p1 },
         { regex: /([!?])([a-zA-Zà-úÀ-Ú])/g, msg: 'Falta um espaço após o sinal', replace: (m, p1, p2) => p1 + ' ' + p2 }
@@ -257,21 +257,23 @@ function exibirPainelRevisaoPagina(erros, textosOriginais) {
             const correcoes = {};
             erros.forEach(e => {
                 const o = e.context.text.substr(e.context.offset, e.context.length);
-                const s = e.replacements[0]?.value || '';
-                if (o && s) correcoes[o] = s;
+                const s = e.replacements[0]?.value;
+                if (o && s != null) correcoes[o] = s;
             });
             let totalAplicadas = 0;
-            textosOriginais.forEach(({ elemento, texto }) => {
-                let novoTexto = texto;
+            textosOriginais.forEach((item) => {
+                const { elemento } = item;
+                const textoAtual = elemento.innerText || elemento.textContent || item.texto || '';
+                let novoTexto = textoAtual;
                 Object.entries(correcoes).forEach(([original, sugestao]) => {
-                    const esc = original.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-                    const regex = new RegExp(`(?<![\\p{L}])${esc}(?![\\p{L}])`, 'gu');
+                    const regex = criarRegexCorrecaoTexto(original);
                     const antes = novoTexto;
                     novoTexto = novoTexto.replace(regex, sugestao);
                     if (novoTexto !== antes) totalAplicadas++;
                 });
-                if (novoTexto !== texto) {
+                if (novoTexto !== textoAtual) {
                     elemento.innerText = novoTexto;
+                    item.texto = novoTexto;
                     elemento.dispatchEvent(new Event('input', { bubbles: true }));
                 }
             });
@@ -292,13 +294,15 @@ function exibirPainelRevisaoPagina(erros, textosOriginais) {
             b.onclick = () => {
                 const o = b.dataset.o;
                 const s = b.dataset.s;
-                textosOriginais.forEach(({ elemento, texto }) => {
-                    if (texto.includes(o)) {
-                        const esc = o.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-                        const regex = new RegExp(`(?<![\\p{L}])${esc}(?![\\p{L}])`, 'gu');
-                        const novoTexto = texto.replace(regex, s);
-                        if (novoTexto !== texto) {
+                textosOriginais.forEach((item) => {
+                    const { elemento } = item;
+                    const textoAtual = elemento.innerText || elemento.textContent || item.texto || '';
+                    if (textoAtual.includes(o)) {
+                        const regex = criarRegexCorrecaoTexto(o);
+                        const novoTexto = textoAtual.replace(regex, s);
+                        if (novoTexto !== textoAtual) {
                             elemento.innerText = novoTexto;
+                            item.texto = novoTexto;
                             elemento.dispatchEvent(new Event('input', { bubbles: true }));
                         }
                     }

@@ -486,7 +486,6 @@ function exibirPainel() {
             if (b) {
                 b.onclick = () => {
                     aplicarCorrecao(b.dataset.o, b.dataset.s, elementoGlobal);
-                    removerErroGlobal(b.dataset.o);
                     exibirPainel();
                 };
             }

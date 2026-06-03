@@ -46,13 +46,13 @@ function adicionarListenersNoShadowRoot(shadowRoot) {
     if (!shadowRoot) return;
     
     // Verificar se já existe observer para este shadowRoot
-    if (shadowObservers.has(shadowRoot)) return;
-    
     const campos = shadowRoot.querySelectorAll('textarea, input[type="text"], input[type="search"], [contenteditable="true"], [role="textbox"]');
     campos.forEach(campo => {
         campo.removeEventListener('input', shadowInputHandler);
         campo.addEventListener('input', shadowInputHandler);
     });
+
+    if (shadowObservers.has(shadowRoot)) return;
     
     const shadowObserver = new MutationObserver(() => adicionarListenersNoShadowRoot(shadowRoot));
     shadowObserver.observe(shadowRoot, { childList: true, subtree: true, attributes: true, attributeFilter: ['contenteditable'] });
