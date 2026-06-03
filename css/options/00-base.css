@@ -35,6 +35,13 @@ body {
     gap: 5px;
 }
 
+.logo-icon {
+    width: 24px;
+    height: 24px;
+    flex: 0 0 auto;
+    border-radius: 6px;
+}
+
 .menu {
     list-style: none;
     padding: 0;
@@ -185,4 +192,3 @@ body {
 #syntax-mentor-content::-webkit-scrollbar-thumb:hover {
     background: #9ca3af;
 }
-

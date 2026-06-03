@@ -266,9 +266,18 @@ input:checked+.slider:before {
     font-weight: 600;
     color: #333;
     font-size: 14px;
-    display: block;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
     margin-bottom: 2px;
     transition: color 0.3s;
+}
+
+.inline-extension-icon {
+    width: 16px;
+    height: 16px;
+    flex: 0 0 auto;
+    border-radius: 4px;
 }
 
 .atalho-sub {
