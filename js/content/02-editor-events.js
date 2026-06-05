@@ -133,6 +133,7 @@ function dispararEventosNativos(elemento) {
 function atualizarElementoComEventos(elemento) {
     if (!elemento) return;
     if (elemento.isContentEditable || elemento.getAttribute?.('contenteditable') === 'true') {
+        const selecao = salvarSelecaoContentEditable(elemento);
         const eventos = [
             new Event('input', { bubbles: true }),
             new Event('change', { bubbles: true }),
@@ -143,8 +144,7 @@ function atualizarElementoComEventos(elemento) {
             new FocusEvent('focus', { bubbles: true })
         ];
         eventos.forEach(evt => { try { elemento.dispatchEvent(evt); } catch(e) {} });
-        elemento.focus();
-        setTimeout(() => { elemento.blur(); elemento.focus(); }, 50);
+        restaurarSelecaoContentEditable(elemento, selecao);
         return;
     }
     if (elemento.tagName === 'INPUT' || elemento.tagName === 'TEXTAREA') dispararEventosNativos(elemento);

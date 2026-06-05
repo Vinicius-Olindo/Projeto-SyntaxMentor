@@ -14,6 +14,8 @@ function agendarProcessamentoOcioso(callback, options = { timeout: 100 }) {
 
 async function verificarTexto(texto, elemento) {
     if (smConfig.disabled) return;
+    elemento = registrarElementoEditavelAtivo(elemento) || elemento;
+    if (!elemento) return;
     
     estaCarregando = true;
     atualizarEstadoCarregamento(true);
@@ -56,7 +58,8 @@ async function verificarTexto(texto, elemento) {
 
         const matchesProcessados = processarPontuacao(data.matches || []);
         const errosPontuacaoLocal = verificarPontuacaoComum(texto);
-        const todosMatches = [...matchesProcessados, ...errosPontuacaoLocal];
+        const errosOrtografiaLocal = verificarOrtografiaPtBrLocal(texto, smConfig.language);
+        const todosMatches = deduplicarMatchesRevisao([...matchesProcessados, ...errosPontuacaoLocal, ...errosOrtografiaLocal]);
 
         const REGRAS_IGNORADAS = new Set([
             'UPPERCASE_SENTENCE_START',
@@ -82,7 +85,7 @@ async function verificarTexto(texto, elemento) {
             return !dic.includes(ol) && !ignoradosTemporarios.includes(ol);
         });
 
-        elementoGlobal = elemento;
+        registrarElementoEditavelAtivo(elemento);
 
         if (!isSiteRestrito && elemento.isContentEditable && elemento.tagName !== 'TEXTAREA' && elemento.tagName !== 'INPUT') {
             aplicarGrifos(errosGlobais, elemento);
@@ -192,28 +195,25 @@ function atualizarEstadoCarregamento(on) {
 
 function aplicarGrifos(erros, el) {
     if (!el?.isContentEditable || isSiteRestrito) return;
-    
-    if (!erros || erros.length === 0) {
-        const marksExistentes = el.querySelectorAll('mark.sm-highlight');
-        marksExistentes.forEach(mark => {
-            const parent = mark.parentNode;
-            const texto = document.createTextNode(mark.textContent);
-            parent.replaceChild(texto, mark);
-            parent.normalize();
-        });
+
+    const textoReferencia = el.textContent || '';
+    const aplicacaoId = ++smAplicacaoGrifosId;
+
+    if (elementoPossuiSelecaoAtiva(el)) {
+        smDebug('Grifos adiados: usuario esta com texto selecionado.');
         return;
     }
     
+    if (!erros || erros.length === 0) {
+        limparGrifosElemento(el);
+        return;
+    }
+    
+    const selecaoOriginal = salvarSelecaoContentEditable(el);
     isExtensaoMutando = true;
     
     try {
-        const marksExistentes = el.querySelectorAll('mark.sm-highlight');
-        marksExistentes.forEach(mark => {
-            const parent = mark.parentNode;
-            const texto = document.createTextNode(mark.textContent);
-            parent.replaceChild(texto, mark);
-            parent.normalize();
-        });
+        limparGrifosElemento(el, false);
         
         const palavrasMap = new Map();
         erros.forEach(e => {
@@ -224,7 +224,11 @@ function aplicarGrifos(erros, el) {
         });
         
         const palavras = Array.from(palavrasMap.keys());
-        if (palavras.length === 0) return;
+        if (palavras.length === 0) {
+            isExtensaoMutando = false;
+            restaurarSelecaoContentEditable(el, selecaoOriginal);
+            return;
+        }
         
         const regexPalavras = new RegExp(
             `\\b(${palavras.map(p => p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})\\b`,
@@ -252,19 +256,36 @@ function aplicarGrifos(erros, el) {
             nodesToProcess.push(walker.currentNode);
         }
         
-        if (nodesToProcess.length === 0) return;
+        if (nodesToProcess.length === 0) {
+            isExtensaoMutando = false;
+            restaurarSelecaoContentEditable(el, selecaoOriginal);
+            return;
+        }
         
         const CHUNK_SIZE = 50;
         let currentIndex = 0;
         let isProcessing = false;
+
+        function cancelarSeObsoleto() {
+            return aplicacaoId !== smAplicacaoGrifosId ||
+                !document.contains(el) ||
+                (el.textContent || '') !== textoReferencia ||
+                elementoPossuiSelecaoAtiva(el);
+        }
         
         function processarChunk() {
             if (isProcessing) return;
+            if (cancelarSeObsoleto()) {
+                isExtensaoMutando = false;
+                return;
+            }
+
             isProcessing = true;
             
             const chunk = nodesToProcess.slice(currentIndex, currentIndex + CHUNK_SIZE);
             
             chunk.forEach(node => {
+                if (!node.parentNode) return;
                 const texto = node.textContent;
                 if (!regexPalavras.test(texto)) return;
                 
@@ -300,6 +321,7 @@ function aplicarGrifos(erros, el) {
                 agendarProcessamentoOcioso(processarChunk, { timeout: 100 });
             } else {
                 isExtensaoMutando = false;
+                restaurarSelecaoContentEditable(el, selecaoOriginal);
                 smLog('Grifos aplicados com sucesso em', nodesToProcess.length, 'nós');
             }
         }
@@ -309,6 +331,7 @@ function aplicarGrifos(erros, el) {
     } catch (err) {
         smError('Erro ao aplicar grifos:', err);
         isExtensaoMutando = false;
+        restaurarSelecaoContentEditable(el, selecaoOriginal);
     }
 }
 

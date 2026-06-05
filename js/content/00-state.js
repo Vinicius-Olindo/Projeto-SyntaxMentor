@@ -26,6 +26,7 @@ const smDebug = (...args) => { if (isSmDebugAtivo()) console.debug('[SM]', ...ar
 const smWarn = (...args) => { if (isSmDebugAtivo()) console.warn('[SM]', ...args); };
 const smError = (...args) => { if (isSmDebugAtivo()) console.error('[SM]', ...args); };
 let elementoGlobal = null;
+let ultimoElementoEditavel = null;
 let painelAberto = false;
 let indexSugestao = -1;
 let bubblePosX = null;
@@ -43,6 +44,10 @@ let filaRequisicoes = [];
 let processandoFila = false;
 let ultimoTextoValido = '';
 let ultimaConsultaGrammarId = 0;
+let smAplicacaoGrifosId = 0;
+let timeoutReverificacaoCorrecao = null;
+let smCorrigindoEmLote = false;
+let smIgnorandoInputInterno = false;
 
 let historicoDesfazer = [];
 const MAX_HISTORICO_DESFAZER = 20;

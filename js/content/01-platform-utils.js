@@ -163,25 +163,181 @@ function isExtensaoAtiva() {
 function isElementoEditavel(el) {
     if (!el) return false;
     const tag = el.tagName;
+    const contentEditable = el.getAttribute?.('contenteditable');
     return tag === 'TEXTAREA' ||
         (tag === 'INPUT' && ['text', 'search', 'url', 'email'].includes(el.type)) ||
         el.isContentEditable ||
-        el.getAttribute?.('contenteditable') === 'true' ||
+        (contentEditable != null && contentEditable.toLowerCase() !== 'false') ||
         el.getAttribute?.('role') === 'textbox';
+}
+
+function elementoEstaNoDocumento(el) {
+    if (!el) return false;
+    if (document.contains(el)) return true;
+
+    const root = el.getRootNode?.();
+    if (root?.host && document.contains(root.host)) return true;
+
+    const doc = el.ownerDocument;
+    return !!doc?.documentElement?.contains(el);
+}
+
+function normalizarElementoEditavel(el) {
+    if (!el) return null;
+    let candidato = el.nodeType === Node.TEXT_NODE ? el.parentElement : el;
+    if (!candidato || candidato.nodeType !== Node.ELEMENT_NODE) return null;
+    if (isElementoEditavel(candidato)) return candidato;
+
+    candidato = candidato.closest?.('textarea, input[type="text"], input[type="search"], input[type="url"], input[type="email"], input:not([type]), [contenteditable]:not([contenteditable="false"]), [role="textbox"]');
+    return isElementoEditavel(candidato) ? candidato : null;
+}
+
+function registrarElementoEditavelAtivo(el) {
+    const alvo = normalizarElementoEditavel(el);
+    if (!alvo || !elementoEstaNoDocumento(alvo)) return null;
+    elementoGlobal = alvo;
+    ultimoElementoEditavel = alvo;
+    return alvo;
 }
 
 function obterElementoEditavelDaSelecao() {
     const ativo = document.activeElement;
-    if (isElementoEditavel(ativo)) return ativo;
+    const alvoAtivo = normalizarElementoEditavel(ativo);
+    if (alvoAtivo) return alvoAtivo;
 
     const sel = window.getSelection?.();
     let node = sel?.anchorNode || sel?.focusNode;
     if (!node) return null;
-    if (node.nodeType === Node.TEXT_NODE) node = node.parentElement;
-    if (!node || node.nodeType !== Node.ELEMENT_NODE) return null;
 
-    const el = node.closest?.('textarea, input[type="text"], input[type="search"], input[type="url"], input[type="email"], [contenteditable="true"], [role="textbox"]');
-    return isElementoEditavel(el) ? el : null;
+    return normalizarElementoEditavel(node);
+}
+
+function obterIndiceTextoContentEditable(root, node, offset) {
+    if (!root || !node || !root.contains(node)) return 0;
+
+    let indice = 0;
+    let encontrado = false;
+
+    const visitar = (atual) => {
+        if (!atual || encontrado) return;
+
+        if (atual === node) {
+            if (atual.nodeType === Node.TEXT_NODE) {
+                indice += Math.min(offset, atual.textContent.length);
+            } else {
+                const filhosAntes = Array.from(atual.childNodes).slice(0, offset);
+                filhosAntes.forEach(filho => { indice += (filho.textContent || '').length; });
+            }
+            encontrado = true;
+            return;
+        }
+
+        if (atual.nodeType === Node.TEXT_NODE) {
+            indice += (atual.textContent || '').length;
+            return;
+        }
+
+        Array.from(atual.childNodes || []).forEach(visitar);
+    };
+
+    visitar(root);
+    return indice;
+}
+
+function obterPontoTextoContentEditable(root, indice) {
+    const alvo = Math.max(0, indice || 0);
+    let restante = alvo;
+    let ultimoTexto = null;
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+
+    while (walker.nextNode()) {
+        const node = walker.currentNode;
+        const tamanho = (node.textContent || '').length;
+        ultimoTexto = node;
+
+        if (restante <= tamanho) {
+            return { node, offset: restante };
+        }
+
+        restante -= tamanho;
+    }
+
+    if (ultimoTexto) {
+        return { node: ultimoTexto, offset: (ultimoTexto.textContent || '').length };
+    }
+
+    return { node: root, offset: root.childNodes.length };
+}
+
+function salvarSelecaoContentEditable(elemento) {
+    if (!elemento?.isContentEditable) return null;
+
+    const sel = window.getSelection?.();
+    if (!sel || sel.rangeCount === 0) return null;
+
+    const range = sel.getRangeAt(0);
+    if (!elemento.contains(range.startContainer) || !elemento.contains(range.endContainer)) return null;
+
+    return {
+        start: obterIndiceTextoContentEditable(elemento, range.startContainer, range.startOffset),
+        end: obterIndiceTextoContentEditable(elemento, range.endContainer, range.endOffset),
+        collapsed: range.collapsed,
+        estavaAtivo: document.activeElement === elemento || elemento.contains(document.activeElement)
+    };
+}
+
+function restaurarSelecaoContentEditable(elemento, estado) {
+    if (!elemento?.isContentEditable || !estado || !document.contains(elemento)) return;
+
+    try {
+        if (estado.estavaAtivo) {
+            try { elemento.focus({ preventScroll: true }); } catch(e) { elemento.focus(); }
+        }
+
+        const inicio = obterPontoTextoContentEditable(elemento, estado.start);
+        const fim = obterPontoTextoContentEditable(elemento, estado.end);
+        const range = document.createRange();
+        range.setStart(inicio.node, inicio.offset);
+        range.setEnd(fim.node, fim.offset);
+
+        const sel = window.getSelection?.();
+        if (!sel) return;
+        sel.removeAllRanges();
+        sel.addRange(range);
+    } catch(e) {
+        smDebug('Nao foi possivel restaurar a selecao:', e.message);
+    }
+}
+
+function elementoPossuiSelecaoAtiva(elemento) {
+    const estado = salvarSelecaoContentEditable(elemento);
+    return !!estado && !estado.collapsed;
+}
+
+function limparGrifosElemento(elemento, preservarSelecao = true) {
+    if (!elemento?.isContentEditable) return false;
+
+    const marks = Array.from(elemento.querySelectorAll('mark.sm-highlight'));
+    if (marks.length === 0) return false;
+
+    const selecao = preservarSelecao ? salvarSelecaoContentEditable(elemento) : null;
+    const mutacaoAnterior = isExtensaoMutando;
+    isExtensaoMutando = true;
+
+    try {
+        marks.forEach(mark => {
+            const parent = mark.parentNode;
+            if (!parent) return;
+            const texto = document.createTextNode(mark.textContent || '');
+            parent.replaceChild(texto, mark);
+            parent.normalize();
+        });
+    } finally {
+        isExtensaoMutando = mutacaoAnterior;
+        restaurarSelecaoContentEditable(elemento, selecao);
+    }
+
+    return true;
 }
 
 function storageGetSeguro(chave, fallback) {
@@ -251,6 +407,7 @@ function resetarBadgeBackground() {
 function atualizarVisibilidadeBolha() {
     const bubble = document.getElementById('syntax-mentor-bubble');
     if (!bubble) return;
+    bubble.style.display = 'flex';
     if (smConfig.autoHideBubble && usuarioDigitando && !painelAberto) {
         bubble.style.opacity = '0';
         bubble.style.pointerEvents = 'none';
@@ -259,4 +416,5 @@ function atualizarVisibilidadeBolha() {
         bubble.style.pointerEvents = 'auto';
     }
     bubble.style.transition = 'opacity 0.3s ease';
+    if (typeof garantirBolhaNaTela === 'function') garantirBolhaNaTela(bubble);
 }

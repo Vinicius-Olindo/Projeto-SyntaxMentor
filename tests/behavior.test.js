@@ -42,6 +42,31 @@ module.exports = async function behaviorTests() {
     );
     assert.equal(pontuacao[0].replacements[0].value, ',', 'espaco antes da pontuacao deve ser removivel');
 
+    const ortografiaLocal = pageReview.verificarOrtografiaPtBrLocal('Ola, a entensao precisa ficar mas preciso.');
+    assert.equal(
+        JSON.stringify(ortografiaLocal.map(item => item.replacements[0].value)),
+        JSON.stringify(['Olá', 'extensão', 'mais']),
+        'ortografia local pt-BR deve cobrir correcoes de alta confianca'
+    );
+
+    assert.equal(
+        pageReview.verificarOrtografiaPtBrLocal('extensao', 'en-US').length,
+        0,
+        'ortografia local pt-BR nao deve atuar em outros idiomas'
+    );
+
+    const duplicados = pageReview.deduplicarMatchesRevisao([
+        { offset: 0, length: 3, context: { text: 'Ola', offset: 0, length: 3 }, replacements: [{ value: 'Olá' }] },
+        { offset: 0, length: 3, context: { text: 'Ola', offset: 0, length: 3 }, replacements: [{ value: 'Olá' }] }
+    ]);
+    assert.equal(duplicados.length, 1, 'deduplicacao deve remover sugestoes repetidas no mesmo trecho');
+
+    const repetidosDistantes = pageReview.deduplicarMatchesRevisao([
+        { offset: 0, length: 3, context: { text: 'Ola e Ola', offset: 0, length: 3 }, replacements: [{ value: 'Olá' }] },
+        { offset: 6, length: 3, context: { text: 'Ola e Ola', offset: 6, length: 3 }, replacements: [{ value: 'Olá' }] }
+    ]);
+    assert.equal(repetidosDistantes.length, 2, 'deduplicacao deve preservar ocorrencias em trechos diferentes');
+
     const corrections = carregarScript('js/content/06-corrections-stats.js');
     assert.equal(
         'Ola , mundo'.replace(corrections.criarRegexCorrecaoTexto(' ,'), ','),

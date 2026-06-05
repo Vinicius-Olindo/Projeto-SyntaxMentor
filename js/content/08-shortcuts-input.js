@@ -18,9 +18,9 @@ document.addEventListener('keydown', (e) => {
     const desativarShortcut = smConfig.desativarShortcut || { altKey: true, ctrlKey: false, shiftKey: true, key: 'd' };
     if (e.altKey === toggleShortcut.altKey && e.ctrlKey === toggleShortcut.ctrlKey && e.shiftKey === toggleShortcut.shiftKey && e.key.toLowerCase() === toggleShortcut.key) { e.preventDefault(); e.stopPropagation(); if (errosGlobais.length > 0) painelAberto ? fecharPainel() : exibirPainel(); return; }
     if (e.altKey === ignoreShortcut.altKey && e.ctrlKey === ignoreShortcut.ctrlKey && e.shiftKey === ignoreShortcut.shiftKey && e.key.toLowerCase() === ignoreShortcut.key) { e.preventDefault(); e.stopPropagation(); limparTudo(); return; }
-    if (e.altKey === corrigirTudoShortcut.altKey && e.ctrlKey === corrigirTudoShortcut.ctrlKey && e.shiftKey === corrigirTudoShortcut.shiftKey && e.key.toLowerCase() === corrigirTudoShortcut.key) { e.preventDefault(); e.stopPropagation(); if (errosGlobais.length > 0 && elementoGlobal) corrigirTudo(); return; }
-    if (e.altKey === ativarShortcut.altKey && e.ctrlKey === ativarShortcut.ctrlKey && e.shiftKey === ativarShortcut.shiftKey && e.key.toLowerCase() === ativarShortcut.key) { e.preventDefault(); e.stopPropagation(); if (!smConfig.disabled) { mostrarFeedback('✅ SyntaxMentor já está ATIVADO neste site', 'info'); return; } smConfig.disabled = false; enviarMensagemSegura({ action: 'toggleSiteGlobal', enabled: true, host: window.location.hostname }); const campoAtivo = document.activeElement; if (campoAtivo && (campoAtivo.tagName === 'TEXTAREA' || campoAtivo.tagName === 'INPUT' || campoAtivo.isContentEditable)) { const texto = campoAtivo.value || campoAtivo.textContent || campoAtivo.innerText || ''; if (texto.trim().length > 1) { textoUltimaVerificacao = texto; elementoGlobal = campoAtivo; verificarTexto(texto, campoAtivo); } } const bubble = document.getElementById('syntax-mentor-bubble'); if (bubble) bubble.style.display = 'flex'; mostrarFeedback('✅ SyntaxMentor ATIVADO neste site', 'success'); atualizarBadgeBackground(errosGlobais.length); return; }
-    if (e.altKey === desativarShortcut.altKey && e.ctrlKey === desativarShortcut.ctrlKey && e.shiftKey === desativarShortcut.shiftKey && e.key.toLowerCase() === desativarShortcut.key) { e.preventDefault(); e.stopPropagation(); if (smConfig.disabled) { mostrarFeedback('⛔ SyntaxMentor já está DESATIVADO neste site', 'info'); return; } smConfig.disabled = true; enviarMensagemSegura({ action: 'toggleSiteGlobal', enabled: false, host: window.location.hostname }); if (elementoGlobal && elementoGlobal.isContentEditable && !isSiteRestrito) { elementoGlobal.innerHTML = elementoGlobal.innerHTML.replace(/<mark class="sm-highlight">(.*?)<\/mark>/gi, '$1'); atualizarElementoComEventos(elementoGlobal); } errosGlobais = []; fecharPainel(); const bubble = document.getElementById('syntax-mentor-bubble'); if (bubble) bubble.style.display = 'none'; mostrarFeedback('⛔ SyntaxMentor DESATIVADO neste site', 'info'); resetarBadgeBackground(); return; }
+    if (e.altKey === corrigirTudoShortcut.altKey && e.ctrlKey === corrigirTudoShortcut.ctrlKey && e.shiftKey === corrigirTudoShortcut.shiftKey && e.key.toLowerCase() === corrigirTudoShortcut.key) { e.preventDefault(); e.stopPropagation(); if (errosGlobais.length > 0) corrigirTudo(); return; }
+    if (e.altKey === ativarShortcut.altKey && e.ctrlKey === ativarShortcut.ctrlKey && e.shiftKey === ativarShortcut.shiftKey && e.key.toLowerCase() === ativarShortcut.key) { e.preventDefault(); e.stopPropagation(); if (!smConfig.disabled) { mostrarFeedback('✅ SyntaxMentor já está ATIVADO neste site', 'info'); return; } smConfig.disabled = false; enviarMensagemSegura({ action: 'toggleSiteGlobal', enabled: true, host: window.location.hostname }); const campoAtivo = registrarElementoEditavelAtivo(document.activeElement); if (campoAtivo) { const texto = campoAtivo.value || campoAtivo.textContent || campoAtivo.innerText || ''; if (texto.trim().length > 1) { textoUltimaVerificacao = texto; verificarTexto(texto, campoAtivo); } } const bubble = document.getElementById('syntax-mentor-bubble'); if (bubble) bubble.style.display = 'flex'; mostrarFeedback('✅ SyntaxMentor ATIVADO neste site', 'success'); atualizarBadgeBackground(errosGlobais.length); return; }
+    if (e.altKey === desativarShortcut.altKey && e.ctrlKey === desativarShortcut.ctrlKey && e.shiftKey === desativarShortcut.shiftKey && e.key.toLowerCase() === desativarShortcut.key) { e.preventDefault(); e.stopPropagation(); if (smConfig.disabled) { mostrarFeedback('⛔ SyntaxMentor já está DESATIVADO neste site', 'info'); return; } smConfig.disabled = true; enviarMensagemSegura({ action: 'toggleSiteGlobal', enabled: false, host: window.location.hostname }); if (elementoGlobal && elementoGlobal.isContentEditable && !isSiteRestrito) { limparGrifosElemento(elementoGlobal); } errosGlobais = []; fecharPainel(); const bubble = document.getElementById('syntax-mentor-bubble'); if (bubble) bubble.style.display = 'none'; mostrarFeedback('⛔ SyntaxMentor DESATIVADO neste site', 'info'); resetarBadgeBackground(); return; }
 }, true);
 
 function mostrarNotificacaoTemp(texto, cor) { 
@@ -47,11 +47,12 @@ if (!document.querySelector('#sm-notif-style')) {
 
 document.addEventListener('input', (e) => {
     if (smConfig.disabled) return;
-    let el = e.target;
-    if (el.closest?.('[contenteditable="true"]')) el = el.closest('[contenteditable="true"]');
-    const valido = el.tagName === 'TEXTAREA' || el.isContentEditable || el.getAttribute?.('contenteditable') === 'true' || (el.tagName === 'INPUT' && ['text', 'search', 'url', 'email'].includes(el.type));
-    if (!valido) return;
+    if (smIgnorandoInputInterno) return;
+    let el = registrarElementoEditavelAtivo(e.target);
+    if (!el) return;
     if (el.tagName === 'INPUT' && smConfig.strictMode) return;
+    smAplicacaoGrifosId++;
+    if (!isSiteRestrito && el.isContentEditable) limparGrifosElemento(el);
     const isVoz = e.inputType === 'insertFromSpeech' || e.inputType === 'insertFromVoice';
     el._smModoVoz = isVoz;
     usuarioDigitando = true;
@@ -63,7 +64,7 @@ document.addEventListener('input', (e) => {
     timeoutDigitacao = setTimeout(() => {
         usuarioDigitando = false;
         const texto = (el.value || el.textContent || el.innerText || '').trim();
-        if (texto.length <= 1) { errosGlobais = []; atualizarInterface(); if (!isSiteRestrito && el.isContentEditable) { el.innerHTML = el.innerHTML.replace(/<mark class="sm-highlight">(.*?)<\/mark>/gi, '$1'); atualizarElementoComEventos(el); } atualizarVisibilidadeBolha(); return; }
+        if (texto.length <= 1) { errosGlobais = []; atualizarInterface(); if (!isSiteRestrito && el.isContentEditable) { limparGrifosElemento(el); } atualizarVisibilidadeBolha(); return; }
         if (texto === ultimoTextoValido && errosGlobais.length > 0) { atualizarVisibilidadeBolha(); return; }
         ultimoTextoValido = texto;
         textoUltimaVerificacao = texto;

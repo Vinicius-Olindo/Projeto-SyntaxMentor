@@ -5,6 +5,108 @@
 // INTERFACE DO USUÁRIO
 // =============================================
 
+function posicionarBolhaPadrao(bubble) {
+    if (!bubble) return;
+    bubble.style.left = 'auto';
+    bubble.style.top = 'auto';
+    bubble.style.right = '20px';
+    bubble.style.bottom = '20px';
+    bubblePosX = null;
+    bubblePosY = null;
+}
+
+function garantirBolhaNaTela(bubble) {
+    if (!bubble) return;
+
+    const rect = bubble.getBoundingClientRect();
+    const largura = rect.width || 40;
+    const altura = rect.height || 40;
+    const margem = 12;
+    const viewportWidth = window.innerWidth || document.documentElement.clientWidth || 0;
+    const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 0;
+
+    if (!viewportWidth || !viewportHeight) return;
+
+    const foraDaTela = rect.left < margem ||
+        rect.top < margem ||
+        rect.right > viewportWidth - margem ||
+        rect.bottom > viewportHeight - margem ||
+        largura <= 0 ||
+        altura <= 0;
+
+    if (!foraDaTela) return;
+
+    const leftAtual = Number.isFinite(rect.left) ? rect.left : viewportWidth - largura - 20;
+    const topAtual = Number.isFinite(rect.top) ? rect.top : viewportHeight - altura - 20;
+    const left = Math.min(Math.max(leftAtual, margem), Math.max(margem, viewportWidth - largura - margem));
+    const top = Math.min(Math.max(topAtual, margem), Math.max(margem, viewportHeight - altura - margem));
+
+    bubble.style.left = `${left}px`;
+    bubble.style.top = `${top}px`;
+    bubble.style.right = 'auto';
+    bubble.style.bottom = 'auto';
+    bubblePosX = bubble.style.left;
+    bubblePosY = bubble.style.top;
+}
+
+function garantirPainelNaTela(painel) {
+    if (!painel) return;
+
+    const rect = painel.getBoundingClientRect();
+    const largura = rect.width || 380;
+    const altura = rect.height || 420;
+    const margem = 12;
+    const viewportWidth = window.innerWidth || document.documentElement.clientWidth || 0;
+    const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 0;
+
+    if (!viewportWidth || !viewportHeight) return;
+
+    const leftAtual = Number.isFinite(rect.left) ? rect.left : viewportWidth - largura - 20;
+    const topAtual = Number.isFinite(rect.top) ? rect.top : 80;
+    const left = Math.min(Math.max(leftAtual, margem), Math.max(margem, viewportWidth - largura - margem));
+    const top = Math.min(Math.max(topAtual, margem), Math.max(margem, viewportHeight - altura - margem));
+
+    painel.style.left = `${left}px`;
+    painel.style.top = `${top}px`;
+    painel.style.right = 'auto';
+    painel.style.bottom = 'auto';
+}
+
+function posicionarPainelProximoDaBolha(painel) {
+    if (!painel) return;
+
+    const bubble = document.getElementById('syntax-mentor-bubble');
+    const viewportWidth = window.innerWidth || document.documentElement.clientWidth || 0;
+    const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 0;
+    const painelRect = painel.getBoundingClientRect();
+    const largura = painelRect.width || 380;
+    const altura = painelRect.height || 420;
+    const margem = 12;
+
+    if (!viewportWidth || !viewportHeight) return;
+
+    if (!bubble) {
+        painel.style.left = `${Math.max(margem, viewportWidth - largura - 20)}px`;
+        painel.style.top = '80px';
+        painel.style.right = 'auto';
+        painel.style.bottom = 'auto';
+        garantirPainelNaTela(painel);
+        return;
+    }
+
+    const bubbleRect = bubble.getBoundingClientRect();
+    const abrirParaDireita = bubbleRect.left + bubbleRect.width + largura + 16 <= viewportWidth - margem;
+    const leftBase = abrirParaDireita ? bubbleRect.right + 12 : bubbleRect.left - largura - 12;
+    const topBase = bubbleRect.top - 12;
+    const left = Math.min(Math.max(leftBase, margem), Math.max(margem, viewportWidth - largura - margem));
+    const top = Math.min(Math.max(topBase, margem), Math.max(margem, viewportHeight - altura - margem));
+
+    painel.style.left = `${left}px`;
+    painel.style.top = `${top}px`;
+    painel.style.right = 'auto';
+    painel.style.bottom = 'auto';
+}
+
 function atualizarInterface() {
     if (smConfig.disabled) return;
     if (smConfig.modoFoco && !painelAberto) {
@@ -27,9 +129,10 @@ function atualizarInterface() {
         bubble.id = 'syntax-mentor-bubble';
         bubble.title = 'SyntaxMentor';
         document.body.appendChild(bubble);
+        posicionarBolhaPadrao(bubble);
         tornarArrastavel(bubble);
         bubble.addEventListener('click', () => {
-            if (!isDraggingBubble && !estaCarregando && errosGlobais.length > 0) {
+            if (!isDraggingBubble && errosGlobais.length > 0) {
                 painelAberto ? fecharPainel() : exibirPainel();
             }
             isDraggingBubble = false;
@@ -44,6 +147,8 @@ function atualizarInterface() {
         bubble.style.bottom = 'auto';
     }
 
+    garantirBolhaNaTela(bubble);
+
     if (estaCarregando && errosGlobais.length > 0) {
         bubble.style.opacity = '0.6';
         bubble.style.pointerEvents = 'auto';
@@ -53,6 +158,7 @@ function atualizarInterface() {
     }
 
     renderizarBolha(bubble, total);
+    garantirBolhaNaTela(bubble);
     if (total === 0) {
         if (painelAberto) fecharPainelComSucesso();
     } else if (painelAberto) {
@@ -390,6 +496,8 @@ function exibirPainel() {
     const totalErros = errosValidos.length;
 
     renderizarPainelPrincipal(painel, errosValidos, totalErros);
+    if (painel.dataset.smUserMoved === 'true') garantirPainelNaTela(painel);
+    else posicionarPainelProximoDaBolha(painel);
     tornarArrastavelPainel(painel, document.getElementById('syntax-mentor-header'));
 
     const grammarContent = document.getElementById('syntax-mentor-content');
@@ -486,7 +594,6 @@ function exibirPainel() {
             if (b) {
                 b.onclick = () => {
                     aplicarCorrecao(b.dataset.o, b.dataset.s, elementoGlobal);
-                    exibirPainel();
                 };
             }
         });
@@ -574,7 +681,12 @@ function tornarArrastavel(el) {
 function tornarArrastavelPainel(painel, handle) {
     if (!handle) return;
     let p1, p2, p3, p4;
-    function onMovePainel(e2) { p1 = p3 - e2.clientX; p2 = p4 - e2.clientY; p3 = e2.clientX; p4 = e2.clientY; painel.style.top = (painel.offsetTop - p2) + 'px'; painel.style.left = (painel.offsetLeft - p1) + 'px'; }
-    function onUpPainel() { document.removeEventListener('mousemove', onMovePainel); document.removeEventListener('mouseup', onUpPainel); }
+    function onMovePainel(e2) { p1 = p3 - e2.clientX; p2 = p4 - e2.clientY; p3 = e2.clientX; p4 = e2.clientY; painel.style.top = (painel.offsetTop - p2) + 'px'; painel.style.left = (painel.offsetLeft - p1) + 'px'; painel.style.right = 'auto'; painel.style.bottom = 'auto'; painel.dataset.smUserMoved = 'true'; }
+    function onUpPainel() { garantirPainelNaTela(painel); document.removeEventListener('mousemove', onMovePainel); document.removeEventListener('mouseup', onUpPainel); }
     handle.addEventListener('mousedown', (e) => { e.preventDefault(); p3 = e.clientX; p4 = e.clientY; document.addEventListener('mousemove', onMovePainel); document.addEventListener('mouseup', onUpPainel); });
 }
+
+window.addEventListener('resize', () => {
+    garantirBolhaNaTela(document.getElementById('syntax-mentor-bubble'));
+    garantirPainelNaTela(document.getElementById('syntax-mentor-painel'));
+}, { passive: true });

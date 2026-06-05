@@ -5,6 +5,8 @@
 /* --- 1. BOLINHA FLUTUANTE --- */
 #syntax-mentor-bubble {
     position: fixed;
+    right: 20px;
+    bottom: 20px;
     width: 40px;
     height: 40px;
     border-radius: 50%;

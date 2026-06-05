@@ -64,11 +64,12 @@ function adicionarListenersNoShadowRoot(shadowRoot) {
 
 function shadowInputHandler(e) {
     if (smConfig.disabled) return;
-    let el = e.target;
-    if (el.closest?.('[contenteditable="true"]')) el = el.closest('[contenteditable="true"]');
-    const valido = el.tagName === 'TEXTAREA' || el.isContentEditable || el.getAttribute?.('contenteditable') === 'true' || el.getAttribute?.('role') === 'textbox' || (el.tagName === 'INPUT' && ['text', 'search', 'url', 'email'].includes(el.type));
-    if (!valido) return;
+    if (smIgnorandoInputInterno) return;
+    let el = registrarElementoEditavelAtivo(e.target);
+    if (!el) return;
     if (el.tagName === 'INPUT' && smConfig.strictMode) return;
+    smAplicacaoGrifosId++;
+    if (!isSiteRestrito && el.isContentEditable) limparGrifosElemento(el);
     usuarioDigitando = true;
     atualizarVisibilidadeBolha();
     if (currentFetchController) { currentFetchController.abort(); currentFetchController = null; }
@@ -279,8 +280,7 @@ function atualizarEstadoExtensao(ativar) {
     smConfig.disabled = !ativar;
     if (!ativar) {
         if (elementoGlobal && elementoGlobal.isContentEditable && !isSiteRestrito) {
-            elementoGlobal.innerHTML = elementoGlobal.innerHTML.replace(/<mark class="sm-highlight">(.*?)<\/mark>/gi, '$1');
-            atualizarElementoComEventos(elementoGlobal);
+            limparGrifosElemento(elementoGlobal);
         }
         errosGlobais = [];
         fecharPainel();

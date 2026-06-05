@@ -116,7 +116,7 @@ if (typeof chrome !== 'undefined' && chrome.runtime && isContextoPermitido()) {
         
         if (request.action === 'revisarSelecao' && request.texto) {
             const texto = request.texto.trim();
-            const elementoSelecao = obterElementoEditavelDaSelecao();
+            const elementoSelecao = registrarElementoEditavelAtivo(obterElementoEditavelDaSelecao());
             const sel = window.getSelection();
             const range = sel && sel.rangeCount > 0 ? sel.getRangeAt(0).getBoundingClientRect() : null;
             
@@ -144,7 +144,8 @@ if (typeof chrome !== 'undefined' && chrome.runtime && isContextoPermitido()) {
             
             verificarTexto(texto, div).then(() => {
                 if (div.parentNode) div.parentNode.removeChild(div);
-                elementoGlobal = elementoSelecao;
+                if (elementoSelecao) registrarElementoEditavelAtivo(elementoSelecao);
+                else elementoGlobal = null;
                 if (errosGlobais.length === 0) {
                     renderizarTooltipSelecaoStatus(tooltip, SM_TEXTOS.painel.nenhumErroTitulo, 'success');
                     setTimeout(() => tooltip.remove(), 2500);
@@ -180,7 +181,7 @@ if (typeof chrome !== 'undefined' && chrome.runtime && isContextoPermitido()) {
         }
         
         if (request.action === 'corrigirTudo') {
-            if (errosGlobais.length > 0 && elementoGlobal) {
+            if (errosGlobais.length > 0) {
                 corrigirTudo();
             }
             responder({ success: true });

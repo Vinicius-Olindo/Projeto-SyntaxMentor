@@ -1,6 +1,8 @@
 /* --- 2. PAINEL DE SUGESTÕES --- */
 #syntax-mentor-painel {
     position: fixed;
+    top: 80px;
+    right: 20px;
     width: 380px;
     max-width: 90vw;
     max-height: 80vh;

@@ -56,6 +56,179 @@ function processarPontuacao(matches) {
 // REVISÃO DE PÁGINA INTEIRA
 // =============================================
 
+const SM_CORRECOES_PTBR_ALTA_CONFIANCA = {
+    ola: 'olá',
+    voce: 'você',
+    voces: 'vocês',
+    tambem: 'também',
+    nao: 'não',
+    ja: 'já',
+    ate: 'até',
+    apos: 'após',
+    so: 'só',
+    estao: 'estão',
+    sao: 'são',
+    vao: 'vão',
+    sera: 'será',
+    extensao: 'extensão',
+    extensoes: 'extensões',
+    entensao: 'extensão',
+    sugestao: 'sugestão',
+    sugestoes: 'sugestões',
+    correcao: 'correção',
+    correcoes: 'correções',
+    configuracao: 'configuração',
+    configuracoes: 'configurações',
+    digitacao: 'digitação',
+    pontuacao: 'pontuação',
+    acentuacao: 'acentuação',
+    portugues: 'português',
+    gramatica: 'gramática',
+    repositorio: 'repositório',
+    codigo: 'código',
+    codigos: 'códigos',
+    pagina: 'página',
+    paginas: 'páginas',
+    usuario: 'usuário',
+    usuarios: 'usuários',
+    possivel: 'possível',
+    possiveis: 'possíveis',
+    necessario: 'necessário',
+    necessaria: 'necessária',
+    necessarios: 'necessários',
+    necessarias: 'necessárias',
+    automatico: 'automático',
+    automatica: 'automática',
+    automaticos: 'automáticos',
+    automaticas: 'automáticas',
+    historico: 'histórico',
+    conteudo: 'conteúdo',
+    conteudos: 'conteúdos',
+    icone: 'ícone',
+    icones: 'ícones',
+    dialogo: 'diálogo',
+    permissoes: 'permissões',
+    instalacao: 'instalação',
+    instalacoes: 'instalações',
+    aplicacao: 'aplicação',
+    aplicacoes: 'aplicações',
+    revisao: 'revisão',
+    revisoes: 'revisões',
+    informacao: 'informação',
+    informacoes: 'informações',
+    conexao: 'conexão',
+    conexoes: 'conexões',
+    opcao: 'opção',
+    opcoes: 'opções',
+    funcao: 'função',
+    funcoes: 'funções',
+    proximo: 'próximo',
+    proxima: 'próxima',
+    proximos: 'próximos',
+    proximas: 'próximas',
+    area: 'área',
+    areas: 'áreas',
+    tecnico: 'técnico',
+    tecnica: 'técnica',
+    tecnicos: 'técnicos',
+    tecnicas: 'técnicas',
+    publicacao: 'publicação',
+    publicacoes: 'publicações',
+    pratico: 'prático',
+    pratica: 'prática',
+    praticos: 'práticos',
+    praticas: 'práticas',
+    milisegundo: 'milissegundo',
+    milesimo: 'milésimo',
+    comecar: 'começar',
+    comecou: 'começou',
+    corrijir: 'corrigir',
+    corrigit: 'corrigir',
+    aparesentar: 'apresentar'
+};
+
+function aplicarCapitalizacaoPtBrLocal(original, sugestao) {
+    if (!original || !sugestao) return sugestao;
+    if (original === original.toLocaleUpperCase('pt-BR')) return sugestao.toLocaleUpperCase('pt-BR');
+    const primeira = original.charAt(0);
+    if (primeira === primeira.toLocaleUpperCase('pt-BR') && primeira !== primeira.toLocaleLowerCase('pt-BR')) {
+        return sugestao.charAt(0).toLocaleUpperCase('pt-BR') + sugestao.slice(1);
+    }
+    return sugestao;
+}
+
+function criarRegexPalavraPtBrLocal(palavra) {
+    const esc = palavra.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return new RegExp(`(?<![\\p{L}\\p{N}])${esc}(?![\\p{L}\\p{N}])`, 'giu');
+}
+
+function criarMatchOrtografiaLocal(texto, offset, original, sugestao, mensagem = 'Possivel erro de ortografia em portugues') {
+    return {
+        offset,
+        length: original.length,
+        context: { text: texto, offset, length: original.length },
+        message: mensagem,
+        replacements: [{ value: aplicarCapitalizacaoPtBrLocal(original, sugestao) }],
+        rule: { id: 'LOCAL_PTBR_HIGH_CONFIDENCE', category: { name: 'Ortografia' } }
+    };
+}
+
+function verificarFrasesPtBrLocais(texto) {
+    const erros = [];
+    const regexMaisPreciso = /\b((?:deixar|deixe|deixa|ficar|fica|ficou|tornar|torne|ser|seria)\s+(?:isso\s+)?)(mas)(\s+precis[oa]s?)\b/giu;
+    let match;
+
+    while ((match = regexMaisPreciso.exec(texto)) !== null) {
+        erros.push(criarMatchOrtografiaLocal(
+            texto,
+            match.index + match[1].length,
+            match[2],
+            'mais',
+            'Use "mais" quando a ideia for intensidade'
+        ));
+    }
+
+    return erros;
+}
+
+function verificarOrtografiaPtBrLocal(texto, idioma = 'pt-BR') {
+    if (!texto || !String(idioma || '').toLowerCase().startsWith('pt')) return [];
+
+    const erros = [];
+    Object.entries(SM_CORRECOES_PTBR_ALTA_CONFIANCA).forEach(([originalBase, sugestaoBase]) => {
+        const regex = criarRegexPalavraPtBrLocal(originalBase);
+        let match;
+        while ((match = regex.exec(texto)) !== null) {
+            erros.push(criarMatchOrtografiaLocal(texto, match.index, match[0], sugestaoBase));
+        }
+    });
+
+    return [...erros, ...verificarFrasesPtBrLocais(texto)];
+}
+
+function obterIntervaloMatch(match) {
+    const start = Number.isFinite(match?.offset) ? match.offset : (match?.context?.offset || 0);
+    const length = Number.isFinite(match?.length) ? match.length : (match?.context?.length || 0);
+    return { start, end: start + length };
+}
+
+function matchesSobrepostos(a, b) {
+    const intervaloA = obterIntervaloMatch(a);
+    const intervaloB = obterIntervaloMatch(b);
+    return intervaloA.start < intervaloB.end && intervaloB.start < intervaloA.end;
+}
+
+function deduplicarMatchesRevisao(matches) {
+    const resultado = [];
+    (matches || []).forEach(match => {
+        const duplicado = resultado.some(existente => matchesSobrepostos(existente, match));
+
+        if (!duplicado) resultado.push(match);
+    });
+
+    return resultado;
+}
+
 function extrairTextosDaPagina() {
     const textos = [];
     const elementos = document.querySelectorAll('p, h1, h2, h3, h4, h5, h6, li, td, th, span, div, article, section, blockquote, pre, code');
@@ -246,6 +419,10 @@ function exibirPainelRevisaoPagina(erros, textosOriginais) {
         total++;
     });
     renderizarPainelRevisaoPagina(painel, mapa, total, textosOriginais);
+    if (typeof posicionarPainelProximoDaBolha === 'function') {
+        if (painel.dataset.smUserMoved === 'true') garantirPainelNaTela(painel);
+        else posicionarPainelProximoDaBolha(painel);
+    }
     tornarArrastavelPainel(painel, document.getElementById('syntax-mentor-header'));
     
     const btnFechar = document.getElementById('btn-fechar-painel');

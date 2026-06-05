@@ -35,6 +35,86 @@ function encontrarPosicaoPalavra(texto, palavra) {
     return match ? match.index : texto.indexOf(palavra);
 }
 
+function obterTextoElementoParaRevisao(el) {
+    if (!el) return '';
+    if (el.tagName === 'TEXTAREA' || el.tagName === 'INPUT') return el.value || '';
+    return el.textContent || el.innerText || '';
+}
+
+function substituirTextoEmContentEditable(el, original, sugestao) {
+    if (!el?.isContentEditable) return 0;
+
+    const regex = criarRegexCorrecaoTexto(original);
+    const selecao = salvarSelecaoContentEditable(el);
+    const nodes = [];
+    const walker = document.createTreeWalker(
+        el,
+        NodeFilter.SHOW_TEXT,
+        {
+            acceptNode(node) {
+                if (node.parentElement?.closest?.('script, style, #syntax-mentor-painel, #syntax-mentor-bubble')) {
+                    return NodeFilter.FILTER_REJECT;
+                }
+                if (!node.textContent || !node.textContent.trim()) return NodeFilter.FILTER_SKIP;
+                return NodeFilter.FILTER_ACCEPT;
+            }
+        }
+    );
+
+    while (walker.nextNode()) nodes.push(walker.currentNode);
+
+    let total = 0;
+    const mutacaoAnterior = isExtensaoMutando;
+    isExtensaoMutando = true;
+
+    try {
+        nodes.forEach(node => {
+            regex.lastIndex = 0;
+            const novoTexto = node.textContent.replace(regex, () => {
+                total++;
+                return sugestao;
+            });
+            if (novoTexto !== node.textContent) node.textContent = novoTexto;
+        });
+    } finally {
+        isExtensaoMutando = mutacaoAnterior;
+        restaurarSelecaoContentEditable(el, selecao);
+    }
+
+    return total;
+}
+
+function agendarReverificacaoAposCorrecao(el) {
+    if (!el || !document.contains(el)) return;
+    clearTimeout(timeoutReverificacaoCorrecao);
+
+    timeoutReverificacaoCorrecao = setTimeout(() => {
+        if (!el || !document.contains(el) || smConfig.disabled) return;
+
+        const textoAtual = obterTextoElementoParaRevisao(el).trim();
+        if (textoAtual.length <= 1) {
+            errosGlobais = [];
+            atualizarInterface();
+            return;
+        }
+
+        ultimoTextoValido = '';
+        textoUltimaVerificacao = textoAtual;
+        registrarElementoEditavelAtivo(el);
+        filaRequisicoes = [{ texto: textoAtual, el }];
+        processarFilaRequisicoes();
+    }, 350);
+}
+
+function executarSemProcessarInputInterno(callback) {
+    smIgnorandoInputInterno = true;
+    try {
+        return callback();
+    } finally {
+        smIgnorandoInputInterno = false;
+    }
+}
+
 function mostrarFeedbackCorrecao(elemento, posicao, original, sugestao) {
     if (!elemento || posicao < 0) return;
     const rect = elemento.getBoundingClientRect();
@@ -75,62 +155,44 @@ function ignorarTemporariamente(palavra) {
     const pl = palavra.toLowerCase();
     if (!ignoradosTemporarios.includes(pl)) ignoradosTemporarios.push(pl);
     if (!isSiteRestrito && elementoGlobal?.isContentEditable) {
-        const esc = palavra.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        elementoGlobal.innerHTML = elementoGlobal.innerHTML.replace(new RegExp(`<mark class="sm-highlight">${esc}</mark>`, 'g'), palavra);
-        atualizarElementoComEventos(elementoGlobal);
+        limparGrifosElemento(elementoGlobal);
     }
     removerErroGlobal(palavra);
+    if (!isSiteRestrito && elementoGlobal?.isContentEditable && errosGlobais.length > 0) aplicarGrifos(errosGlobais, elementoGlobal);
     mostrarFeedback(`"${palavra}" ignorada nesta sessão`, 'info');
 }
 
 function aplicarCorrecao(original, sugestao, el, pularConfirmacao = false) {
     if (!el || original == null || original === '' || sugestao == null) return;
     const executarCorrecao = () => {
-        const textoAntes = el.value || el.textContent || el.innerText || '';
+        let totalAplicado = 0;
         if (el.tagName === 'TEXTAREA' || el.tagName === 'INPUT') {
             const valorAntigo = el.value;
             const posicao = encontrarPosicaoPalavra(el.value, original);
-            el.value = el.value.replace(criarRegexCorrecaoTexto(original), sugestao);
+            const regex = criarRegexCorrecaoTexto(original);
+            el.value = el.value.replace(regex, () => {
+                totalAplicado++;
+                return sugestao;
+            });
             if (el.value !== valorAntigo) {
-                salvarEstadoParaDesfazer(el, original, sugestao, textoAntes, el.value);
+                salvarEstadoParaDesfazer(el, original, sugestao, valorAntigo, el.value);
                 mostrarFeedbackCorrecao(el, posicao, original, sugestao);
-                dispararEventosNativos(el);
-                requestAnimationFrame(() => { if (el.value !== valorAntigo) dispararEventosNativos(el); });
-                setTimeout(() => { el.blur(); el.focus(); dispararEventosNativos(el); }, 100);
+                executarSemProcessarInputInterno(() => dispararEventosNativos(el));
+                requestAnimationFrame(() => {
+                    if (el.value !== valorAntigo) executarSemProcessarInputInterno(() => dispararEventosNativos(el));
+                });
             }
         } else if (el.isContentEditable) {
-            if (isSiteRestrito) {
-                const htmlAntigo = el.innerHTML;
-                el.focus();
-                try {
-                    const doc = el.ownerDocument || document;
-                    if (doc.execCommand('find', false, original)) doc.execCommand('insertText', false, sugestao);
-                    else el.textContent = (el.textContent || '').replace(criarRegexCorrecaoTexto(original), sugestao);
-                } catch(e) { el.textContent = (el.textContent || '').replace(criarRegexCorrecaoTexto(original), sugestao); }
-                if (el.innerHTML !== htmlAntigo) {
-                    salvarEstadoParaDesfazer(el, original, sugestao, htmlAntigo, el.innerHTML);
-                }
-                atualizarElementoComEventos(el);
-            } else {
-                let html = el.innerHTML;
-                const htmlAntigo = html;
-                const esc = escaparRegexCorrecao(original);
-                const markRegex = new RegExp(`<mark class="sm-highlight">${esc}</mark>`, 'g');
-                const sugestaoSegura = escapeHtml(sugestao);
-                if (markRegex.test(html)) html = html.replace(markRegex, `<span class="sm-correction-feedback">${sugestaoSegura}</span>`);
-                else html = html.replace(criarRegexCorrecaoHtml(original), `<span class="sm-correction-feedback">${sugestaoSegura}</span>`);
-                if (html !== htmlAntigo) {
-                    salvarEstadoParaDesfazer(el, original, sugestao, htmlAntigo, html);
-                    el.innerHTML = html;
-                    const elementoCorrigido = el.querySelector('.sm-correction-feedback');
-                    if (elementoCorrigido) {
-                        setTimeout(() => { const span = elementoCorrigido; const parent = span.parentNode; if (!parent) return; const texto = document.createTextNode(span.textContent); parent.replaceChild(texto, span); parent.normalize(); }, 500);
-                    }
-                }
-                atualizarElementoComEventos(el);
-                setTimeout(() => atualizarElementoComEventos(el), 100);
+            if (!isSiteRestrito) limparGrifosElemento(el);
+            const htmlAntigo = el.innerHTML;
+            totalAplicado = substituirTextoEmContentEditable(el, original, sugestao);
+            const htmlDepois = el.innerHTML;
+            if (totalAplicado > 0 && htmlDepois !== htmlAntigo) {
+                salvarEstadoParaDesfazer(el, original, sugestao, htmlAntigo, htmlDepois);
+                executarSemProcessarInputInterno(() => atualizarElementoComEventos(el));
             }
         }
+        if (totalAplicado === 0) return;
         historicoCorrecoes.push({ el, original, sugestao, timestamp: Date.now() });
         if (historicoCorrecoes.length > 50) historicoCorrecoes.shift();
         const erroEncontrado = smConfig.modoAprendizado
@@ -140,9 +202,8 @@ function aplicarCorrecao(original, sugestao, el, pularConfirmacao = false) {
             })
             : null;
         removerErroGlobal(original);
-        const olOriginal = original.toLowerCase();
-        if (!ignoradosTemporarios.includes(olOriginal)) { ignoradosTemporarios.push(olOriginal); setTimeout(() => { ignoradosTemporarios = ignoradosTemporarios.filter(p => p !== olOriginal); }, 5000); }
         registrarCorrecaoAplicada();
+        if (!smCorrigindoEmLote) agendarReverificacaoAposCorrecao(el);
         if (smConfig.modoAprendizado) {
             if (erroEncontrado && erroEncontrado.message) setTimeout(() => mostrarExplicacaoRegra(original, sugestao, erroEncontrado.message, erroEncontrado), 300);
         }
@@ -199,7 +260,7 @@ function confirmarCorrecao(original, sugestao, callback) {
     overlay.onclick = (e) => { if (e.target === overlay) { overlay.remove(); callback(false); } };
 }
 
-function confirmarCorrecaoEmLote(correcoes) {
+function confirmarCorrecaoEmLote(correcoes, el = elementoGlobal) {
     const overlay = document.createElement('div');
     overlay.style.cssText = `position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:2147483646;display:flex;align-items:center;justify-content:center;`;
     const lista = smCriarElemento('div', { style: 'margin-bottom:16px;' });
@@ -244,22 +305,179 @@ function confirmarCorrecaoEmLote(correcoes) {
     document.body.appendChild(overlay);
     btnCancel.style.cssText = 'background:#f3f4f6;border:1px solid #d1d5db;color:#374151;padding:8px 16px;border-radius:6px;cursor:pointer;font-weight:600;';
     btnConfirm.style.cssText = 'background:linear-gradient(135deg,#6f42c1,#8b5cf6);border:none;color:white;padding:8px 16px;border-radius:6px;cursor:pointer;font-weight:600;';
-    btnConfirm.onclick = () => { overlay.remove(); correcoes.forEach(([o, s]) => aplicarCorrecao(o, s, elementoGlobal, true)); errosGlobais = []; atualizarInterface(); mostrarFeedbackInteligente('✓ Tudo corrigido!', 'success'); };
+    btnConfirm.onclick = () => { overlay.remove(); executarCorrecoesEmLote(correcoes, el); };
     btnCancel.onclick = () => overlay.remove();
     overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
 }
 
-function corrigirTudo() {
-    if (!elementoGlobal) return;
+function obterElementoAlvoCorrecao(el = elementoGlobal) {
+    const candidatos = [el, elementoGlobal, ultimoElementoEditavel];
+
+    if (typeof obterElementoEditavelDaSelecao === 'function') {
+        candidatos.push(obterElementoEditavelDaSelecao());
+    }
+
+    candidatos.push(document.activeElement);
+
+    for (const candidato of candidatos) {
+        const alvo = normalizarElementoEditavel(candidato);
+        if (alvo && elementoEstaNoDocumento(alvo)) return alvo;
+    }
+
+    const alvoPorTexto = encontrarElementoEditavelPorTexto();
+    if (alvoPorTexto) return alvoPorTexto;
+
+    return null;
+}
+
+function encontrarElementoEditavelPorTexto() {
+    const correcoes = extrairCorrecoesDosErros();
+    const originais = correcoes.map(([original]) => original).filter(Boolean);
+    const textoReferencia = (textoUltimaVerificacao || '').trim();
+    if (originais.length === 0 && textoReferencia.length === 0) return null;
+
+    const seletores = 'textarea, input[type="text"], input[type="search"], input[type="url"], input[type="email"], input:not([type]), [contenteditable]:not([contenteditable="false"]), [role="textbox"]';
+    const candidatos = Array.from(document.querySelectorAll(seletores));
+
+    for (const candidato of candidatos) {
+        const alvo = normalizarElementoEditavel(candidato);
+        if (!alvo || !elementoEstaNoDocumento(alvo)) continue;
+
+        const rect = alvo.getBoundingClientRect?.();
+        if (rect && rect.width === 0 && rect.height === 0) continue;
+
+        const texto = obterTextoElementoParaRevisao(alvo).trim();
+        if (!texto) continue;
+        if (textoReferencia && texto === textoReferencia) return alvo;
+        if (originais.some(original => texto.includes(original))) return alvo;
+    }
+
+    return null;
+}
+
+function aplicarCorrecoesEmTexto(texto, correcoes) {
+    let novoTexto = texto || '';
+    const aplicadas = [];
+
+    correcoes.forEach(([original, sugestao]) => {
+        const regex = criarRegexCorrecaoTexto(original);
+        let total = 0;
+        const atualizado = novoTexto.replace(regex, () => {
+            total++;
+            return sugestao;
+        });
+
+        if (total > 0 && atualizado !== novoTexto) {
+            aplicadas.push({ original, sugestao, total });
+            novoTexto = atualizado;
+        }
+    });
+
+    return { novoTexto, aplicadas };
+}
+
+function registrarCorrecoesEmLote(aplicadas, el) {
+    aplicadas.forEach(({ original, sugestao, total }) => {
+        historicoCorrecoes.push({ el, original, sugestao, total, timestamp: Date.now() });
+    });
+    while (historicoCorrecoes.length > 50) historicoCorrecoes.shift();
+}
+
+function executarCorrecoesEmLote(correcoes, el = elementoGlobal) {
+    const alvo = obterElementoAlvoCorrecao(el);
+    if (!alvo) {
+        mostrarFeedback('Nenhum campo editavel encontrado para corrigir.', 'info');
+        return;
+    }
+
+    const correcoesValidas = (correcoes || []).filter(([original, sugestao]) => original?.trim() && sugestao != null && sugestao !== original);
+    if (correcoesValidas.length === 0) {
+        mostrarFeedback('Nenhuma sugestao para corrigir.', 'info');
+        return;
+    }
+
+    let aplicadas = [];
+    registrarElementoEditavelAtivo(alvo);
+    smCorrigindoEmLote = true;
+
+    try {
+        if (alvo.tagName === 'TEXTAREA' || alvo.tagName === 'INPUT') {
+            const valorAntigo = alvo.value || '';
+            const resultado = aplicarCorrecoesEmTexto(valorAntigo, correcoesValidas);
+            aplicadas = resultado.aplicadas;
+
+            if (resultado.novoTexto !== valorAntigo) {
+                salvarEstadoParaDesfazer(alvo, 'correcao em lote', 'correcoes aplicadas', valorAntigo, resultado.novoTexto);
+                alvo.value = resultado.novoTexto;
+                executarSemProcessarInputInterno(() => dispararEventosNativos(alvo));
+                requestAnimationFrame(() => executarSemProcessarInputInterno(() => dispararEventosNativos(alvo)));
+            }
+        } else if (alvo.isContentEditable) {
+            if (!isSiteRestrito) limparGrifosElemento(alvo);
+            const htmlAntigo = alvo.innerHTML;
+
+            correcoesValidas.forEach(([original, sugestao]) => {
+                const total = substituirTextoEmContentEditable(alvo, original, sugestao);
+                if (total > 0) aplicadas.push({ original, sugestao, total });
+            });
+
+            const htmlDepois = alvo.innerHTML;
+            if (htmlDepois !== htmlAntigo) {
+                salvarEstadoParaDesfazer(alvo, 'correcao em lote', 'correcoes aplicadas', htmlAntigo, htmlDepois);
+                executarSemProcessarInputInterno(() => atualizarElementoComEventos(alvo));
+            }
+        }
+    } finally {
+        smCorrigindoEmLote = false;
+        clearTimeout(timeoutReverificacaoCorrecao);
+    }
+
+    if (aplicadas.length === 0) {
+        mostrarFeedback('Nenhuma correcao foi aplicada.', 'info');
+        return;
+    }
+
+    registrarCorrecoesEmLote(aplicadas, alvo);
+    errosGlobais = [];
+    ultimoTextoValido = '';
+    textoUltimaVerificacao = obterTextoElementoParaRevisao(alvo).trim();
+    atualizarInterface();
+    atualizarVisibilidadeBolha();
+    registrarCorrecaoAplicada();
+    mostrarFeedbackInteligente(`${aplicadas.length} correcao${aplicadas.length > 1 ? 'es' : ''} aplicada${aplicadas.length > 1 ? 's' : ''}. Revisando novamente...`, 'success');
+    agendarReverificacaoAposCorrecao(alvo);
+}
+
+function extrairCorrecoesDosErros(erros = errosGlobais) {
     const unicos = {};
-    errosGlobais.forEach(err => { const o = err.context.text.substr(err.context.offset, err.context.length); const s = err.replacements[0]?.value; if (o.trim() && s != null && !Object.hasOwn(unicos, o)) unicos[o] = s; });
-    const correcoes = Object.entries(unicos);
-    if (correcoes.length === 0) return;
-    if (smConfig.modoConfirmacao || isModoLeitura()) confirmarCorrecaoEmLote(correcoes);
-    else { correcoes.forEach(([o, s]) => aplicarCorrecao(o, s, elementoGlobal, true)); errosGlobais = []; atualizarInterface(); mostrarFeedbackInteligente('✓ Tudo corrigido!', 'success'); }
+    erros.forEach(err => {
+        const o = err.context.text.substr(err.context.offset, err.context.length);
+        const s = err.replacements[0]?.value;
+        if (o.trim() && s != null && s !== o && !Object.hasOwn(unicos, o)) unicos[o] = s;
+    });
+    return Object.entries(unicos);
+}
+
+function corrigirTudo() {
+    const alvo = obterElementoAlvoCorrecao();
+    if (!alvo) {
+        mostrarFeedback('Clique em um campo de texto antes de corrigir tudo.', 'info');
+        return;
+    }
+
+    registrarElementoEditavelAtivo(alvo);
+    const correcoes = extrairCorrecoesDosErros();
+    if (correcoes.length === 0) {
+        mostrarFeedback('Nenhuma sugestao para corrigir.', 'info');
+        return;
+    }
+
+    if (smConfig.modoConfirmacao || isModoLeitura()) confirmarCorrecaoEmLote(correcoes, alvo);
+    else executarCorrecoesEmLote(correcoes, alvo);
 }
 
 function limparTudo() {
-    if (!isSiteRestrito && elementoGlobal?.isContentEditable) { elementoGlobal.innerHTML = elementoGlobal.innerHTML.replace(/<mark class="sm-highlight">(.*?)<\/mark>/gi, '$1'); atualizarElementoComEventos(elementoGlobal); }
+    const alvo = obterElementoAlvoCorrecao(elementoGlobal);
+    if (!isSiteRestrito && alvo?.isContentEditable) { limparGrifosElemento(alvo); }
     errosGlobais = []; atualizarInterface();
 }
