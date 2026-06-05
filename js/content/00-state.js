@@ -46,8 +46,10 @@ let ultimoTextoValido = '';
 let ultimaConsultaGrammarId = 0;
 let smAplicacaoGrifosId = 0;
 let timeoutReverificacaoCorrecao = null;
+let timeoutLimpezaEnvio = null;
 let smCorrigindoEmLote = false;
 let smIgnorandoInputInterno = false;
+let smLimpandoRevisaoObsoleta = false;
 
 let historicoDesfazer = [];
 const MAX_HISTORICO_DESFAZER = 20;
@@ -122,6 +124,7 @@ let smConfig = {
     modoWhitelist: false,
     whitelist: [],
     userWhitelistOverrides: [],
+    smBubblePosition: null,
     modoFoco: false,
     modoAprendizado: false
 };

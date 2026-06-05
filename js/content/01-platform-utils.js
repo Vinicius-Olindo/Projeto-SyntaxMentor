@@ -200,6 +200,137 @@ function registrarElementoEditavelAtivo(el) {
     return alvo;
 }
 
+function obterTextoEditavelAtual(el) {
+    if (!el) return '';
+    if (el.tagName === 'TEXTAREA' || el.tagName === 'INPUT') return el.value || '';
+    return el.textContent || el.innerText || '';
+}
+
+function limparEstadoRevisaoObsoleta(alvo = elementoGlobal) {
+    if (smLimpandoRevisaoObsoleta) return;
+    smLimpandoRevisaoObsoleta = true;
+
+    try {
+        clearTimeout(timeoutDigitacao);
+        clearTimeout(timeoutReverificacaoCorrecao);
+        clearTimeout(timeoutLimpezaEnvio);
+
+        if (currentFetchController) {
+            currentFetchController.abort();
+            currentFetchController = null;
+        }
+
+        if (!isSiteRestrito && alvo?.isContentEditable && elementoEstaNoDocumento(alvo)) {
+            limparGrifosElemento(alvo);
+        }
+
+        filaRequisicoes = [];
+        processandoFila = false;
+        usuarioDigitando = false;
+        estaCarregando = false;
+        errosGlobais = [];
+        ultimoTextoValido = '';
+        textoUltimaVerificacao = '';
+        elementoGlobal = null;
+        ultimoElementoEditavel = null;
+
+        if (typeof fecharPainel === 'function') fecharPainel();
+        if (typeof atualizarInterface === 'function') atualizarInterface();
+        if (typeof atualizarEstadoCarregamento === 'function') atualizarEstadoCarregamento(false);
+        if (typeof resetarBadgeBackground === 'function') resetarBadgeBackground();
+        if (typeof atualizarVisibilidadeBolha === 'function') atualizarVisibilidadeBolha();
+    } finally {
+        smLimpandoRevisaoObsoleta = false;
+    }
+}
+
+function limparRevisaoSeEditorVazioOuRemovido(el = elementoGlobal || ultimoElementoEditavel) {
+    const alvo = normalizarElementoEditavel(el) || normalizarElementoEditavel(elementoGlobal) || normalizarElementoEditavel(ultimoElementoEditavel);
+    if (!alvo || !elementoEstaNoDocumento(alvo)) {
+        if (errosGlobais.length > 0 || textoUltimaVerificacao) {
+            limparEstadoRevisaoObsoleta(alvo);
+            return true;
+        }
+        return false;
+    }
+
+    if (obterTextoEditavelAtual(alvo).trim().length <= 1) {
+        limparEstadoRevisaoObsoleta(alvo);
+        return true;
+    }
+
+    return false;
+}
+
+function agendarLimpezaAposPossivelEnvio(el = elementoGlobal || ultimoElementoEditavel, atraso = 180) {
+    const alvo = normalizarElementoEditavel(el) || normalizarElementoEditavel(elementoGlobal) || normalizarElementoEditavel(ultimoElementoEditavel);
+    clearTimeout(timeoutLimpezaEnvio);
+
+    timeoutLimpezaEnvio = setTimeout(() => {
+        limparRevisaoSeEditorVazioOuRemovido(alvo);
+        setTimeout(() => limparRevisaoSeEditorVazioOuRemovido(alvo), 700);
+    }, atraso);
+}
+
+function agendarRevisaoEntradaEditavel(el, inputType = '') {
+    const alvo = registrarElementoEditavelAtivo(el);
+    if (!alvo) return false;
+    if (alvo.tagName === 'INPUT' && smConfig.strictMode) return false;
+
+    smAplicacaoGrifosId++;
+    if (!isSiteRestrito && alvo.isContentEditable) limparGrifosElemento(alvo);
+
+    alvo._smModoVoz = inputType === 'insertFromSpeech' || inputType === 'insertFromVoice';
+    usuarioDigitando = true;
+    atualizarVisibilidadeBolha();
+
+    if (currentFetchController) {
+        currentFetchController.abort();
+        currentFetchController = null;
+    }
+
+    filaRequisicoes = [];
+    processandoFila = false;
+    clearTimeout(timeoutDigitacao);
+
+    timeoutDigitacao = setTimeout(() => {
+        usuarioDigitando = false;
+        const texto = obterTextoEditavelAtual(alvo).trim();
+        if (texto.length <= 1) {
+            limparEstadoRevisaoObsoleta(alvo);
+            return;
+        }
+
+        if (texto === ultimoTextoValido && errosGlobais.length > 0) {
+            atualizarVisibilidadeBolha();
+            return;
+        }
+
+        ultimoTextoValido = texto;
+        textoUltimaVerificacao = texto;
+        if (!idiomaSugerido) verificarIdioma(texto);
+        filaRequisicoes.push({ texto, el: alvo });
+        processarFilaRequisicoes();
+        atualizarVisibilidadeBolha();
+    }, parseInt(smConfig.speed) || 500);
+
+    return true;
+}
+
+function agendarRevisaoAposColagem(el) {
+    const alvo = normalizarElementoEditavel(el) || normalizarElementoEditavel(document.activeElement);
+    if (!alvo) return false;
+
+    setTimeout(() => agendarRevisaoEntradaEditavel(alvo, 'insertFromPaste'), 40);
+    setTimeout(() => {
+        if (obterTextoEditavelAtual(alvo).trim() !== textoUltimaVerificacao) {
+            agendarRevisaoEntradaEditavel(alvo, 'insertFromPaste');
+        }
+    }, 180);
+
+    return true;
+}
+
 function obterElementoEditavelDaSelecao() {
     const ativo = document.activeElement;
     const alvoAtivo = normalizarElementoEditavel(ativo);

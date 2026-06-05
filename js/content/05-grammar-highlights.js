@@ -47,7 +47,7 @@ async function verificarTexto(texto, elemento) {
             return;
         }
 
-        const atual = (elemento.value || elemento.textContent || elemento.innerText || '').trim();
+        const atual = obterTextoEditavelAtual(elemento).trim();
         if (atual !== texto) {
             estaCarregando = false;
             atualizarEstadoCarregamento(false);

@@ -15,6 +15,53 @@ function posicionarBolhaPadrao(bubble) {
     bubblePosY = null;
 }
 
+function normalizarPosicaoBolha(posicao, bubble) {
+    if (!posicao) return null;
+
+    const leftOriginal = Number(posicao.left);
+    const topOriginal = Number(posicao.top);
+    if (!Number.isFinite(leftOriginal) || !Number.isFinite(topOriginal)) return null;
+
+    const rect = bubble?.getBoundingClientRect?.();
+    const largura = rect?.width || 40;
+    const altura = rect?.height || 40;
+    const margem = 12;
+    const viewportWidth = window.innerWidth || document.documentElement.clientWidth || 0;
+    const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 0;
+    if (!viewportWidth || !viewportHeight) return null;
+
+    return {
+        left: Math.min(Math.max(leftOriginal, margem), Math.max(margem, viewportWidth - largura - margem)),
+        top: Math.min(Math.max(topOriginal, margem), Math.max(margem, viewportHeight - altura - margem))
+    };
+}
+
+function aplicarPosicaoBolhaSalva(bubble) {
+    const posicao = normalizarPosicaoBolha(smConfig.smBubblePosition, bubble);
+    if (!posicao) return false;
+
+    bubble.style.left = `${posicao.left}px`;
+    bubble.style.top = `${posicao.top}px`;
+    bubble.style.right = 'auto';
+    bubble.style.bottom = 'auto';
+    bubblePosX = bubble.style.left;
+    bubblePosY = bubble.style.top;
+    return true;
+}
+
+function salvarPosicaoBolhaAtual(bubble) {
+    const posicao = normalizarPosicaoBolha({
+        left: bubble?.offsetLeft,
+        top: bubble?.offsetTop
+    }, bubble);
+    if (!posicao) return;
+
+    smConfig.smBubblePosition = posicao;
+    bubblePosX = `${posicao.left}px`;
+    bubblePosY = `${posicao.top}px`;
+    storageSetSeguro({ smBubblePosition: posicao });
+}
+
 function garantirBolhaNaTela(bubble) {
     if (!bubble) return;
 
@@ -129,7 +176,7 @@ function atualizarInterface() {
         bubble.id = 'syntax-mentor-bubble';
         bubble.title = 'SyntaxMentor';
         document.body.appendChild(bubble);
-        posicionarBolhaPadrao(bubble);
+        if (!aplicarPosicaoBolhaSalva(bubble)) posicionarBolhaPadrao(bubble);
         tornarArrastavel(bubble);
         bubble.addEventListener('click', () => {
             if (!isDraggingBubble && errosGlobais.length > 0) {
@@ -145,6 +192,8 @@ function atualizarInterface() {
         bubble.style.top = bubblePosY;
         bubble.style.right = 'auto';
         bubble.style.bottom = 'auto';
+    } else {
+        aplicarPosicaoBolhaSalva(bubble);
     }
 
     garantirBolhaNaTela(bubble);
@@ -673,7 +722,7 @@ function fecharPainelComSucesso() {
 function tornarArrastavel(el) {
     let startX = 0, startY = 0, isDragging = false, hasMoved = false;
     function onMouseMove(e) { if (!isDragging) return; const dx = e.clientX - startX; const dy = e.clientY - startY; if (Math.abs(dx) > 5 || Math.abs(dy) > 5) { hasMoved = true; isDraggingBubble = true; el.style.left = (el.offsetLeft + dx) + 'px'; el.style.top = (el.offsetTop + dy) + 'px'; el.style.right = 'auto'; el.style.bottom = 'auto'; bubblePosX = el.style.left; bubblePosY = el.style.top; startX = e.clientX; startY = e.clientY; } }
-    function onMouseUp() { isDragging = false; el.style.cursor = 'grab'; document.removeEventListener('mousemove', onMouseMove); document.removeEventListener('mouseup', onMouseUp); setTimeout(() => { isDraggingBubble = false; }, 100); }
+    function onMouseUp() { isDragging = false; el.style.cursor = 'grab'; if (hasMoved) { garantirBolhaNaTela(el); salvarPosicaoBolhaAtual(el); } document.removeEventListener('mousemove', onMouseMove); document.removeEventListener('mouseup', onMouseUp); setTimeout(() => { isDraggingBubble = false; }, 100); }
     el.addEventListener('mousedown', (e) => { startX = e.clientX; startY = e.clientY; isDragging = true; hasMoved = false; el.style.cursor = 'grabbing'; document.addEventListener('mousemove', onMouseMove); document.addEventListener('mouseup', onMouseUp); });
     el.style.cursor = 'grab';
 }

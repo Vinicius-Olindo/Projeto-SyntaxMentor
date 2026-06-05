@@ -11,6 +11,10 @@ document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && painelAberto) { e.preventDefault(); fecharPainel(); return; }
     if (painelAberto && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) { e.preventDefault(); const botoes = [...document.querySelectorAll('#syntax-mentor-painel .btn-fix-mini')]; if (botoes.length === 0) return; if (e.key === 'ArrowDown') indexSugestao = (indexSugestao + 1) % botoes.length; else indexSugestao = (indexSugestao - 1 + botoes.length) % botoes.length; botoes[indexSugestao].focus(); return; }
     if (painelAberto && e.key === 'Enter') { const botoes = [...document.querySelectorAll('#syntax-mentor-painel .btn-fix-mini')]; if (botoes.length > 0 && botoes[indexSugestao]) { e.preventDefault(); botoes[indexSugestao].click(); } return; }
+    const alvoTecla = normalizarElementoEditavel(e.target || document.activeElement);
+    if (alvoTecla && e.key === 'Enter' && !e.shiftKey && !e.ctrlKey && !e.altKey && !e.metaKey) {
+        agendarLimpezaAposPossivelEnvio(alvoTecla);
+    }
     const toggleShortcut = smConfig.toggleShortcut || { altKey: true, ctrlKey: false, shiftKey: false, key: 's' };
     const ignoreShortcut = smConfig.ignoreShortcut || { altKey: true, ctrlKey: false, shiftKey: false, key: 'i' };
     const corrigirTudoShortcut = smConfig.corrigirTudoShortcut || { altKey: true, ctrlKey: false, shiftKey: true, key: 's' };
@@ -21,6 +25,32 @@ document.addEventListener('keydown', (e) => {
     if (e.altKey === corrigirTudoShortcut.altKey && e.ctrlKey === corrigirTudoShortcut.ctrlKey && e.shiftKey === corrigirTudoShortcut.shiftKey && e.key.toLowerCase() === corrigirTudoShortcut.key) { e.preventDefault(); e.stopPropagation(); if (errosGlobais.length > 0) corrigirTudo(); return; }
     if (e.altKey === ativarShortcut.altKey && e.ctrlKey === ativarShortcut.ctrlKey && e.shiftKey === ativarShortcut.shiftKey && e.key.toLowerCase() === ativarShortcut.key) { e.preventDefault(); e.stopPropagation(); if (!smConfig.disabled) { mostrarFeedback('✅ SyntaxMentor já está ATIVADO neste site', 'info'); return; } smConfig.disabled = false; enviarMensagemSegura({ action: 'toggleSiteGlobal', enabled: true, host: window.location.hostname }); const campoAtivo = registrarElementoEditavelAtivo(document.activeElement); if (campoAtivo) { const texto = campoAtivo.value || campoAtivo.textContent || campoAtivo.innerText || ''; if (texto.trim().length > 1) { textoUltimaVerificacao = texto; verificarTexto(texto, campoAtivo); } } const bubble = document.getElementById('syntax-mentor-bubble'); if (bubble) bubble.style.display = 'flex'; mostrarFeedback('✅ SyntaxMentor ATIVADO neste site', 'success'); atualizarBadgeBackground(errosGlobais.length); return; }
     if (e.altKey === desativarShortcut.altKey && e.ctrlKey === desativarShortcut.ctrlKey && e.shiftKey === desativarShortcut.shiftKey && e.key.toLowerCase() === desativarShortcut.key) { e.preventDefault(); e.stopPropagation(); if (smConfig.disabled) { mostrarFeedback('⛔ SyntaxMentor já está DESATIVADO neste site', 'info'); return; } smConfig.disabled = true; enviarMensagemSegura({ action: 'toggleSiteGlobal', enabled: false, host: window.location.hostname }); if (elementoGlobal && elementoGlobal.isContentEditable && !isSiteRestrito) { limparGrifosElemento(elementoGlobal); } errosGlobais = []; fecharPainel(); const bubble = document.getElementById('syntax-mentor-bubble'); if (bubble) bubble.style.display = 'none'; mostrarFeedback('⛔ SyntaxMentor DESATIVADO neste site', 'info'); resetarBadgeBackground(); return; }
+}, true);
+
+function elementoPareceAcaoDeEnvio(el) {
+    const acao = el?.closest?.('button, [role="button"], input[type="submit"], input[type="button"], [aria-label], [title]');
+    if (!acao || acao.closest?.('#syntax-mentor-painel, #syntax-mentor-bubble')) return false;
+
+    const rotulo = [
+        acao.getAttribute?.('aria-label'),
+        acao.getAttribute?.('title'),
+        acao.getAttribute?.('data-control-name'),
+        acao.value,
+        acao.textContent
+    ].filter(Boolean).join(' ').toLowerCase();
+
+    return /\b(enviar|send|publicar|publish|postar|post|comentar|comment|responder|reply)\b/i.test(rotulo);
+}
+
+document.addEventListener('click', (e) => {
+    if (window !== window.top) return;
+    if (!elementoPareceAcaoDeEnvio(e.target)) return;
+    agendarLimpezaAposPossivelEnvio(elementoGlobal || ultimoElementoEditavel, 220);
+}, true);
+
+document.addEventListener('submit', () => {
+    if (window !== window.top) return;
+    agendarLimpezaAposPossivelEnvio(elementoGlobal || ultimoElementoEditavel, 220);
 }, true);
 
 function mostrarNotificacaoTemp(texto, cor) { 
@@ -48,29 +78,18 @@ if (!document.querySelector('#sm-notif-style')) {
 document.addEventListener('input', (e) => {
     if (smConfig.disabled) return;
     if (smIgnorandoInputInterno) return;
-    let el = registrarElementoEditavelAtivo(e.target);
-    if (!el) return;
-    if (el.tagName === 'INPUT' && smConfig.strictMode) return;
-    smAplicacaoGrifosId++;
-    if (!isSiteRestrito && el.isContentEditable) limparGrifosElemento(el);
-    const isVoz = e.inputType === 'insertFromSpeech' || e.inputType === 'insertFromVoice';
-    el._smModoVoz = isVoz;
-    usuarioDigitando = true;
-    atualizarVisibilidadeBolha();
-    if (currentFetchController) { currentFetchController.abort(); currentFetchController = null; }
-    filaRequisicoes = [];
-    processandoFila = false;
-    clearTimeout(timeoutDigitacao);
-    timeoutDigitacao = setTimeout(() => {
-        usuarioDigitando = false;
-        const texto = (el.value || el.textContent || el.innerText || '').trim();
-        if (texto.length <= 1) { errosGlobais = []; atualizarInterface(); if (!isSiteRestrito && el.isContentEditable) { limparGrifosElemento(el); } atualizarVisibilidadeBolha(); return; }
-        if (texto === ultimoTextoValido && errosGlobais.length > 0) { atualizarVisibilidadeBolha(); return; }
-        ultimoTextoValido = texto;
-        textoUltimaVerificacao = texto;
-        if (!idiomaSugerido) verificarIdioma(texto);
-        filaRequisicoes.push({ texto, el });
-        processarFilaRequisicoes();
-        atualizarVisibilidadeBolha();
-    }, parseInt(smConfig.speed) || 500);
+    agendarRevisaoEntradaEditavel(e.target, e.inputType || '');
+}, true);
+
+document.addEventListener('paste', (e) => {
+    if (smConfig.disabled) return;
+    if (smIgnorandoInputInterno) return;
+    agendarRevisaoAposColagem(e.target);
+}, true);
+
+document.addEventListener('beforeinput', (e) => {
+    if (smConfig.disabled) return;
+    if (smIgnorandoInputInterno) return;
+    if (!String(e.inputType || '').startsWith('insertFromPaste')) return;
+    agendarRevisaoAposColagem(e.target);
 }, true);

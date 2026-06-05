@@ -46,10 +46,14 @@ function adicionarListenersNoShadowRoot(shadowRoot) {
     if (!shadowRoot) return;
     
     // Verificar se já existe observer para este shadowRoot
-    const campos = shadowRoot.querySelectorAll('textarea, input[type="text"], input[type="search"], [contenteditable="true"], [role="textbox"]');
+    const campos = shadowRoot.querySelectorAll('textarea, input[type="text"], input[type="search"], input[type="url"], input[type="email"], input:not([type]), [contenteditable]:not([contenteditable="false"]), [role="textbox"]');
     campos.forEach(campo => {
         campo.removeEventListener('input', shadowInputHandler);
+        campo.removeEventListener('paste', shadowPasteHandler);
+        campo.removeEventListener('beforeinput', shadowBeforeInputHandler);
         campo.addEventListener('input', shadowInputHandler);
+        campo.addEventListener('paste', shadowPasteHandler);
+        campo.addEventListener('beforeinput', shadowBeforeInputHandler);
     });
 
     if (shadowObservers.has(shadowRoot)) return;
@@ -65,37 +69,20 @@ function adicionarListenersNoShadowRoot(shadowRoot) {
 function shadowInputHandler(e) {
     if (smConfig.disabled) return;
     if (smIgnorandoInputInterno) return;
-    let el = registrarElementoEditavelAtivo(e.target);
-    if (!el) return;
-    if (el.tagName === 'INPUT' && smConfig.strictMode) return;
-    smAplicacaoGrifosId++;
-    if (!isSiteRestrito && el.isContentEditable) limparGrifosElemento(el);
-    usuarioDigitando = true;
-    atualizarVisibilidadeBolha();
-    if (currentFetchController) { currentFetchController.abort(); currentFetchController = null; }
-    filaRequisicoes = [];
-    processandoFila = false;
-    clearTimeout(timeoutDigitacao);
-    timeoutDigitacao = setTimeout(() => {
-        usuarioDigitando = false;
-        const texto = (el.value || el.textContent || el.innerText || '').trim();
-        if (texto.length <= 1) {
-            errosGlobais = [];
-            atualizarInterface();
-            atualizarVisibilidadeBolha();
-            return;
-        }
-        if (texto === ultimoTextoValido && errosGlobais.length > 0) {
-            atualizarVisibilidadeBolha();
-            return;
-        }
-        ultimoTextoValido = texto;
-        textoUltimaVerificacao = texto;
-        if (!idiomaSugerido) verificarIdioma(texto);
-        filaRequisicoes.push({ texto, el });
-        processarFilaRequisicoes();
-        atualizarVisibilidadeBolha();
-    }, parseInt(smConfig.speed) || 500);
+    agendarRevisaoEntradaEditavel(e.target, e.inputType || '');
+}
+
+function shadowPasteHandler(e) {
+    if (smConfig.disabled) return;
+    if (smIgnorandoInputInterno) return;
+    agendarRevisaoAposColagem(e.target);
+}
+
+function shadowBeforeInputHandler(e) {
+    if (smConfig.disabled) return;
+    if (smIgnorandoInputInterno) return;
+    if (!String(e.inputType || '').startsWith('insertFromPaste')) return;
+    agendarRevisaoAposColagem(e.target);
 }
 
 function observarShadowDOM() {
@@ -103,6 +90,9 @@ function observarShadowDOM() {
     observarElemento(document.body);
     shadowDomObserver = new MutationObserver((mutations) => {
         if (isExtensaoMutando) return;
+        if (errosGlobais.length > 0 || textoUltimaVerificacao) {
+            limparRevisaoSeEditorVazioOuRemovido(elementoGlobal || ultimoElementoEditavel);
+        }
         mutations.forEach(mutation => {
             mutation.addedNodes.forEach(node => {
                 if (node.nodeType === 1) {
