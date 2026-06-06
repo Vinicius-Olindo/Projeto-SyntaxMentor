@@ -206,26 +206,71 @@ function obterTextoEditavelAtual(el) {
     return el.textContent || el.innerText || '';
 }
 
+function cancelarConsultaAtual() {
+    if (currentFetchController) {
+        currentFetchController.abort();
+        currentFetchController = null;
+    }
+}
+
+function cancelarFilaRevisao() {
+    filaRequisicoes = [];
+    processandoFila = false;
+}
+
+function iniciarCicloRevisao(alvo, texto = '', origem = 'input', opcoes = {}) {
+    const cicloId = ++smRevisaoCicloId;
+    smCicloRevisaoAtual = {
+        id: cicloId,
+        origem,
+        alvo,
+        texto,
+        criadoEm: Date.now()
+    };
+
+    if (opcoes.limparTimer !== false) clearTimeout(timeoutDigitacao);
+    if (opcoes.limparFila !== false) cancelarFilaRevisao();
+    if (opcoes.abortarConsulta !== false) cancelarConsultaAtual();
+
+    return smCicloRevisaoAtual;
+}
+
+function cicloRevisaoAindaAtual(cicloId, alvo = null, texto = null) {
+    if (!smCicloRevisaoAtual || smCicloRevisaoAtual.id !== cicloId || smRevisaoCicloId !== cicloId) return false;
+    if (alvo && (!elementoEstaNoDocumento(alvo) || smCicloRevisaoAtual.alvo !== alvo)) return false;
+    if (texto != null && alvo && obterTextoEditavelAtual(alvo).trim() !== texto) return false;
+    return true;
+}
+
+function enfileirarRevisaoTexto(alvo, texto, origem = 'input', cicloId = null) {
+    if (!alvo || !texto || texto.trim().length <= 1) return false;
+    const ciclo = cicloId && cicloRevisaoAindaAtual(cicloId, alvo)
+        ? smCicloRevisaoAtual
+        : iniciarCicloRevisao(alvo, texto, origem);
+
+    ciclo.texto = texto;
+    ciclo.origem = origem;
+    ultimoTextoValido = texto;
+    textoUltimaVerificacao = texto;
+    filaRequisicoes = [{ texto, el: alvo, cicloId: ciclo.id, origem }];
+    processarFilaRequisicoes();
+    return true;
+}
+
 function limparEstadoRevisaoObsoleta(alvo = elementoGlobal) {
     if (smLimpandoRevisaoObsoleta) return;
     smLimpandoRevisaoObsoleta = true;
 
     try {
+        iniciarCicloRevisao(null, '', 'limpeza', { limparTimer: true, limparFila: true, abortarConsulta: true });
         clearTimeout(timeoutDigitacao);
         clearTimeout(timeoutReverificacaoCorrecao);
         clearTimeout(timeoutLimpezaEnvio);
-
-        if (currentFetchController) {
-            currentFetchController.abort();
-            currentFetchController = null;
-        }
 
         if (!isSiteRestrito && alvo?.isContentEditable && elementoEstaNoDocumento(alvo)) {
             limparGrifosElemento(alvo);
         }
 
-        filaRequisicoes = [];
-        processandoFila = false;
         usuarioDigitando = false;
         estaCarregando = false;
         errosGlobais = [];
@@ -262,20 +307,64 @@ function limparRevisaoSeEditorVazioOuRemovido(el = elementoGlobal || ultimoEleme
     return false;
 }
 
-function agendarLimpezaAposPossivelEnvio(el = elementoGlobal || ultimoElementoEditavel, atraso = 180) {
-    const alvo = normalizarElementoEditavel(el) || normalizarElementoEditavel(elementoGlobal) || normalizarElementoEditavel(ultimoElementoEditavel);
-    clearTimeout(timeoutLimpezaEnvio);
-
-    timeoutLimpezaEnvio = setTimeout(() => {
-        limparRevisaoSeEditorVazioOuRemovido(alvo);
-        setTimeout(() => limparRevisaoSeEditorVazioOuRemovido(alvo), 700);
-    }, atraso);
+function capturarEstadoEnvio(alvo) {
+    const elemento = normalizarElementoEditavel(alvo) || normalizarElementoEditavel(elementoGlobal) || normalizarElementoEditavel(ultimoElementoEditavel);
+    return {
+        elemento,
+        textoAntes: obterTextoEditavelAtual(elemento).trim(),
+        cicloId: smRevisaoCicloId,
+        criadoEm: Date.now()
+    };
 }
 
-function agendarRevisaoEntradaEditavel(el, inputType = '') {
+function textoDoEditorMudouAposEnvio(snapshot) {
+    const alvo = normalizarElementoEditavel(snapshot?.elemento);
+    if (!alvo || !elementoEstaNoDocumento(alvo)) return true;
+
+    const textoAtual = obterTextoEditavelAtual(alvo).trim();
+    const textoAntes = String(snapshot?.textoAntes || '').trim();
+    if (textoAtual.length <= 1) return true;
+    if (!textoAntes) return false;
+    if (textoAtual === textoAntes) return false;
+    return !textoAtual.includes(textoAntes) && !textoAntes.includes(textoAtual);
+}
+
+function limpezaAposEnvioConfirmado(snapshot, opcoes = {}) {
+    const alvo = normalizarElementoEditavel(snapshot?.elemento);
+    const deveForcar = !!opcoes.forcar;
+    if (deveForcar || textoDoEditorMudouAposEnvio(snapshot)) {
+        limparEstadoRevisaoObsoleta(alvo);
+        return true;
+    }
+
+    return limparRevisaoSeEditorVazioOuRemovido(alvo);
+}
+
+function agendarLimpezaAposPossivelEnvio(el = elementoGlobal || ultimoElementoEditavel, atraso = 180, opcoes = {}) {
+    const alvo = normalizarElementoEditavel(el) || normalizarElementoEditavel(elementoGlobal) || normalizarElementoEditavel(ultimoElementoEditavel);
+    const snapshot = capturarEstadoEnvio(alvo);
+    clearTimeout(timeoutLimpezaEnvio);
+
+    const tentativas = opcoes.forcar
+        ? [Math.max(80, atraso), 320, 900, 1600]
+        : [atraso, 700, 1500];
+
+    timeoutLimpezaEnvio = setTimeout(() => {
+        tentativas.forEach((tempo, index) => {
+            setTimeout(() => {
+                limpezaAposEnvioConfirmado(snapshot, { forcar: opcoes.forcar && index === 0 });
+            }, index === 0 ? 0 : tempo);
+        });
+    }, Math.max(0, atraso));
+}
+
+function agendarRevisaoEntradaEditavel(el, inputType = '', opcoes = {}) {
     const alvo = registrarElementoEditavelAtivo(el);
     if (!alvo) return false;
     if (alvo.tagName === 'INPUT' && smConfig.strictMode) return false;
+    const forcarRevisao = !!opcoes.forcar;
+    const atraso = Number.isFinite(opcoes.atraso) ? opcoes.atraso : (parseInt(smConfig.speed) || 500);
+    const ciclo = iniciarCicloRevisao(alvo, '', inputType || 'input', { limparTimer: true, limparFila: true, abortarConsulta: true });
 
     smAplicacaoGrifosId++;
     if (!isSiteRestrito && alvo.isContentEditable) limparGrifosElemento(alvo);
@@ -284,16 +373,8 @@ function agendarRevisaoEntradaEditavel(el, inputType = '') {
     usuarioDigitando = true;
     atualizarVisibilidadeBolha();
 
-    if (currentFetchController) {
-        currentFetchController.abort();
-        currentFetchController = null;
-    }
-
-    filaRequisicoes = [];
-    processandoFila = false;
-    clearTimeout(timeoutDigitacao);
-
     timeoutDigitacao = setTimeout(() => {
+        if (!cicloRevisaoAindaAtual(ciclo.id, alvo)) return;
         usuarioDigitando = false;
         const texto = obterTextoEditavelAtual(alvo).trim();
         if (texto.length <= 1) {
@@ -301,32 +382,117 @@ function agendarRevisaoEntradaEditavel(el, inputType = '') {
             return;
         }
 
-        if (texto === ultimoTextoValido && errosGlobais.length > 0) {
+        if (!forcarRevisao && texto === ultimoTextoValido && errosGlobais.length > 0) {
             atualizarVisibilidadeBolha();
             return;
         }
 
-        ultimoTextoValido = texto;
-        textoUltimaVerificacao = texto;
         if (!idiomaSugerido) verificarIdioma(texto);
-        filaRequisicoes.push({ texto, el: alvo });
-        processarFilaRequisicoes();
+        enfileirarRevisaoTexto(alvo, texto, inputType || 'input', ciclo.id);
         atualizarVisibilidadeBolha();
-    }, parseInt(smConfig.speed) || 500);
+    }, atraso);
 
     return true;
 }
 
-function agendarRevisaoAposColagem(el) {
+function inputPareceColagem(e, el) {
+    const inputType = String(e?.inputType || '');
+    if (inputType.startsWith('insertFromPaste')) return true;
+
+    const alvo = normalizarElementoEditavel(el);
+    if (!alvo) return false;
+
+    const tamanhoAtual = obterTextoEditavelAtual(alvo).trim().length;
+    const tamanhoReferencia = Math.max(
+        String(textoUltimaVerificacao || '').trim().length,
+        String(ultimoTextoValido || '').trim().length
+    );
+
+    return tamanhoAtual >= 250 && tamanhoAtual - tamanhoReferencia >= 80;
+}
+
+function forcarRevisaoTextoAtual(el, inputType = '') {
+    const alvo = registrarElementoEditavelAtivo(el);
+    if (!alvo) return false;
+    if (alvo.tagName === 'INPUT' && smConfig.strictMode) return false;
+
+    const ciclo = iniciarCicloRevisao(alvo, '', inputType || 'forcado', { limparTimer: true, limparFila: true, abortarConsulta: true });
+
+    const texto = obterTextoEditavelAtual(alvo).trim();
+    if (texto.length <= 1) {
+        limparEstadoRevisaoObsoleta(alvo);
+        return false;
+    }
+
+    alvo._smModoVoz = inputType === 'insertFromSpeech' || inputType === 'insertFromVoice';
+    usuarioDigitando = false;
+    ciclo.texto = texto;
+
+    if (!idiomaSugerido) verificarIdioma(texto);
+    if (typeof aplicarRevisaoLocalImediata === 'function') aplicarRevisaoLocalImediata(texto, alvo);
+    enfileirarRevisaoTexto(alvo, texto, inputType || 'forcado', ciclo.id);
+    atualizarVisibilidadeBolha();
+    return true;
+}
+
+function normalizarTextoColagem(texto) {
+    return String(texto || '').replace(/\s+/g, ' ').trim();
+}
+
+function textoColadoPareceInserido(textoAtual, textoColado) {
+    const atual = normalizarTextoColagem(textoAtual);
+    const colado = normalizarTextoColagem(textoColado);
+    if (!colado) return atual.length > 1;
+    if (!atual) return false;
+    if (atual.includes(colado)) return true;
+    return atual.length >= Math.floor(colado.length * 0.85);
+}
+
+function agendarRevisaoAposColagem(el, textoColado = '') {
     const alvo = normalizarElementoEditavel(el) || normalizarElementoEditavel(document.activeElement);
     if (!alvo) return false;
 
-    setTimeout(() => agendarRevisaoEntradaEditavel(alvo, 'insertFromPaste'), 40);
-    setTimeout(() => {
-        if (obterTextoEditavelAtual(alvo).trim() !== textoUltimaVerificacao) {
-            agendarRevisaoEntradaEditavel(alvo, 'insertFromPaste');
+    const revisaoId = ++smRevisaoColagemId;
+    const maxTentativas = 16;
+    const inicio = Date.now();
+    const tamanhoEsperado = normalizarTextoColagem(textoColado).length;
+    let tentativas = 0;
+    let textoAnterior = '';
+    let leiturasEstaveis = 0;
+
+    const tentarRevisarTextoEstavel = () => {
+        if (revisaoId !== smRevisaoColagemId) return;
+        if (!elementoEstaNoDocumento(alvo)) return;
+
+        const textoAtual = obterTextoEditavelAtual(alvo).trim();
+        const textoGrande = tamanhoEsperado >= 500 || textoAtual.length >= 500;
+        const tempoMinimo = textoGrande ? 1400 : 360;
+        const leiturasNecessarias = textoGrande ? 3 : 2;
+        const textoEstavel = textoAtual.length > 1 && textoAtual === textoAnterior;
+        const colagemInserida = textoColadoPareceInserido(textoAtual, textoColado);
+        const tempoSuficiente = Date.now() - inicio >= tempoMinimo;
+        const chegouNoLimite = tentativas >= maxTentativas;
+
+        leiturasEstaveis = textoEstavel ? leiturasEstaveis + 1 : 0;
+
+        if ((leiturasEstaveis >= leiturasNecessarias && colagemInserida && tempoSuficiente) || chegouNoLimite) {
+            forcarRevisaoTextoAtual(alvo, 'insertFromPaste');
+            setTimeout(() => {
+                if (revisaoId !== smRevisaoColagemId) return;
+                const textoFinal = obterTextoEditavelAtual(alvo).trim();
+                if (textoFinal.length > 1 && textoFinal !== textoUltimaVerificacao) {
+                    forcarRevisaoTextoAtual(alvo, 'insertFromPaste');
+                }
+            }, 1200);
+            return;
         }
-    }, 180);
+
+        textoAnterior = textoAtual;
+        tentativas++;
+        setTimeout(tentarRevisarTextoEstavel, textoGrande ? 320 : (tentativas <= 2 ? 140 : 260));
+    };
+
+    setTimeout(tentarRevisarTextoEstavel, 60);
 
     return true;
 }

@@ -98,11 +98,8 @@ function agendarReverificacaoAposCorrecao(el) {
             return;
         }
 
-        ultimoTextoValido = '';
-        textoUltimaVerificacao = textoAtual;
         registrarElementoEditavelAtivo(el);
-        filaRequisicoes = [{ texto: textoAtual, el }];
-        processarFilaRequisicoes();
+        enfileirarRevisaoTexto(el, textoAtual, 'reverificacao-correcao');
     }, 350);
 }
 

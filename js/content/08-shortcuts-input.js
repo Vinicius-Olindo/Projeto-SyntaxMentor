@@ -39,18 +39,24 @@ function elementoPareceAcaoDeEnvio(el) {
         acao.textContent
     ].filter(Boolean).join(' ').toLowerCase();
 
-    return /\b(enviar|send|publicar|publish|postar|post|comentar|comment|responder|reply)\b/i.test(rotulo);
+    return /\b(enviar|send|submit|publicar|publish|postar|post|comentar|comment|responder|reply|compartilhar|share)\b/i.test(rotulo);
 }
+
+document.addEventListener('pointerdown', (e) => {
+    if (window !== window.top) return;
+    if (!elementoPareceAcaoDeEnvio(e.target)) return;
+    agendarLimpezaAposPossivelEnvio(elementoGlobal || ultimoElementoEditavel, 80, { forcar: true });
+}, true);
 
 document.addEventListener('click', (e) => {
     if (window !== window.top) return;
     if (!elementoPareceAcaoDeEnvio(e.target)) return;
-    agendarLimpezaAposPossivelEnvio(elementoGlobal || ultimoElementoEditavel, 220);
+    agendarLimpezaAposPossivelEnvio(elementoGlobal || ultimoElementoEditavel, 120, { forcar: true });
 }, true);
 
 document.addEventListener('submit', () => {
     if (window !== window.top) return;
-    agendarLimpezaAposPossivelEnvio(elementoGlobal || ultimoElementoEditavel, 220);
+    agendarLimpezaAposPossivelEnvio(elementoGlobal || ultimoElementoEditavel, 100, { forcar: true });
 }, true);
 
 function mostrarNotificacaoTemp(texto, cor) { 
@@ -78,18 +84,25 @@ if (!document.querySelector('#sm-notif-style')) {
 document.addEventListener('input', (e) => {
     if (smConfig.disabled) return;
     if (smIgnorandoInputInterno) return;
+    if (inputPareceColagem(e, e.target)) {
+        const textoColado = e.dataTransfer?.getData('text/plain') || e.data || obterTextoEditavelAtual(normalizarElementoEditavel(e.target));
+        agendarRevisaoAposColagem(e.target, textoColado);
+        return;
+    }
     agendarRevisaoEntradaEditavel(e.target, e.inputType || '');
 }, true);
 
 document.addEventListener('paste', (e) => {
     if (smConfig.disabled) return;
     if (smIgnorandoInputInterno) return;
-    agendarRevisaoAposColagem(e.target);
+    const textoColado = e.clipboardData?.getData('text/plain') || '';
+    agendarRevisaoAposColagem(e.target, textoColado);
 }, true);
 
 document.addEventListener('beforeinput', (e) => {
     if (smConfig.disabled) return;
     if (smIgnorandoInputInterno) return;
     if (!String(e.inputType || '').startsWith('insertFromPaste')) return;
-    agendarRevisaoAposColagem(e.target);
+    const textoColado = e.dataTransfer?.getData('text/plain') || e.data || '';
+    agendarRevisaoAposColagem(e.target, textoColado);
 }, true);

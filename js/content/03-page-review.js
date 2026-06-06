@@ -24,7 +24,11 @@ function verificarPontuacaoComum(texto) {
                 context: { text: texto, offset: pos, length: len },
                 message: regra.msg,
                 replacements: [{ value: corrigido }],
-                rule: { id: 'LOCAL_PUNCTUATION', category: { name: 'Pontuação' } }
+                rule: {
+                    id: 'LOCAL_PUNCTUATION',
+                    category: { name: 'Pontua\u00e7\u00e3o' },
+                    confidence: SM_CONFIANCA_REVISAO.ALTA
+                }
             });
             if (len === 0) re.lastIndex++;
         }
@@ -55,6 +59,12 @@ function processarPontuacao(matches) {
 // =============================================
 // REVISÃO DE PÁGINA INTEIRA
 // =============================================
+
+const SM_CONFIANCA_REVISAO = {
+    ALTA: 'alta',
+    CONTEXTUAL: 'contextual',
+    LEVE: 'leve'
+};
 
 const SM_CORRECOES_PTBR_ALTA_CONFIANCA = {
     ola: 'olá',
@@ -144,8 +154,54 @@ const SM_CORRECOES_PTBR_ALTA_CONFIANCA = {
     comecou: 'começou',
     corrijir: 'corrigir',
     corrigit: 'corrigir',
-    aparesentar: 'apresentar'
+    aparesentar: 'apresentar',
+    escreveno: 'escrevendo',
+    validacao: 'valida\u00e7\u00e3o',
+    'valida\u00e7ao': 'valida\u00e7\u00e3o',
+    extensaoo: 'extens\u00e3o',
+    'exten\u00e7ao': 'extens\u00e3o',
+    'exten\u00e7\u00e3o': 'extens\u00e3o',
+    ortografico: 'ortogr\u00e1fico',
+    ortografica: 'ortogr\u00e1fica',
+    ortograficos: 'ortogr\u00e1ficos',
+    ortograficas: 'ortogr\u00e1ficas',
+    indentificar: 'identificar',
+    indentificacao: 'identifica\u00e7\u00e3o',
+    'pontua\u00e7ao': 'pontua\u00e7\u00e3o',
+    virgula: 'v\u00edrgula',
+    virgulas: 'v\u00edrgulas',
+    paragrafo: 'par\u00e1grafo',
+    paragrafos: 'par\u00e1grafos',
+    concordancia: 'concord\u00e2ncia',
+    concordancias: 'concord\u00e2ncias',
+    feijao: 'feij\u00e3o',
+    mae: 'm\u00e3e',
+    atencao: 'aten\u00e7\u00e3o',
+    'aten\u00e7ao': 'aten\u00e7\u00e3o',
+    varios: 'v\u00e1rios',
+    varias: 'v\u00e1rias',
+    inutil: 'in\u00fatil',
+    presisava: 'precisava',
+    presiso: 'preciso',
+    algums: 'alguns',
+    confuza: 'confusa',
+    confuzas: 'confusas',
+    progama: 'programa',
+    progamas: 'programas',
+    feramenta: 'ferramenta',
+    atualisar: 'atualizar',
+    atualisacao: 'atualiza\u00e7\u00e3o',
+    atualisacoes: 'atualiza\u00e7\u00f5es'
 };
+
+const SM_REGRAS_PTBR_LEVES = [
+    {
+        regex: /\b()(a nivel de)\b/giu,
+        sugestao: 'em n\u00edvel de',
+        mensagem: 'Sugestao de estilo para uma construcao mais formal',
+        confidence: SM_CONFIANCA_REVISAO.LEVE
+    }
+];
 
 function aplicarCapitalizacaoPtBrLocal(original, sugestao) {
     if (!original || !sugestao) return sugestao;
@@ -162,14 +218,25 @@ function criarRegexPalavraPtBrLocal(palavra) {
     return new RegExp(`(?<![\\p{L}\\p{N}])${esc}(?![\\p{L}\\p{N}])`, 'giu');
 }
 
-function criarMatchOrtografiaLocal(texto, offset, original, sugestao, mensagem = 'Possivel erro de ortografia em portugues') {
+function obterIdRegraLocalPorConfianca(confidence) {
+    if (confidence === SM_CONFIANCA_REVISAO.CONTEXTUAL) return 'LOCAL_PTBR_CONTEXTUAL';
+    if (confidence === SM_CONFIANCA_REVISAO.LEVE) return 'LOCAL_PTBR_LIGHT_SUGGESTION';
+    return 'LOCAL_PTBR_HIGH_CONFIDENCE';
+}
+
+function criarMatchOrtografiaLocal(texto, offset, original, sugestao, mensagem = 'Possivel erro de ortografia em portugues', opcoes = {}) {
+    const confidence = opcoes.confidence || SM_CONFIANCA_REVISAO.ALTA;
     return {
         offset,
         length: original.length,
         context: { text: texto, offset, length: original.length },
         message: mensagem,
         replacements: [{ value: aplicarCapitalizacaoPtBrLocal(original, sugestao) }],
-        rule: { id: 'LOCAL_PTBR_HIGH_CONFIDENCE', category: { name: 'Ortografia' } }
+        rule: {
+            id: opcoes.ruleId || obterIdRegraLocalPorConfianca(confidence),
+            category: { name: opcoes.category || 'Ortografia' },
+            confidence
+        }
     };
 }
 
@@ -184,9 +251,108 @@ function verificarFrasesPtBrLocais(texto) {
             match.index + match[1].length,
             match[2],
             'mais',
-            'Use "mais" quando a ideia for intensidade'
+            'Use "mais" quando a ideia for intensidade',
+            { confidence: SM_CONFIANCA_REVISAO.CONTEXTUAL }
         ));
     }
+
+    const regrasContextuais = [
+        {
+            regex: /\b((?:alguns?|algums)\s+)(produto)\b/giu,
+            sugestao: 'produtos',
+            mensagem: 'Ajuste de plural depois de "alguns"'
+        },
+        {
+            regex: /\b((?:programas|progamas)\s+)(aberto)\b/giu,
+            sugestao: 'abertos',
+            mensagem: 'Ajuste de concordancia no plural'
+        },
+        {
+            regex: /\b(arquivos\s+)(inutil|in\u00fatil)\b/giu,
+            sugestao: 'in\u00fateis',
+            mensagem: 'Ajuste de plural e acentuacao'
+        },
+        {
+            regex: /\b(os\s+)(driver)\b/giu,
+            sugestao: 'drivers',
+            mensagem: 'Ajuste de plural'
+        },
+        {
+            regex: /\b(eu\s+)(saiu)\b/giu,
+            sugestao: 'saio',
+            mensagem: 'Ajuste de conjugacao verbal'
+        },
+        {
+            regex: /\b(minha\s+m(?:ae|\u00e3e)\s+)(falo)\b/giu,
+            sugestao: 'falou',
+            mensagem: 'Ajuste de conjugacao verbal'
+        },
+        {
+            regex: /\b(computador\s+)(esta)(\s+ficando)\b/giu,
+            sugestao: 'est\u00e1',
+            mensagem: 'Acentuacao do verbo estar'
+        },
+        {
+            regex: /\b((?:precisava|presisava)\s+)(presta)\b/giu,
+            sugestao: 'prestar',
+            mensagem: 'Ajuste da forma verbal'
+        },
+        {
+            regex: /\b((?:preciso|presiso)\s+)(limpa)\b/giu,
+            sugestao: 'limpar',
+            mensagem: 'Ajuste da forma verbal'
+        },
+        {
+            regex: /\b(mercado\s+)(compra)\b/giu,
+            sugestao: 'comprar',
+            mensagem: 'Ajuste da forma verbal'
+        },
+        {
+            regex: /\b(ideia\s+)(e)(\s+verificar)\b/giu,
+            sugestao: '\u00e9',
+            mensagem: 'Acentuacao do verbo ser'
+        },
+        {
+            regex: /\b()(mais)(\s+acabei\b)/giu,
+            sugestao: 'mas',
+            mensagem: 'Use "mas" quando a ideia for contraste'
+        },
+        {
+            regex: /(,\s*)(mais)(\s+(?:nao|n\u00e3o)\b)/giu,
+            sugestao: 'mas',
+            mensagem: 'Use "mas" quando a ideia for contraste'
+        },
+        {
+            regex: /\b(tentei\s+)(reinicia)\b/giu,
+            sugestao: 'reiniciar',
+            mensagem: 'Ajuste da forma verbal'
+        },
+        {
+            regex: /\b(paragrafo\s+)(contem)\b/giu,
+            sugestao: 'cont\u00e9m',
+            mensagem: 'Acentuacao do verbo conter'
+        },
+        {
+            regex: /\b(conseguir\s+)(corrigi)\b/giu,
+            sugestao: 'corrigir',
+            mensagem: 'Ajuste da forma verbal'
+        }
+    ];
+
+    [...regrasContextuais, ...SM_REGRAS_PTBR_LEVES].forEach(regra => {
+        while ((match = regra.regex.exec(texto)) !== null) {
+            const original = match[2];
+            if (!original) continue;
+            erros.push(criarMatchOrtografiaLocal(
+                texto,
+                match.index + match[1].length,
+                original,
+                regra.sugestao,
+                regra.mensagem,
+                { confidence: regra.confidence || SM_CONFIANCA_REVISAO.CONTEXTUAL }
+            ));
+        }
+    });
 
     return erros;
 }
@@ -195,15 +361,19 @@ function verificarOrtografiaPtBrLocal(texto, idioma = 'pt-BR') {
     if (!texto || !String(idioma || '').toLowerCase().startsWith('pt')) return [];
 
     const erros = [];
+    erros.push(...verificarFrasesPtBrLocais(texto));
+
     Object.entries(SM_CORRECOES_PTBR_ALTA_CONFIANCA).forEach(([originalBase, sugestaoBase]) => {
         const regex = criarRegexPalavraPtBrLocal(originalBase);
         let match;
         while ((match = regex.exec(texto)) !== null) {
-            erros.push(criarMatchOrtografiaLocal(texto, match.index, match[0], sugestaoBase));
+            erros.push(criarMatchOrtografiaLocal(texto, match.index, match[0], sugestaoBase, undefined, {
+                confidence: SM_CONFIANCA_REVISAO.ALTA
+            }));
         }
     });
 
-    return [...erros, ...verificarFrasesPtBrLocais(texto)];
+    return erros;
 }
 
 function obterIntervaloMatch(match) {

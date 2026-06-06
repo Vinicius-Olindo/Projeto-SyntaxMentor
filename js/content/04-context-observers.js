@@ -69,20 +69,27 @@ function adicionarListenersNoShadowRoot(shadowRoot) {
 function shadowInputHandler(e) {
     if (smConfig.disabled) return;
     if (smIgnorandoInputInterno) return;
+    if (inputPareceColagem(e, e.target)) {
+        const textoColado = e.dataTransfer?.getData('text/plain') || e.data || obterTextoEditavelAtual(normalizarElementoEditavel(e.target));
+        agendarRevisaoAposColagem(e.target, textoColado);
+        return;
+    }
     agendarRevisaoEntradaEditavel(e.target, e.inputType || '');
 }
 
 function shadowPasteHandler(e) {
     if (smConfig.disabled) return;
     if (smIgnorandoInputInterno) return;
-    agendarRevisaoAposColagem(e.target);
+    const textoColado = e.clipboardData?.getData('text/plain') || '';
+    agendarRevisaoAposColagem(e.target, textoColado);
 }
 
 function shadowBeforeInputHandler(e) {
     if (smConfig.disabled) return;
     if (smIgnorandoInputInterno) return;
     if (!String(e.inputType || '').startsWith('insertFromPaste')) return;
-    agendarRevisaoAposColagem(e.target);
+    const textoColado = e.dataTransfer?.getData('text/plain') || e.data || '';
+    agendarRevisaoAposColagem(e.target, textoColado);
 }
 
 function observarShadowDOM() {

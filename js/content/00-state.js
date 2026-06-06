@@ -50,6 +50,9 @@ let timeoutLimpezaEnvio = null;
 let smCorrigindoEmLote = false;
 let smIgnorandoInputInterno = false;
 let smLimpandoRevisaoObsoleta = false;
+let smRevisaoColagemId = 0;
+let smRevisaoCicloId = 0;
+let smCicloRevisaoAtual = null;
 
 let historicoDesfazer = [];
 const MAX_HISTORICO_DESFAZER = 20;

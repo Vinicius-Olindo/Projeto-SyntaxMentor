@@ -13,7 +13,8 @@ const args = new Set(process.argv.slice(2));
 const tests = [
     require('./content.test.js'),
     require('./options-geral.js'),
-    require('./behavior.test.js')
+    require('./behavior.test.js'),
+    require('./corrigir-tudo.test.js')
 ];
 
 function collectScriptRefs(htmlFile) {

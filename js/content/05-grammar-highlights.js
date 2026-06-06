@@ -12,10 +12,17 @@ function agendarProcessamentoOcioso(callback, options = { timeout: 100 }) {
 // VERIFICAÇÃO DE TEXTO
 // =============================================
 
-async function verificarTexto(texto, elemento) {
+async function verificarTexto(texto, elemento, opcoes = {}) {
     if (smConfig.disabled) return;
     elemento = registrarElementoEditavelAtivo(elemento) || elemento;
     if (!elemento) return;
+    let cicloId = opcoes.cicloId;
+    if (!cicloId || !cicloRevisaoAindaAtual(cicloId, elemento)) {
+        const cicloAtualId = smCicloRevisaoAtual?.id;
+        cicloId = cicloAtualId && cicloRevisaoAindaAtual(cicloAtualId, elemento)
+            ? cicloAtualId
+            : iniciarCicloRevisao(elemento, texto, opcoes.origem || 'verificacao').id;
+    }
     
     estaCarregando = true;
     atualizarEstadoCarregamento(true);
@@ -28,7 +35,7 @@ async function verificarTexto(texto, elemento) {
     const requestId = ++ultimaConsultaGrammarId;
     
     try {
-        if (signal.aborted) {
+        if (signal.aborted || !cicloRevisaoAindaAtual(cicloId, elemento)) {
             estaCarregando = false;
             atualizarEstadoCarregamento(false);
             return;
@@ -41,49 +48,20 @@ async function verificarTexto(texto, elemento) {
             requestId
         });
 
-        if (signal.aborted || requestId !== ultimaConsultaGrammarId) {
+        if (signal.aborted || requestId !== ultimaConsultaGrammarId || !cicloRevisaoAindaAtual(cicloId, elemento)) {
             estaCarregando = false;
             atualizarEstadoCarregamento(false);
             return;
         }
 
         const atual = obterTextoEditavelAtual(elemento).trim();
-        if (atual !== texto) {
+        if (atual !== texto || !cicloRevisaoAindaAtual(cicloId, elemento, texto)) {
             estaCarregando = false;
             atualizarEstadoCarregamento(false);
             return;
         }
 
-        const dic = dicCache;
-
-        const matchesProcessados = processarPontuacao(data.matches || []);
-        const errosPontuacaoLocal = verificarPontuacaoComum(texto);
-        const errosOrtografiaLocal = verificarOrtografiaPtBrLocal(texto, smConfig.language);
-        const todosMatches = deduplicarMatchesRevisao([...matchesProcessados, ...errosPontuacaoLocal, ...errosOrtografiaLocal]);
-
-        const REGRAS_IGNORADAS = new Set([
-            'UPPERCASE_SENTENCE_START',
-            'PUNCTUATION_PARAGRAPH_END',
-            'DOUBLE_PUNCTUATION',
-            'COMMA_PARENTHESIS_WHITESPACE',
-            'EN_QUOTES',
-            'DASH_RULE',
-        ]);
-
-        errosGlobais = todosMatches.filter(m => {
-            if (!m.replacements?.length) return false;
-
-            const ruleId = m.rule?.id || '';
-            if (REGRAS_IGNORADAS.has(ruleId)) return false;
-
-            const o = m.context.text.substr(m.context.offset, m.context.length);
-            if (!o.trim()) return false;
-            const ol = o.toLowerCase();
-
-            if (ol.match(/^[0-9]+$/) || ol.match(/^https?:\/\//)) return false;
-
-            return !dic.includes(ol) && !ignoradosTemporarios.includes(ol);
-        });
+        errosGlobais = montarErrosRevisao(texto, data.matches || []);
 
         registrarElementoEditavelAtivo(elemento);
 
@@ -130,6 +108,81 @@ async function verificarTexto(texto, elemento) {
             }
         }
     }
+}
+
+function obterConfiancaMatch(match) {
+    const confidence = match?.rule?.confidence;
+    if (confidence) return confidence;
+
+    const ruleId = match?.rule?.id || '';
+    if (ruleId === 'LOCAL_PTBR_LIGHT_SUGGESTION') return 'leve';
+    if (ruleId === 'LOCAL_PTBR_CONTEXTUAL') return 'contextual';
+    if (ruleId === 'LOCAL_PTBR_HIGH_CONFIDENCE' || ruleId === 'LOCAL_PUNCTUATION') return 'alta';
+    return 'externa';
+}
+
+function prioridadeMatchRevisao(match) {
+    const confidence = obterConfiancaMatch(match);
+    if (confidence === 'contextual') return 95;
+    if (confidence === 'alta') return 90;
+    if (confidence === 'externa') return 70;
+    if (confidence === 'leve') return 20;
+    return 50;
+}
+
+function ordenarMatchesPorConfianca(matches) {
+    return [...(matches || [])].sort((a, b) => prioridadeMatchRevisao(b) - prioridadeMatchRevisao(a));
+}
+
+function montarErrosRevisao(texto, matchesExternos = []) {
+    const matchesProcessados = processarPontuacao(matchesExternos || []);
+    const errosPontuacaoLocal = verificarPontuacaoComum(texto);
+    const errosOrtografiaLocal = verificarOrtografiaPtBrLocal(texto, smConfig.language);
+    const todosMatches = deduplicarMatchesRevisao(ordenarMatchesPorConfianca([...matchesProcessados, ...errosPontuacaoLocal, ...errosOrtografiaLocal]));
+
+    const REGRAS_IGNORADAS = new Set([
+        'UPPERCASE_SENTENCE_START',
+        'PUNCTUATION_PARAGRAPH_END',
+        'DOUBLE_PUNCTUATION',
+        'COMMA_PARENTHESIS_WHITESPACE',
+        'EN_QUOTES',
+        'DASH_RULE',
+    ]);
+
+    return todosMatches.filter(m => {
+        if (!m.replacements?.length) return false;
+
+        const ruleId = m.rule?.id || '';
+        if (REGRAS_IGNORADAS.has(ruleId)) return false;
+        if (obterConfiancaMatch(m) === 'leve' && !smConfig.pickyMode) return false;
+
+        const o = m.context.text.substr(m.context.offset, m.context.length);
+        if (!o.trim()) return false;
+        const sugestao = m.replacements[0]?.value;
+        if (sugestao == null || sugestao === o) return false;
+        const ol = o.toLowerCase();
+
+        if (ol.match(/^[0-9]+$/) || ol.match(/^https?:\/\//)) return false;
+
+        return !dicCache.includes(ol) && !ignoradosTemporarios.includes(ol);
+    });
+}
+
+function aplicarRevisaoLocalImediata(texto, elemento) {
+    if (smConfig.disabled) return false;
+    const alvo = registrarElementoEditavelAtivo(elemento) || elemento;
+    if (!alvo || !texto || texto.trim().length <= 1) return false;
+
+    errosGlobais = montarErrosRevisao(texto, []);
+    textoUltimaVerificacao = texto;
+
+    if (!isSiteRestrito && alvo.isContentEditable && alvo.tagName !== 'TEXTAREA' && alvo.tagName !== 'INPUT') {
+        aplicarGrifos(errosGlobais, alvo);
+    }
+
+    atualizarInterface();
+    atualizarVisibilidadeBolha();
+    return true;
 }
 
 function consultarGramaticaNoBackground(texto, opcoes) {
@@ -345,7 +398,9 @@ async function processarFilaRequisicoes() {
     const ultima = filaRequisicoes[filaRequisicoes.length - 1];
     filaRequisicoes = [];
     try {
-        await verificarTexto(ultima.texto, ultima.el);
+        if (cicloRevisaoAindaAtual(ultima.cicloId, ultima.el, ultima.texto)) {
+            await verificarTexto(ultima.texto, ultima.el, { cicloId: ultima.cicloId, origem: ultima.origem });
+        }
     } catch (e) { smWarn('SyntaxMentor:', e.message); }
     processandoFila = false;
     if (filaRequisicoes.length > 0) processarFilaRequisicoes();

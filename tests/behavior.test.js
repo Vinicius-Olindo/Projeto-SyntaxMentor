@@ -31,6 +31,13 @@ function carregarScripts(relativePaths, extras = {}) {
     return sandbox;
 }
 
+function temSugestao(matches, original, sugestao) {
+    return matches.some(item => {
+        const trecho = item.context.text.substr(item.context.offset, item.context.length);
+        return trecho === original && item.replacements[0].value === sugestao;
+    });
+}
+
 module.exports = async function behaviorTests() {
     const pageReview = carregarScript('js/content/03-page-review.js');
     const pontuacao = pageReview.verificarPontuacaoComum('Ola ,mundo');
@@ -43,10 +50,26 @@ module.exports = async function behaviorTests() {
     assert.equal(pontuacao[0].replacements[0].value, ',', 'espaco antes da pontuacao deve ser removivel');
 
     const ortografiaLocal = pageReview.verificarOrtografiaPtBrLocal('Ola, a entensao precisa ficar mas preciso.');
+    const sugestoesBasicas = ortografiaLocal.map(item => item.replacements[0].value);
+    ['Ol\u00e1', 'extens\u00e3o', 'mais'].forEach(sugestao => {
+        assert.ok(sugestoesBasicas.includes(sugestao), `ortografia local pt-BR deve sugerir ${sugestao}`);
+    });
     assert.equal(
-        JSON.stringify(ortografiaLocal.map(item => item.replacements[0].value)),
-        JSON.stringify(['Olá', 'extensão', 'mais']),
-        'ortografia local pt-BR deve cobrir correcoes de alta confianca'
+        ortografiaLocal.find(item => item.replacements[0].value === 'Ol\u00e1')?.rule.confidence,
+        'alta',
+        'correcao direta deve ser marcada como alta confianca'
+    );
+    assert.equal(
+        ortografiaLocal.find(item => item.replacements[0].value === 'mais')?.rule.confidence,
+        'contextual',
+        'correcao dependente de frase deve ser marcada como contextual'
+    );
+
+    const sugestaoLeve = pageReview.verificarOrtografiaPtBrLocal('a nivel de teste');
+    assert.equal(
+        sugestaoLeve.find(item => item.replacements[0].value === 'em n\u00edvel de')?.rule.confidence,
+        'leve',
+        'sugestao de estilo deve ser marcada como leve'
     );
 
     assert.equal(
@@ -55,17 +78,118 @@ module.exports = async function behaviorTests() {
         'ortografia local pt-BR nao deve atuar em outros idiomas'
     );
 
+    const textoComMuitosErros = 'Ola, tudo bem? Estou escreveno esse texto apenas para fazer uma valida\u00e7ao de uma exten\u00e7\u00e3o que corrige erros ortograficos. A ideia e verificar se ela consegue indentificar palavras escritas de forma errada, acentos faltando, virgulas mal colocadas e frases meio confuzas. Ontem eu fui no mercado compra algums produto, mais acabei esquecendo o principal que era o arroz e o feijao. Minha mae falo que eu presisava presta mais aten\u00e7ao, porque sempre que eu saiu com pressa eu esque\u00e7o alguma coisa importante. Tambem percebi que meu computador esta ficando muito lento, talvez seja por causa de varios progamas aberto ao mesmo tempo. Eu tentei reinicia ele, mais nao adiantou muito. Acho que presiso limpa os arquivos inutil e atualisar os driver. Esse paragrafo contem varios erros propositalmente, como palavras sem acento, letras trocadas, falta de concordancia e pontua\u00e7ao estranha para testar se a feramenta vai conseguir corrigi tudo corretamente.';
+    const revisaoLocalCompleta = pageReview.verificarOrtografiaPtBrLocal(textoComMuitosErros);
+    const sugestoesLocais = revisaoLocalCompleta.map(item => item.replacements[0].value);
+    [
+        'Ol\u00e1',
+        'escrevendo',
+        'valida\u00e7\u00e3o',
+        'extens\u00e3o',
+        'ortogr\u00e1ficos',
+        '\u00e9',
+        'identificar',
+        'v\u00edrgulas',
+        'alguns',
+        'produtos',
+        'mas',
+        'comprar',
+        'feij\u00e3o',
+        'm\u00e3e',
+        'falou',
+        'precisava',
+        'prestar',
+        'aten\u00e7\u00e3o',
+        'saio',
+        'est\u00e1',
+        'v\u00e1rios',
+        'programas',
+        'abertos',
+        'reiniciar',
+        'limpar',
+        'in\u00fateis',
+        'atualizar',
+        'drivers',
+        'cont\u00e9m',
+        'pontua\u00e7\u00e3o',
+        'ferramenta',
+        'corrigir'
+    ].forEach(sugestao => {
+        assert.ok(sugestoesLocais.includes(sugestao), `ortografia local deve sugerir ${sugestao}`);
+    });
+    assert.ok(revisaoLocalCompleta.length >= 36, 'ortografia local deve ampliar a cobertura do texto de teste');
+
+    const sugestoesArquivoSingular = pageReview.verificarOrtografiaPtBrLocal('preciso limpar o arquivo in\u00fatil antes de atualizar o driver');
+    assert.equal(
+        temSugestao(sugestoesArquivoSingular, 'in\u00fatil', 'in\u00fateis'),
+        false,
+        'arquivo inutil no singular nao deve sugerir plural'
+    );
+
+    const sugestoesArquivosPlural = pageReview.verificarOrtografiaPtBrLocal('preciso limpar os arquivos inutil');
+    assert.equal(
+        temSugestao(sugestoesArquivosPlural, 'inutil', 'in\u00fateis'),
+        true,
+        'arquivos inutil no plural deve sugerir inuteis'
+    );
+
+    const sugestoesProgramaSingular = pageReview.verificarOrtografiaPtBrLocal('o programa aberto continua funcionando');
+    assert.equal(
+        temSugestao(sugestoesProgramaSingular, 'aberto', 'abertos'),
+        false,
+        'programa aberto no singular nao deve sugerir plural'
+    );
+
+    const sugestoesNoMercado = pageReview.verificarOrtografiaPtBrLocal('ontem eu fui no mercado com calma');
+    assert.equal(
+        temSugestao(sugestoesNoMercado, 'no', 'ao'),
+        false,
+        'fui no mercado deve ser aceito como variante de uso, nao erro'
+    );
+
+    const sugestoesMaisNaoInformal = pageReview.verificarOrtografiaPtBrLocal('eu quero mais nao');
+    assert.equal(
+        temSugestao(sugestoesMaisNaoInformal, 'mais', 'mas'),
+        false,
+        'mais nao em uso informal nao deve ser corrigido automaticamente'
+    );
+
+    const sugestoesMasNaoContraste = pageReview.verificarOrtografiaPtBrLocal('Eu tentei reinicia ele, mais nao adiantou');
+    assert.equal(
+        temSugestao(sugestoesMasNaoContraste, 'mais', 'mas'),
+        true,
+        'mais nao depois de virgula deve sugerir mas quando indicar contraste'
+    );
+
     const duplicados = pageReview.deduplicarMatchesRevisao([
-        { offset: 0, length: 3, context: { text: 'Ola', offset: 0, length: 3 }, replacements: [{ value: 'Olá' }] },
-        { offset: 0, length: 3, context: { text: 'Ola', offset: 0, length: 3 }, replacements: [{ value: 'Olá' }] }
+        { offset: 0, length: 3, context: { text: 'Ola', offset: 0, length: 3 }, replacements: [{ value: 'Ol\u00e1' }] },
+        { offset: 0, length: 3, context: { text: 'Ola', offset: 0, length: 3 }, replacements: [{ value: 'Ol\u00e1' }] }
     ]);
     assert.equal(duplicados.length, 1, 'deduplicacao deve remover sugestoes repetidas no mesmo trecho');
 
     const repetidosDistantes = pageReview.deduplicarMatchesRevisao([
-        { offset: 0, length: 3, context: { text: 'Ola e Ola', offset: 0, length: 3 }, replacements: [{ value: 'Olá' }] },
-        { offset: 6, length: 3, context: { text: 'Ola e Ola', offset: 6, length: 3 }, replacements: [{ value: 'Olá' }] }
+        { offset: 0, length: 3, context: { text: 'Ola e Ola', offset: 0, length: 3 }, replacements: [{ value: 'Ol\u00e1' }] },
+        { offset: 6, length: 3, context: { text: 'Ola e Ola', offset: 6, length: 3 }, replacements: [{ value: 'Ol\u00e1' }] }
     ]);
     assert.equal(repetidosDistantes.length, 2, 'deduplicacao deve preservar ocorrencias em trechos diferentes');
+
+    const filtroConfianca = carregarScripts(['js/content/03-page-review.js', 'js/content/05-grammar-highlights.js'], {
+        window: {},
+        smConfig: { language: 'pt-BR', pickyMode: false },
+        dicCache: [],
+        ignoradosTemporarios: []
+    });
+    assert.equal(
+        temSugestao(filtroConfianca.montarErrosRevisao('a nivel de teste', []), 'a nivel de', 'em n\u00edvel de'),
+        false,
+        'sugestao leve nao deve aparecer fora do modo rigoroso'
+    );
+    filtroConfianca.smConfig.pickyMode = true;
+    assert.equal(
+        temSugestao(filtroConfianca.montarErrosRevisao('a nivel de teste', []), 'a nivel de', 'em n\u00edvel de'),
+        true,
+        'sugestao leve deve aparecer no modo rigoroso'
+    );
 
     const corrections = carregarScript('js/content/06-corrections-stats.js');
     assert.equal(
