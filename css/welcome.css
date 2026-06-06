@@ -6,7 +6,7 @@ body {
     margin: 0;
     min-height: 100vh;
     color: #172033;
-    background: #f6f7fb;
+    background: linear-gradient(180deg, #f8fafc 0%, #f6f7fb 52%, #eef1f7 100%);
     font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
     overflow-x: hidden;
 }
@@ -26,6 +26,7 @@ body {
     display: flex;
     flex-direction: column;
     gap: 32px;
+    padding: 6px 0;
     transform: perspective(900px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg));
     transform-style: preserve-3d;
     transition: transform 0.24s ease;
@@ -35,7 +36,7 @@ body {
     display: inline-flex;
     align-items: center;
     gap: 12px;
-    color: #5b2fa8;
+    color: #4f2aa0;
     font-size: 18px;
     font-weight: 800;
 }
@@ -43,6 +44,8 @@ body {
 .welcome-logo {
     width: 42px;
     height: 42px;
+    border-radius: 8px;
+    box-shadow: 0 10px 24px rgba(111, 66, 193, 0.16);
     transition: transform 0.28s ease;
 }
 
@@ -94,7 +97,7 @@ body {
     border-radius: 8px;
     padding: 12px 20px;
     font-size: 15px;
-    font-weight: 700;
+    font-weight: 800;
     text-decoration: none;
     cursor: pointer;
     transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
@@ -105,7 +108,7 @@ body {
     align-items: center;
     justify-content: center;
     color: #fff;
-    background: #6f42c1;
+    background: linear-gradient(135deg, #6f42c1, #8b5cf6);
     border: 1px solid #6f42c1;
     box-shadow: 0 8px 20px rgba(111, 66, 193, 0.22);
 }
@@ -146,7 +149,7 @@ body {
     background: #fff;
     border: 1px solid #e7e9f0;
     border-radius: 8px;
-    box-shadow: 0 8px 28px rgba(17, 24, 39, 0.06);
+    box-shadow: 0 12px 34px rgba(17, 24, 39, 0.06);
     transition: transform 0.24s ease, box-shadow 0.24s ease, border-color 0.24s ease;
 }
 
@@ -165,7 +168,7 @@ body {
     width: 44px;
     height: 44px;
     color: #6f42c1;
-    background: #f3e8ff;
+    background: #f1edff;
     border-radius: 8px;
     font-weight: 800;
     transition: color 0.24s ease, background-color 0.24s ease, transform 0.24s ease;

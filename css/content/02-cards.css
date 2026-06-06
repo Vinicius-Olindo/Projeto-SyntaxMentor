@@ -1,8 +1,8 @@
 /* --- ESTATÍSTICAS --- */
 .stats-header {
     margin-bottom: 12px;
-    padding: 8px 10px;
-    border: 1px solid #e2e8f0;
+    padding: 9px 11px;
+    border: 1px solid #e7e9f0;
     border-radius: 8px;
     background: #f8fafc;
 }
@@ -16,47 +16,60 @@
 /* --- CARDS DE ERRO - CORRIGIDO --- */
 .erro-card {
     background: #ffffff;
-    border: 1px solid #e2e8f0;
+    border: 1px solid #e7e9f0;
     border-radius: 8px;
-    padding: 12px 14px;
+    padding: 13px 14px;
     margin-bottom: 10px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+    box-shadow: 0 8px 24px rgba(17, 24, 39, 0.045);
     position: relative;
     overflow-x: hidden;
     will-change: transform;
     transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.2s cubic-bezier(0.2, 0.9, 0.4, 1.1);
 }
 
+.erro-card::before {
+    content: "";
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 3px;
+    background: #d8dce7;
+    opacity: 0.95;
+}
+
 .erro-card:hover {
-    border-color: #c084fc;
-    box-shadow: 0 4px 12px rgba(192, 132, 252, 0.15);
+    border-color: #d8c8ff;
+    box-shadow: 0 12px 28px rgba(111, 66, 193, 0.11);
     transform: translateY(-1px);
 }
 
 .erro-card.active {
-    background: #fffbeb;
+    background: #ffffff;
     border-color: #f59e0b;
-    box-shadow: 0 4px 14px rgba(245, 158, 11, 0.13);
+    box-shadow: 0 12px 30px rgba(245, 158, 11, 0.12);
+}
+
+.erro-card.active::before {
+    background: #f59e0b;
 }
 
 /* Container da palavra - proteção contra palavras longas */
 .palavra-group {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 7px;
     flex-wrap: wrap;
-    margin-bottom: 10px;
+    margin-bottom: 11px;
     min-width: 0;
 }
 
 /* Palavra original - com proteção */
 .palavra-original {
-    background: #fef2f2;
-    color: #ef4444;
-    padding: 4px 10px;
+    background: #fff1f2;
+    color: #dc2626;
+    padding: 5px 9px;
     border-radius: 6px;
-    font-size: 13px;
-    font-weight: 600;
+    font-size: 12px;
+    font-weight: 800;
     text-decoration: line-through;
     border: 1px solid #fee2e2;
     word-break: break-word;
@@ -69,11 +82,11 @@
 /* Palavra sugerida - com proteção */
 .palavra-sugestao {
     background: #ecfdf5;
-    color: #10b981;
-    padding: 4px 10px;
+    color: #059669;
+    padding: 5px 9px;
     border-radius: 6px;
-    font-size: 13px;
-    font-weight: 700;
+    font-size: 12px;
+    font-weight: 900;
     border: 1px solid #d1fae5;
     word-break: break-word;
     overflow-wrap: break-word;
@@ -91,7 +104,7 @@
 /* Botões */
 .botoes-acao {
     display: flex;
-    gap: 8px;
+    gap: 7px;
     align-items: center;
     flex-wrap: wrap;
     margin-top: 8px;
@@ -101,10 +114,10 @@
     background: #10b981;
     color: white;
     border: none;
-    padding: 5px 14px;
+    padding: 7px 14px;
     border-radius: 6px;
     font-size: 11px;
-    font-weight: 600;
+    font-weight: 800;
     cursor: pointer;
     transition: background 0.15s ease, transform 0.1s ease, box-shadow 0.15s ease;
 }
@@ -119,10 +132,10 @@
     background: white;
     color: #64748b;
     border: 1px solid #e2e8f0;
-    padding: 4px 12px;
+    padding: 6px 11px;
     border-radius: 6px;
     font-size: 11px;
-    font-weight: 500;
+    font-weight: 700;
     cursor: pointer;
     transition: background 0.15s ease, transform 0.1s ease, box-shadow 0.15s ease;
 }
@@ -136,8 +149,8 @@
 
 /* Mensagem de erro */
 .erro-msg {
-    margin: 10px 0 0 0;
-    padding-top: 8px;
+    margin: 11px 0 0 0;
+    padding-top: 9px;
     border-top: 1px dashed #e2e8f0;
     font-size: 11px;
     color: #64748b;
@@ -149,7 +162,7 @@
 /* --- RODAPÉ --- */
 .painel-footer {
     padding: 12px;
-    border-top: 1px solid #e2e8f0;
+    border-top: 1px solid #e7e9f0;
     background: #f8fafc;
     flex-shrink: 0;
 }
@@ -200,9 +213,9 @@
     background: linear-gradient(135deg, #10b981, #059669);
     color: white;
     border: none;
-    padding: 8px;
+    padding: 9px;
     border-radius: 8px;
-    font-weight: 600;
+    font-weight: 850;
     font-size: 11px;
     cursor: pointer;
     margin-bottom: 6px;
@@ -221,7 +234,7 @@
     border: 1px solid #e2e8f0;
     padding: 8px;
     border-radius: 8px;
-    font-weight: 500;
+    font-weight: 700;
     font-size: 11px;
     cursor: pointer;
     transition: transform 0.1s ease, filter 0.15s ease, background 0.15s ease;
@@ -279,7 +292,7 @@
 
 .sm-page-review-preview {
     font-size: 10px;
-    color: #64748b;
+    color: #647084;
     margin: 6px 0 10px;
     font-style: italic;
     line-height: 1.5;

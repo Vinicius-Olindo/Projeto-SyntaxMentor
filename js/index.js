@@ -1,7 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
     const siteHeader = document.querySelector('.site-header');
     const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const revealTargets = document.querySelectorAll('.workflow-step, .feature-grid article, .permission-card, .steps, .security-list, .site-footer');
+    const revealTargets = document.querySelectorAll('.workflow-step, .feature-grid article, .product-workspace, .product-panel, .product-popup, .permission-card, .steps, .security-list, .site-footer');
 
     const updateHeaderState = () => {
         if (!siteHeader) return;

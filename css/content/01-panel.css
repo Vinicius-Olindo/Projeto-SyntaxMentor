@@ -3,18 +3,18 @@
     position: fixed;
     top: 80px;
     right: 20px;
-    width: 380px;
+    width: 372px;
     max-width: 90vw;
     max-height: 80vh;
     background: #ffffff;
-    border-radius: 10px;
-    box-shadow: 0 14px 38px rgba(15, 23, 42, 0.18);
+    border-radius: 8px;
+    box-shadow: 0 20px 46px rgba(15, 23, 42, 0.18);
     display: flex;
     flex-direction: column;
     font-family: 'Segoe UI', system-ui, sans-serif;
     color: #1e293b;
     overflow: hidden;
-    border: 1px solid #e2e8f0;
+    border: 1px solid #dfe3ee;
     will-change: top, left;
     z-index: 2147483647 !important;
     isolation: isolate !important;
@@ -22,9 +22,9 @@
 }
 
 #syntax-mentor-header {
-    background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+    background: linear-gradient(135deg, #6f42c1 0%, #8b5cf6 100%);
     color: white;
-    padding: 12px 14px;
+    padding: 13px 14px;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -41,20 +41,20 @@
 }
 
 .sm-panel-icon {
-    min-width: 28px;
-    height: 24px;
+    min-width: 30px;
+    height: 26px;
     padding: 0 6px;
-    border-radius: 6px;
+    border-radius: 8px;
     background: rgba(255, 255, 255, 0.16);
     display: inline-flex;
     align-items: center;
     justify-content: center;
     font-size: 12px;
-    font-weight: 700;
+    font-weight: 800;
 }
 
 .sm-panel-title-text {
-    font-weight: 700;
+    font-weight: 800;
     font-size: 14px;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -66,7 +66,7 @@
     padding: 2px 8px;
     border-radius: 999px;
     font-size: 10px;
-    font-weight: 600;
+    font-weight: 800;
 }
 
 #syntax-mentor-header:active {
@@ -92,8 +92,8 @@
 
 #sm-tabs-container {
     display: flex;
-    border-bottom: 1px solid #e5e7eb;
-    background: #fbfdff;
+    border-bottom: 1px solid #e7e9f0;
+    background: #f8fafc;
     flex-shrink: 0;
 }
 
@@ -104,7 +104,7 @@
     border: none;
     background: transparent;
     cursor: pointer;
-    font-weight: 650;
+    font-weight: 800;
     font-size: 12px;
     color: #64748b;
     border-bottom: 2px solid transparent;
@@ -117,8 +117,8 @@
 }
 
 .sm-tab-btn.active {
-    color: #4f46e5;
-    border-bottom-color: #4f46e5;
+    color: #6f42c1;
+    border-bottom-color: #6f42c1;
     background: #ffffff;
 }
 

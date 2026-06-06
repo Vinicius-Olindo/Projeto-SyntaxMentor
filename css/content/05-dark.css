@@ -5,49 +5,57 @@
 /* Painel base */
 #syntax-mentor-painel.sm-dark,
 #syntax-mentor-painel.sm-dark.sm-dark {
-    background: #1e1e2e !important;
-    border-color: #313244 !important;
-    color: #cdd6f4 !important;
+    background: #111827 !important;
+    border-color: #263247 !important;
+    color: #e5e7eb !important;
 }
 
 /* Cabeçalho */
 #syntax-mentor-painel.sm-dark #syntax-mentor-header {
-    background: linear-gradient(135deg, #313244, #45475a) !important;
-    border-bottom: 1px solid #45475a !important;
+    background: linear-gradient(135deg, #4f2aa0, #6f42c1) !important;
+    border-bottom: 1px solid #7c3aed !important;
 }
 
 /* Abas */
 #syntax-mentor-painel.sm-dark #sm-tabs-container {
-    background: #181825 !important;
-    border-bottom: 1px solid #313244 !important;
+    background: #101827 !important;
+    border-bottom: 1px solid #263247 !important;
 }
 
 #syntax-mentor-painel.sm-dark .sm-tab-btn {
     background: transparent !important;
-    color: #a6adc8 !important;
+    color: #aeb5c4 !important;
 }
 
 #syntax-mentor-painel.sm-dark .sm-tab-btn.active,
 #syntax-mentor-painel.sm-dark .sm-tab-btn[class*="active"] {
-    border-bottom: 2px solid #89b4fa !important;
-    color: #89b4fa !important;
+    border-bottom: 2px solid #c4b5fd !important;
+    color: #c4b5fd !important;
 }
 
 /* Cards de erro */
 #syntax-mentor-painel.sm-dark .erro-card,
 #syntax-mentor-painel.sm-dark div.erro-card {
-    background: #181825 !important;
-    border-color: #313244 !important;
+    background: #161f31 !important;
+    border-color: #263247 !important;
+}
+
+#syntax-mentor-painel.sm-dark .erro-card::before {
+    background: #374151 !important;
 }
 
 #syntax-mentor-painel.sm-dark .erro-card:hover {
-    border-color: #89b4fa !important;
-    background: #1e1e2e !important;
+    border-color: #7c3aed !important;
+    background: #192235 !important;
 }
 
 #syntax-mentor-painel.sm-dark .erro-card.active {
-    background: #313244 !important;
+    background: #161f31 !important;
     border-color: #f9e2af !important;
+}
+
+#syntax-mentor-painel.sm-dark .erro-card.active::before {
+    background: #f59e0b !important;
 }
 
 /* Palavras nos cards - com proteção */
@@ -73,37 +81,37 @@
 
 /* Botões dentro dos cards */
 #syntax-mentor-painel.sm-dark .btn-fix-mini {
-    background: linear-gradient(135deg, #89b4fa, #b4befe) !important;
-    color: #1e1e2e !important;
+    background: #10b981 !important;
+    color: #ffffff !important;
 }
 
 #syntax-mentor-painel.sm-dark .btn-fix-mini:hover {
-    background: linear-gradient(135deg, #b4befe, #cba6f7) !important;
+    background: #059669 !important;
 }
 
 #syntax-mentor-painel.sm-dark .btn-ignorar-sessao,
 #syntax-mentor-painel.sm-dark .btn-ignorar {
-    background: #313244 !important;
-    border-color: #45475a !important;
-    color: #a6adc8 !important;
+    background: #101827 !important;
+    border-color: #263247 !important;
+    color: #aeb5c4 !important;
 }
 
 #syntax-mentor-painel.sm-dark .btn-ignorar-sessao:hover,
 #syntax-mentor-painel.sm-dark .btn-ignorar:hover {
-    background: #45475a !important;
-    color: #cdd6f4 !important;
+    background: #263247 !important;
+    color: #e5e7eb !important;
 }
 
 /* Mensagem de erro */
 #syntax-mentor-painel.sm-dark .erro-msg {
-    border-top-color: #313244 !important;
-    color: #a6adc8 !important;
+    border-top-color: #263247 !important;
+    color: #aeb5c4 !important;
 }
 
 #syntax-mentor-painel.sm-dark .stats-header,
 #syntax-mentor-painel.sm-dark .sm-panel-summary {
-    background: #181825 !important;
-    border-color: #313244 !important;
+    background: #101827 !important;
+    border-color: #263247 !important;
 }
 
 #syntax-mentor-painel.sm-dark .sm-empty-icon {
@@ -119,7 +127,7 @@
 #syntax-mentor-painel.sm-dark .sm-empty-desc,
 #syntax-mentor-painel.sm-dark .sm-page-review-preview,
 #syntax-mentor-painel.sm-dark .sm-page-review-warning {
-    color: #a6adc8 !important;
+    color: #aeb5c4 !important;
 }
 
 #syntax-mentor-painel.sm-dark .sm-page-review-highlight {
@@ -129,59 +137,59 @@
 /* Rodapé */
 #syntax-mentor-painel.sm-dark .painel-footer,
 #syntax-mentor-painel.sm-dark > div:last-child {
-    background: #181825 !important;
-    border-top-color: #313244 !important;
+    background: #101827 !important;
+    border-top-color: #263247 !important;
 }
 
 /* Navegação */
 #syntax-mentor-painel.sm-dark .nav-btn {
-    background: #313244 !important;
-    border-color: #45475a !important;
-    color: #cdd6f4 !important;
+    background: #161f31 !important;
+    border-color: #263247 !important;
+    color: #e5e7eb !important;
 }
 
 #syntax-mentor-painel.sm-dark .nav-btn:hover {
-    background: #45475a !important;
+    background: #263247 !important;
 }
 
 #syntax-mentor-painel.sm-dark .nav-contador,
 #syntax-mentor-painel.sm-dark #sm-nav-contador {
-    background: #313244 !important;
-    border-color: #45475a !important;
-    color: #cdd6f4 !important;
+    background: #161f31 !important;
+    border-color: #263247 !important;
+    color: #e5e7eb !important;
 }
 
 /* Botões principais */
 #syntax-mentor-painel.sm-dark .btn-corrigir-tudo,
 #syntax-mentor-painel.sm-dark #btn-corrigir-tudo {
-    background: linear-gradient(135deg, #a6e3a1, #94e2d5) !important;
-    color: #1e1e2e !important;
+    background: linear-gradient(135deg, #10b981, #059669) !important;
+    color: #ffffff !important;
 }
 
 #syntax-mentor-painel.sm-dark .btn-ignorar-tudo,
 #syntax-mentor-painel.sm-dark #btn-ignorar-tudo {
-    background: #313244 !important;
-    border-color: #45475a !important;
-    color: #a6adc8 !important;
+    background: #161f31 !important;
+    border-color: #263247 !important;
+    color: #aeb5c4 !important;
 }
 
 #syntax-mentor-painel.sm-dark .btn-ignorar-tudo:hover,
 #syntax-mentor-painel.sm-dark #btn-ignorar-tudo:hover {
-    background: #45475a !important;
+    background: #263247 !important;
     color: #f38ba8 !important;
 }
 
 /* Botão desfazer */
 #syntax-mentor-painel.sm-dark .btn-desfazer button,
 #syntax-mentor-painel.sm-dark #btn-desfazer-ultima {
-    background: #313244 !important;
-    border-color: #45475a !important;
-    color: #a6adc8 !important;
+    background: #161f31 !important;
+    border-color: #263247 !important;
+    color: #aeb5c4 !important;
 }
 
 #syntax-mentor-painel.sm-dark .btn-desfazer button:hover,
 #syntax-mentor-painel.sm-dark #btn-desfazer-ultima:hover {
-    background: #45475a !important;
+    background: #263247 !important;
     color: #f9e2af !important;
 }
 
@@ -194,12 +202,12 @@
 /* Scrollbar */
 #syntax-mentor-painel.sm-dark #syntax-mentor-content::-webkit-scrollbar-track,
 #syntax-mentor-painel.sm-dark #sm-historico-content::-webkit-scrollbar-track {
-    background: #181825 !important;
+    background: #101827 !important;
 }
 
 #syntax-mentor-painel.sm-dark #syntax-mentor-content::-webkit-scrollbar-thumb,
 #syntax-mentor-painel.sm-dark #sm-historico-content::-webkit-scrollbar-thumb {
-    background: #45475a !important;
+    background: #374151 !important;
     border-radius: 10px !important;
 }
 
@@ -210,20 +218,20 @@
 
 /* Conteúdo do histórico */
 #syntax-mentor-painel.sm-dark #sm-historico-content {
-    background: #1e1e2e !important;
-    color: #cdd6f4 !important;
+    background: #111827 !important;
+    color: #e5e7eb !important;
 }
 
 /* Histórico - itens */
 #syntax-mentor-painel.sm-dark .sm-btn-reverter {
-    background: #313244 !important;
-    border-color: #45475a !important;
-    color: #a6adc8 !important;
+    background: #161f31 !important;
+    border-color: #263247 !important;
+    color: #aeb5c4 !important;
 }
 
 #syntax-mentor-painel.sm-dark .sm-btn-reverter:hover {
-    background: #45475a !important;
-    color: #89b4fa !important;
+    background: #263247 !important;
+    color: #c4b5fd !important;
 }
 
 /* Bolha flutuante no modo escuro */
@@ -236,13 +244,13 @@
 }
 
 #syntax-mentor-bubble.sm-dark .sm-bubble-badge {
-    background: #1e1e2e !important;
-    border-color: #313244 !important;
-    color: #cdd6f4 !important;
+    background: #111827 !important;
+    border-color: #263247 !important;
+    color: #e5e7eb !important;
 }
 
 /* Ondas magnéticas no modo escuro */
 #syntax-mentor-bubble.sm-dark.sm-loading::before,
 #syntax-mentor-bubble.sm-dark.sm-loading::after {
-    background: linear-gradient(90deg, transparent, #89b4fa, #b4befe, #89b4fa, transparent) !important;
+    background: linear-gradient(90deg, transparent, #8b5cf6, #c4b5fd, #8b5cf6, transparent) !important;
 }

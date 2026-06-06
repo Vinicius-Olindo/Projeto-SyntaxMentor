@@ -1,34 +1,38 @@
 /* --- 5. 🌙 MODO ESCURO --- */
 body.dark-mode {
-    background-color: #1a1a1a;
+    background-color: #101827;
     color: #e0e0e0;
 }
 
 body.dark-mode .header {
-    background: linear-gradient(135deg, #4a2b85 0%, #6f42c1 100%);
+    background: linear-gradient(135deg, #4f2aa0 0%, #6f42c1 100%);
 }
 
 body.dark-mode .quick-action-bar {
-    background: #222;
-    border-bottom-color: #333;
+    background: #161f31;
+    border-bottom-color: #263247;
+}
+
+body.dark-mode .content {
+    background: #101827;
 }
 
 body.dark-mode #word-input {
-    background-color: #2a2a2a;
+    background-color: #161f31;
     color: #f1f1f1;
-    border-color: #444;
+    border-color: #263247;
 }
 
 body.dark-mode #word-list li {
-    background-color: #252525;
-    border-color: #333;
+    background-color: #161f31;
+    border-color: #263247;
     color: #ddd;
 }
 
 body.dark-mode .footer-link {
-    background-color: #1c1c1c;
+    background-color: #161f31;
     color: #a1a1aa;
-    border-top-color: #333;
+    border-top-color: #263247;
 }
 
 body.dark-mode .footer-link:hover {

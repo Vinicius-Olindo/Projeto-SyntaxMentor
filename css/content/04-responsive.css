@@ -5,18 +5,18 @@
 /* Painel base - responsivo */
 #syntax-mentor-painel {
     position: fixed;
-    width: 360px;
-    max-width: calc(100vw - 20px) !important; /* 🔥 Garante que não ultrapasse a tela */
+    width: 372px;
+    max-width: calc(100vw - 20px) !important;
     max-height: calc(100vh - 20px) !important;
     background: #ffffff;
-    border-radius: 12px;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+    border-radius: 8px;
+    box-shadow: 0 20px 46px rgba(15, 23, 42, 0.18);
     display: flex;
     flex-direction: column;
     font-family: 'Segoe UI', system-ui, sans-serif;
     color: #1e293b;
     overflow: hidden;
-    border: 1px solid #e2e8f0;
+    border: 1px solid #dfe3ee;
     will-change: top, left;
     z-index: 2147483647 !important;
     isolation: isolate !important;
@@ -29,7 +29,7 @@
         max-width: calc(100vw - 16px) !important;
         left: 8px !important;
         right: 8px !important;
-        border-radius: 12px !important;
+        border-radius: 8px !important;
     }
     
     /* Ajustar padding interno */
