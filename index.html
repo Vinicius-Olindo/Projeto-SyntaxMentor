@@ -1,303 +1,302 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="pt-BR">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <meta name="description" content="SyntaxMentor: extensao Chrome para revisao ortografica e gramatical em campos de texto da web.">
-        <link rel="canonical" href="https://vinicius-olindo.github.io/Projeto-SyntaxMentor/">
-        <meta name="theme-color" content="#6f42c1">
-        <meta property="og:type" content="website">
-        <meta property="og:locale" content="pt_BR">
-        <meta property="og:site_name" content="SyntaxMentor">
-        <meta property="og:title" content="SyntaxMentor - Revisao ortografica para Chrome">
-        <meta property="og:description" content="Extensao Chrome para revisar textos na web com sugestoes claras, dicionario pessoal e controle por site.">
-        <meta property="og:url" content="https://vinicius-olindo.github.io/Projeto-SyntaxMentor/">
-        <meta property="og:image" content="https://vinicius-olindo.github.io/Projeto-SyntaxMentor/assets/social-preview.png">
-        <meta property="og:image:width" content="1200">
-        <meta property="og:image:height" content="630">
-        <meta name="twitter:card" content="summary_large_image">
-        <meta name="twitter:title" content="SyntaxMentor - Revisao ortografica para Chrome">
-        <meta name="twitter:description" content="Revise textos na web com sugestoes claras, dicionario pessoal e controle por site.">
-        <meta name="twitter:image" content="https://vinicius-olindo.github.io/Projeto-SyntaxMentor/assets/social-preview.png">
-        <title>SyntaxMentor - Extensao de revisao para Chrome</title>
-        <link rel="icon" href="icons/icon32.png" sizes="32x32">
-        <link rel="stylesheet" href="css/index.css">
-    </head>
-    <body>
-        <header class="site-header">
-            <a class="brand" href="#inicio" aria-label="SyntaxMentor">
-                <img src="icons/logo.svg" alt="" class="brand-icon">
-                <span>SyntaxMentor</span>
-            </a>
-            <div class="header-actions">
-                <nav class="site-nav" aria-label="Navegacao principal">
-                    <a href="#como-funciona">Como funciona</a>
-                    <a href="#recursos">Recursos</a>
-                    <a href="#produto">Produto</a>
-                    <a href="#instalacao">Instalacao</a>
-                    <a href="#permissoes">Permissoes</a>
-                </nav>
-                <a class="nav-download" href="https://github.com/Vinicius-Olindo/Projeto-SyntaxMentor/archive/refs/heads/main.zip">Baixar</a>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="SyntaxMentor: extensao Chrome para revisao ortografica e gramatical em campos de texto da web." />
+    <link rel="canonical" href="https://vinicius-olindo.github.io/Projeto-SyntaxMentor/" />
+    <meta name="theme-color" content="#6f42c1" />
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="pt_BR" />
+    <meta property="og:site_name" content="SyntaxMentor" />
+    <meta property="og:title" content="SyntaxMentor - Revisao ortografica para Chrome" />
+    <meta property="og:description" content="Extensao Chrome para revisar textos na web com sugestoes claras, dicionario pessoal e controle por site." />
+    <meta property="og:url" content="https://vinicius-olindo.github.io/Projeto-SyntaxMentor/" />
+    <meta property="og:image" content="https://vinicius-olindo.github.io/Projeto-SyntaxMentor/assets/social-preview.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="SyntaxMentor - Revisao ortografica para Chrome" />
+    <meta name="twitter:description" content="Revise textos na web com sugestoes claras, dicionario pessoal e controle por site." />
+    <meta name="twitter:image" content="https://vinicius-olindo.github.io/Projeto-SyntaxMentor/assets/social-preview.png" />
+    <title>SyntaxMentor - Extensao de revisao para Chrome</title>
+    <link rel="icon" href="icons/icon32.png" sizes="32x32" />
+    <link rel="stylesheet" href="css/index.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="#inicio" aria-label="SyntaxMentor">
+        <img src="icons/logo.svg" alt="" class="brand-icon" />
+        <span>SyntaxMentor</span>
+      </a>
+      <div class="header-actions">
+        <nav class="site-nav" aria-label="Navegacao principal">
+          <a href="#como-funciona">Como funciona</a>
+          <a href="#recursos">Recursos</a>
+          <a href="#produto">Produto</a>
+          <a href="#instalacao">Instalacão</a>
+          <a href="#permissoes">Permissões</a>
+        </nav>
+        <a class="nav-download" href="https://github.com/Vinicius-Olindo/Projeto-SyntaxMentor/archive/refs/heads/main.zip">Baixar</a>
+      </div>
+    </header>
+
+    <main>
+      <section class="hero" id="inicio">
+        <div class="hero-visual" aria-hidden="true">
+          <div class="browser-frame">
+            <div class="browser-top">
+              <div class="browser-dots">
+                <span></span>
+                <span></span>
+                <span></span>
+              </div>
+              <div class="browser-address">docs.exemplo.com/editor</div>
             </div>
-        </header>
-
-        <main>
-            <section class="hero" id="inicio">
-                <div class="hero-visual" aria-hidden="true">
-                    <div class="browser-frame">
-                        <div class="browser-top">
-                            <div class="browser-dots">
-                                <span></span>
-                                <span></span>
-                                <span></span>
-                            </div>
-                            <div class="browser-address">docs.exemplo.com/editor</div>
-                        </div>
-                        <div class="editor-surface">
-                            <div class="editor-document">
-                                <div class="doc-toolbar">
-                                    <strong>Rascunho da mensagem</strong>
-                                    <span>Salvo agora</span>
-                                </div>
-                                <p class="editor-line">Estou escrevendo um texto para revisar com calma.</p>
-                                <p class="editor-line has-error">A sugestao aparece antes do erro virar retrabalho.</p>
-                                <p class="editor-line">O painel fica leve, direto e facil de aplicar.</p>
-                                <div class="editor-meta">
-                                    <span>356 palavras</span>
-                                    <span>Revisao ativa</span>
-                                </div>
-                            </div>
-                            <aside class="extension-preview">
-                                <div class="preview-head">
-                                    <img src="icons/logo.svg" alt="">
-                                    <strong>3 sugestoes</strong>
-                                </div>
-                                <div class="preview-card active">
-                                    <span>revisao</span>
-                                    <strong>revis&atilde;o</strong>
-                                </div>
-                                <div class="preview-card">
-                                    <span>facil</span>
-                                    <strong>f&aacute;cil</strong>
-                                </div>
-                                <span class="preview-apply">Aplicar sugestoes</span>
-                            </aside>
-                        </div>
-                    </div>
+            <div class="editor-surface">
+              <div class="editor-document">
+                <div class="doc-toolbar">
+                  <strong>Rascunho da mensagem</strong>
+                  <span>Salvo agora</span>
                 </div>
-
-                <div class="hero-content">
-                    <p class="eyebrow">Extensao Chrome para escrita assistida</p>
-                    <h1>Revise textos na web com menos friccao.</h1>
-                    <p class="hero-lead">
-                        SyntaxMentor acompanha campos de texto, consulta o LanguageTool e entrega sugestoes claras para corrigir, ignorar ou aprender com cada revisao.
-                    </p>
-                    <div class="hero-actions">
-                        <a class="btn primary" href="https://github.com/Vinicius-Olindo/Projeto-SyntaxMentor/archive/refs/heads/main.zip">Baixar extensao</a>
-                        <a class="btn secondary" href="#instalacao">Instalar localmente</a>
-                    </div>
-                    <p class="hero-note">Download direto do projeto para carregar no Chrome em modo desenvolvedor.</p>
+                <p class="editor-line">Estou escrevendo um texto para revisar com calma.</p>
+                <p class="editor-line has-error">A sugestao aparece antes do erro virar retrabalho.</p>
+                <p class="editor-line">O painel fica leve, direto e facil de aplicar.</p>
+                <div class="editor-meta">
+                  <span>356 palavras</span>
+                  <span>Revisao ativa</span>
                 </div>
-            </section>
-
-            <section class="section workflow" id="como-funciona">
-                <div class="section-heading">
-                    <p class="eyebrow">Como funciona</p>
-                    <h2>Um fluxo curto entre escrever e corrigir.</h2>
+              </div>
+              <aside class="extension-preview">
+                <div class="preview-head">
+                  <img src="icons/logo.svg" alt="" />
+                  <strong>3 sugestoes</strong>
                 </div>
-                <div class="workflow-grid">
-                    <article class="workflow-step">
-                        <span>1</span>
-                        <h3>Digite normalmente</h3>
-                        <p>A extensao observa campos editaveis nas paginas permitidas e respeita o ritmo configurado.</p>
-                    </article>
-                    <article class="workflow-step">
-                        <span>2</span>
-                        <h3>Revise as sugestoes</h3>
-                        <p>O painel mostra erros, alternativas e explicacoes quando o modo aprendizado esta ativo.</p>
-                    </article>
-                    <article class="workflow-step">
-                        <span>3</span>
-                        <h3>Aplique ou ignore</h3>
-                        <p>Corrija uma sugestao, use correcao em lote ou adicione termos ao dicionario pessoal.</p>
-                    </article>
+                <div class="preview-card active">
+                  <span>revisao</span>
+                  <strong>revis&atilde;o</strong>
                 </div>
-            </section>
-
-            <section class="section compact" id="recursos">
-                <div class="section-heading">
-                    <p class="eyebrow">Fluxo principal</p>
-                    <h2>Feito para corrigir sem atrapalhar.</h2>
+                <div class="preview-card">
+                  <span>facil</span>
+                  <strong>f&aacute;cil</strong>
                 </div>
-                <div class="feature-grid">
-                    <article>
-                        <span class="feature-index">01</span>
-                        <h3>Revisao em tempo real</h3>
-                        <p>Detecta texto digitado, espera o ritmo configurado e apresenta sugestoes no painel lateral.</p>
-                    </article>
-                    <article>
-                        <span class="feature-index">02</span>
-                        <h3>Dicionario pessoal</h3>
-                        <p>Permite ignorar nomes, termos tecnicos e expressoes que fazem sentido para o usuario.</p>
-                    </article>
-                    <article>
-                        <span class="feature-index">03</span>
-                        <h3>Controle por site</h3>
-                        <p>Use blacklist, whitelist e atalhos para ajustar onde a extensao deve atuar.</p>
-                    </article>
-                    <article>
-                        <span class="feature-index">04</span>
-                        <h3>Modos de uso</h3>
-                        <p>Inclui confirmacao, leitura, foco e aprendizado para contextos diferentes de escrita.</p>
-                    </article>
-                </div>
-            </section>
-
-            <section class="section product" id="produto">
-                <div class="section-heading">
-                    <p class="eyebrow">Produto em uso</p>
-                    <h2>A mesma experiencia do painel, popup e bolinha.</h2>
-                    <p>O visual foi pensado para ficar presente sem dominar a pagina: a bolinha sinaliza o estado, o painel concentra as sugestoes e o popup guarda controles rapidos.</p>
-                </div>
-
-                <div class="product-grid">
-                    <article class="product-workspace">
-                        <div class="workspace-bar">
-                            <span></span>
-                            <strong>linkedin.com/feed</strong>
-                            <em>Editor ativo</em>
-                        </div>
-                        <div class="workspace-editor">
-                            <p>Ola, estou escreveno uma mensagem profissional.</p>
-                            <p class="workspace-error">A extenção revisa sem atrapalhar minha digitacao.</p>
-                            <p>Depois eu aplico tudo em poucos cliques.</p>
-                        </div>
-                        <div class="workspace-bubble">
-                            <span>✎</span>
-                            <strong>3</strong>
-                        </div>
-                    </article>
-
-                    <aside class="product-panel" aria-label="Previa do painel de sugestoes">
-                        <div class="product-panel-head">
-                            <img src="icons/logo.svg" alt="">
-                            <strong>Sugestoes</strong>
-                            <span>3</span>
-                        </div>
-                        <div class="product-tabs">
-                            <span class="active">Gramatica</span>
-                            <span>Historico</span>
-                        </div>
-                        <div class="product-suggestion active">
-                            <div>
-                                <span class="wrong">Ola</span>
-                                <span class="arrow">-></span>
-                                <span class="right">Olá</span>
-                            </div>
-                            <p>Possivel erro de ortografia em portugues</p>
-                        </div>
-                        <div class="product-suggestion">
-                            <div>
-                                <span class="wrong">extenção</span>
-                                <span class="arrow">-></span>
-                                <span class="right">extensão</span>
-                            </div>
-                            <p>Correcao de ortografia de alta confianca</p>
-                        </div>
-                        <button type="button">Corrigir Tudo</button>
-                    </aside>
-
-                    <aside class="product-popup" aria-label="Previa do popup">
-                        <div class="popup-preview-head">
-                            <img src="icons/logo.svg" alt="">
-                            <div>
-                                <strong>SyntaxMentor</strong>
-                                <span>Revisao de escrita</span>
-                            </div>
-                        </div>
-                        <div class="popup-preview-site">
-                            <span></span>
-                            <strong>Site ativo</strong>
-                            <em>linkedin.com</em>
-                        </div>
-                        <div class="popup-preview-input">
-                            <span>Ignorar palavra...</span>
-                            <strong>+</strong>
-                        </div>
-                    </aside>
-                </div>
-            </section>
-
-            <section class="section split" id="instalacao">
-                <div class="section-heading">
-                    <p class="eyebrow">Instalacao local</p>
-                    <h2>Carregue a extensao em modo desenvolvedor.</h2>
-                    <p>O projeto usa Manifest V3 e pode ser testado diretamente no Chrome enquanto esta em desenvolvimento.</p>
-                </div>
-                <ol class="steps">
-                    <li>Abra <code>chrome://extensions</code>.</li>
-                    <li>Ative o modo de desenvolvedor.</li>
-                    <li>Clique em <code>Carregar sem compactacao</code>.</li>
-                    <li>Selecione a pasta do projeto.</li>
-                    <li>Recarregue a extensao apos alterar scripts, CSS ou manifesto.</li>
-                </ol>
-            </section>
-
-            <section class="section permissions" id="permissoes">
-                <div class="section-heading">
-                    <p class="eyebrow">Permissoes</p>
-                    <h2>O necessario para revisar textos com transparencia.</h2>
-                </div>
-                <div class="permission-grid">
-                    <article class="permission-card">
-                        <strong>storage</strong>
-                        <p>Guarda configuracoes, dicionario pessoal e listas de sites.</p>
-                    </article>
-                    <article class="permission-card">
-                        <strong>activeTab</strong>
-                        <p>Permite comunicar a extensao com a aba ativa quando necessario.</p>
-                    </article>
-                    <article class="permission-card">
-                        <strong>contextMenus</strong>
-                        <p>Adiciona atalhos no menu de contexto para revisar selecoes e ignorar palavras.</p>
-                    </article>
-                    <article class="permission-card">
-                        <strong>LanguageTool</strong>
-                        <p>Autoriza chamadas para <code>api.languagetool.org</code>, o motor externo de revisao.</p>
-                    </article>
-                </div>
-            </section>
-
-            <section class="section security" id="seguranca">
-                <div class="section-heading">
-                    <p class="eyebrow">Seguranca</p>
-                    <h2>Superficie reduzida e dados sob controle.</h2>
-                </div>
-                <div class="security-list">
-                    <p>O content script nao chama diretamente o LanguageTool; a comunicacao passa pelo background.</p>
-                    <p>A chave de API e mantida em <code>chrome.storage.session</code>.</p>
-                    <p>Scripts nao sao expostos em <code>web_accessible_resources</code>.</p>
-                </div>
-            </section>
-        </main>
-
-        <footer class="site-footer">
-            <div class="footer-brand">
-                <img src="icons/logo.svg" alt="">
-                <div>
-                    <strong>SyntaxMentor</strong>
-                    <span>Extensao Chrome para revisar textos com clareza.</span>
-                </div>
+                <span class="preview-apply">Aplicar sugestoes</span>
+              </aside>
             </div>
-            <nav class="footer-links" aria-label="Links do rodape">
-                <a href="#como-funciona">Como funciona</a>
-                <a href="#recursos">Recursos</a>
-                <a href="#instalacao">Instalacao</a>
-                <a href="https://github.com/Vinicius-Olindo/Projeto-SyntaxMentor" target="_blank" rel="noopener noreferrer">Repositorio</a>
-            </nav>
-            <span class="footer-version">v2.8.0</span>
-        </footer>
+          </div>
+        </div>
 
-        <script src="js/index.js"></script>
-    </body>
+        <div class="hero-content">
+          <p class="eyebrow">Extensao Chrome para escrita assistida</p>
+          <h1>Revise textos na web com menos friccao.</h1>
+          <p class="hero-lead">SyntaxMentor acompanha campos de texto, consulta o LanguageTool e entrega sugestoes claras para corrigir, ignorar ou aprender com cada revisao.</p>
+          <div class="hero-actions">
+            <a class="btn primary" href="https://github.com/Vinicius-Olindo/Projeto-SyntaxMentor/archive/refs/heads/main.zip">Baixar extensao</a>
+            <a class="btn secondary" href="#instalacao">Instalar localmente</a>
+          </div>
+          <p class="hero-note">Download direto do projeto para carregar no Chrome em modo desenvolvedor.</p>
+        </div>
+      </section>
+
+      <section class="section workflow" id="como-funciona">
+        <div class="section-heading">
+          <p class="eyebrow">Como funciona</p>
+          <h2>Um fluxo curto entre escrever e corrigir.</h2>
+        </div>
+        <div class="workflow-grid">
+          <article class="workflow-step">
+            <span>1</span>
+            <h3>Digite normalmente</h3>
+            <p>A extensao observa campos editaveis nas paginas permitidas e respeita o ritmo configurado.</p>
+          </article>
+          <article class="workflow-step">
+            <span>2</span>
+            <h3>Revise as sugestoes</h3>
+            <p>O painel mostra erros, alternativas e explicacoes quando o modo aprendizado esta ativo.</p>
+          </article>
+          <article class="workflow-step">
+            <span>3</span>
+            <h3>Aplique ou ignore</h3>
+            <p>Corrija uma sugestao, use correcao em lote ou adicione termos ao dicionario pessoal.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section compact" id="recursos">
+        <div class="section-heading">
+          <p class="eyebrow">Fluxo principal</p>
+          <h2>Feito para corrigir sem atrapalhar.</h2>
+        </div>
+        <div class="feature-grid">
+          <article>
+            <span class="feature-index">01</span>
+            <h3>Revisao em tempo real</h3>
+            <p>Detecta texto digitado, espera o ritmo configurado e apresenta sugestoes no painel lateral.</p>
+          </article>
+          <article>
+            <span class="feature-index">02</span>
+            <h3>Dicionario pessoal</h3>
+            <p>Permite ignorar nomes, termos tecnicos e expressoes que fazem sentido para o usuario.</p>
+          </article>
+          <article>
+            <span class="feature-index">03</span>
+            <h3>Controle por site</h3>
+            <p>Use blacklist, whitelist e atalhos para ajustar onde a extensao deve atuar.</p>
+          </article>
+          <article>
+            <span class="feature-index">04</span>
+            <h3>Modos de uso</h3>
+            <p>Inclui confirmacao, leitura, foco e aprendizado para contextos diferentes de escrita.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section product" id="produto">
+        <div class="section-heading">
+          <p class="eyebrow">Produto em uso</p>
+          <h2>A mesma experiencia do painel, popup e bolinha.</h2>
+          <p>O visual foi pensado para ficar presente sem dominar a pagina: a bolinha sinaliza o estado, o painel concentra as sugestoes e o popup guarda controles rapidos.</p>
+        </div>
+
+        <div class="product-grid">
+          <article class="product-workspace">
+            <div class="workspace-bar">
+              <span></span>
+              <strong>linkedin.com/feed</strong>
+              <em>Editor ativo</em>
+            </div>
+            <div class="workspace-editor">
+              <p>Ola, estou escreveno uma mensagem profissional.</p>
+              <p class="workspace-error">A extenção revisa sem atrapalhar minha digitacao.</p>
+              <p>Depois eu aplico tudo em poucos cliques.</p>
+            </div>
+            <div class="workspace-bubble">
+              <span>✎</span>
+              <strong>3</strong>
+            </div>
+          </article>
+
+          <aside class="product-panel" aria-label="Previa do painel de sugestoes">
+            <div class="product-panel-head">
+              <img src="icons/logo.svg" alt="" />
+              <strong>Sugestoes</strong>
+              <span>3</span>
+            </div>
+            <div class="product-tabs">
+              <span class="active">Gramatica</span>
+              <span>Historico</span>
+            </div>
+            <div class="product-suggestion active">
+              <div>
+                <span class="wrong">Ola</span>
+                <span class="arrow">-></span>
+                <span class="right">Olá</span>
+              </div>
+              <p>Possivel erro de ortografia em portugues</p>
+            </div>
+            <div class="product-suggestion">
+              <div>
+                <span class="wrong">extenção</span>
+                <span class="arrow">-></span>
+                <span class="right">extensão</span>
+              </div>
+              <p>Correcao de ortografia de alta confianca</p>
+            </div>
+            <button type="button">Corrigir Tudo</button>
+          </aside>
+
+          <aside class="product-popup" aria-label="Previa do popup">
+            <div class="popup-preview-head">
+              <img src="icons/logo.svg" alt="" />
+              <div>
+                <strong>SyntaxMentor</strong>
+                <span>Revisao de escrita</span>
+              </div>
+            </div>
+            <div class="popup-preview-site">
+              <span></span>
+              <strong>Site ativo</strong>
+              <em>linkedin.com</em>
+            </div>
+            <div class="popup-preview-input">
+              <span>Ignorar palavra...</span>
+              <strong>+</strong>
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      <section class="section split" id="instalacao">
+        <div class="section-heading">
+          <p class="eyebrow">Instalacao local</p>
+          <h2>Carregue a extensao em modo desenvolvedor.</h2>
+          <p>O projeto usa Manifest V3 e pode ser testado diretamente no Chrome enquanto esta em desenvolvimento.</p>
+        </div>
+        <ol class="steps">
+          <li>Abra <code>chrome://extensions</code>.</li>
+          <li>Ative o modo de desenvolvedor.</li>
+          <li>Clique em <code>Carregar sem compactacao</code>.</li>
+          <li>Selecione a pasta do projeto.</li>
+          <li>Recarregue a extensao apos alterar scripts, CSS ou manifesto.</li>
+        </ol>
+      </section>
+
+      <section class="section permissions" id="permissoes">
+        <div class="section-heading">
+          <p class="eyebrow">Permissoes</p>
+          <h2>O necessario para revisar textos com transparencia.</h2>
+        </div>
+        <div class="permission-grid">
+          <article class="permission-card">
+            <strong>storage</strong>
+            <p>Guarda configuracoes, dicionario pessoal e listas de sites.</p>
+          </article>
+          <article class="permission-card">
+            <strong>activeTab</strong>
+            <p>Permite comunicar a extensao com a aba ativa quando necessario.</p>
+          </article>
+          <article class="permission-card">
+            <strong>contextMenus</strong>
+            <p>Adiciona atalhos no menu de contexto para revisar selecoes e ignorar palavras.</p>
+          </article>
+          <article class="permission-card">
+            <strong>LanguageTool</strong>
+            <p>Autoriza chamadas para <code>api.languagetool.org</code>, o motor externo de revisao.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section security" id="seguranca">
+        <div class="section-heading">
+          <p class="eyebrow">Seguranca</p>
+          <h2>Superficie reduzida e dados sob controle.</h2>
+        </div>
+        <div class="security-list">
+          <p>O content script nao chama diretamente o LanguageTool; a comunicacao passa pelo background.</p>
+          <p>A chave de API e mantida em <code>chrome.storage.session</code>.</p>
+          <p>Scripts nao sao expostos em <code>web_accessible_resources</code>.</p>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="footer-brand">
+        <img src="icons/logo.svg" alt="" />
+        <div>
+          <strong>SyntaxMentor</strong>
+          <span>Extensao Chrome para revisar textos com clareza.</span>
+        </div>
+      </div>
+      <nav class="footer-links" aria-label="Links do rodape">
+        <a href="#como-funciona">Como funciona</a>
+        <a href="#recursos">Recursos</a>
+        <a href="#instalacao">Instalacao</a>
+        <a href="privacy.html">Privacidade</a>
+        <a href="https://github.com/Vinicius-Olindo/Projeto-SyntaxMentor" target="_blank" rel="noopener noreferrer">Repositorio</a>
+      </nav>
+      <span class="footer-version">v2.8.0</span>
+    </footer>
+
+    <script src="js/index.js"></script>
+  </body>
 </html>

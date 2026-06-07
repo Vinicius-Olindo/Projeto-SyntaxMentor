@@ -42,3 +42,7 @@ SyntaxMentor usa permissoes limitadas para revisar textos em campos editaveis e 
 ## Observacao de posicionamento
 
 Nas imagens promocionais, mantenha pouco texto. A propria documentacao da Chrome Web Store recomenda que imagens promocionais comuniquem a marca e funcionem bem mesmo reduzidas.
+
+## URL de privacidade
+
+https://vinicius-olindo.github.io/Projeto-SyntaxMentor/privacy.html

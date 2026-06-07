@@ -78,6 +78,7 @@ A suite verifica sintaxe, referencias de arquivos, manifesto e pontos criticos d
 
 ## Seguranca e privacidade
 
+- Politica publica de privacidade: [privacy.html](privacy.html).
 - O content script nao chama diretamente o LanguageTool; a consulta passa pelo background.
 - A chave de API e mantida em `chrome.storage.session`.
 - Scripts nao sao expostos em `web_accessible_resources`.

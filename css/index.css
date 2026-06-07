@@ -954,6 +954,121 @@ code {
     font-weight: 900;
 }
 
+.policy-main {
+    width: min(1060px, calc(100% - 36px));
+    margin: 0 auto;
+    padding: 58px 0 72px;
+}
+
+.policy-hero {
+    padding: 46px 0 34px;
+}
+
+.policy-hero h1 {
+    max-width: 780px;
+    margin: 0;
+    color: #101827;
+    font-size: 48px;
+    line-height: 1.04;
+    font-weight: 850;
+}
+
+.policy-hero p {
+    max-width: 720px;
+    margin: 20px 0 0;
+    color: #4b5563;
+    font-size: 18px;
+    line-height: 1.65;
+}
+
+.policy-meta {
+    display: inline-flex;
+    margin-top: 20px;
+    padding: 8px 12px;
+    color: #4f2aa0;
+    background: #f1edff;
+    border: 1px solid #d8c8ff;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 800;
+}
+
+.policy-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-bottom: 34px;
+}
+
+.policy-card,
+.policy-section {
+    background: #ffffff;
+    border: 1px solid #e7e9f0;
+    border-radius: 8px;
+    box-shadow: 0 12px 34px rgba(17, 24, 39, 0.06);
+}
+
+.policy-card {
+    padding: 20px;
+}
+
+.policy-card strong {
+    display: block;
+    margin-bottom: 10px;
+    color: #4f2aa0;
+    font-size: 15px;
+    font-weight: 900;
+}
+
+.policy-card p,
+.policy-section p,
+.policy-list {
+    color: #566176;
+    font-size: 15px;
+    line-height: 1.7;
+}
+
+.policy-card p {
+    margin: 0;
+}
+
+.policy-section {
+    padding: 26px;
+}
+
+.policy-section + .policy-section {
+    margin-top: 16px;
+}
+
+.policy-section h2 {
+    margin: 0 0 12px;
+    color: #111827;
+    font-size: 24px;
+    line-height: 1.2;
+}
+
+.policy-section p {
+    margin: 0 0 12px;
+}
+
+.policy-section p:last-child {
+    margin-bottom: 0;
+}
+
+.policy-section a {
+    color: #6f42c1;
+    font-weight: 800;
+}
+
+.policy-list {
+    margin: 10px 0 14px;
+    padding-left: 22px;
+}
+
+.policy-list li + li {
+    margin-top: 8px;
+}
+
 .is-revealed {
     animation: revealUp 0.55s ease both;
 }
@@ -1032,6 +1147,10 @@ code {
     .site-footer {
         grid-template-columns: 1fr;
         gap: 20px;
+    }
+
+    .policy-grid {
+        grid-template-columns: 1fr;
     }
 
     .footer-links {
@@ -1126,6 +1245,28 @@ code {
     .section-heading h2 {
         font-size: 30px;
         line-height: 1.12;
+    }
+
+    .policy-main {
+        width: min(100% - 32px, 640px);
+        padding: 34px 0 54px;
+    }
+
+    .policy-hero {
+        padding: 20px 0 28px;
+    }
+
+    .policy-hero h1 {
+        font-size: 38px;
+        line-height: 1.08;
+    }
+
+    .policy-hero p {
+        font-size: 16px;
+    }
+
+    .policy-section {
+        padding: 20px;
     }
 
     .feature-grid,
