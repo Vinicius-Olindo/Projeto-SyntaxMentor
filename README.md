@@ -87,7 +87,7 @@ A suite verifica sintaxe, referencias de arquivos, manifesto e pontos criticos d
 
 ## Versao
 
-Versao atual: `2.8.0`
+Versao atual: `2.8.1`
 
 ## Licenca
 

@@ -57,7 +57,7 @@ function configurarBackup() {
                 delete dados.apiKey;
 
                 var backup = {
-                    versao: '2.8.0',
+                    versao: '2.8.1',
                     data: new Date().toISOString(),
                     dados
                 };

@@ -179,8 +179,9 @@ function atualizarInterface() {
         if (!aplicarPosicaoBolhaSalva(bubble)) posicionarBolhaPadrao(bubble);
         tornarArrastavel(bubble);
         bubble.addEventListener('click', () => {
-            if (!isDraggingBubble && errosGlobais.length > 0) {
-                painelAberto ? fecharPainel() : exibirPainel();
+            if (!isDraggingBubble) {
+                if (errosGlobais.length > 0) painelAberto ? fecharPainel() : exibirPainel();
+                else revisarCampoAtualManualmente('manual-bubble');
             }
             isDraggingBubble = false;
         });

@@ -2,14 +2,14 @@
 
 function registrarEventosInstalacao() {
     chrome.runtime.onInstalled.addListener((details) => {
-        smLog('SyntaxMentor v2.8.0 instalado.');
+        smLog('SyntaxMentor v2.8.1 instalado.');
 
         if (details.reason === 'install') {
             chrome.tabs.create({ url: chrome.runtime.getURL('welcome.html') });
         }
 
         if (details.reason === 'update') {
-            smLog('SyntaxMentor atualizado para versao 2.8.0');
+            smLog('SyntaxMentor atualizado para versao 2.8.1');
         }
 
         criarMenuContexto();

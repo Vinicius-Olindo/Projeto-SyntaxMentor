@@ -113,6 +113,7 @@ function carregarSmConfig(callback) {
             language: 'pt-BR', pickyMode: true, speed: 500, darkMode: false,
             blacklist: [], strictMode: false,
             disabled: false, autoHideBubble: false, modoConfirmacao: false,
+            modoManual: false, languageToolConsent: true,
             modoLeituraGlobal: false, modoLeituraSites: [], modoWhitelist: false,
             whitelist: [], modoFoco: false, modoAprendizado: false,
             userBlacklistOverrides: [], userWhitelistOverrides: [], dicionario_pessoal: [],
@@ -193,7 +194,7 @@ function iniciar() {
         
         chrome.storage.onChanged.addListener((changes, namespace) => {
             if (namespace !== 'local') return;
-            const campos = ['language','pickyMode','speed','darkMode','blacklist','strictMode','disabled','autoHideBubble','modoConfirmacao','modoLeituraGlobal','modoLeituraSites','modoWhitelist','whitelist','modoFoco','modoAprendizado','userBlacklistOverrides','userWhitelistOverrides','smBubblePosition','toggleShortcut','ignoreShortcut','corrigirTudoShortcut','ativarShortcut','desativarShortcut'];
+            const campos = ['language','pickyMode','speed','darkMode','blacklist','strictMode','disabled','autoHideBubble','modoConfirmacao','modoManual','languageToolConsent','modoLeituraGlobal','modoLeituraSites','modoWhitelist','whitelist','modoFoco','modoAprendizado','userBlacklistOverrides','userWhitelistOverrides','smBubblePosition','toggleShortcut','ignoreShortcut','corrigirTudoShortcut','ativarShortcut','desativarShortcut'];
             campos.forEach(k => { if (changes[k] !== undefined) smConfig[k] = changes[k].newValue; });
             if (changes.dicionario_pessoal !== undefined) dicCache = (changes.dicionario_pessoal.newValue || []).map(w => w.toLowerCase());
             const host = window.location.hostname;

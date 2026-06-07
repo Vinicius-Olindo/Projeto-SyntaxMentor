@@ -163,9 +163,51 @@ function montarErrosRevisao(texto, matchesExternos = []) {
         const ol = o.toLowerCase();
 
         if (ol.match(/^[0-9]+$/) || ol.match(/^https?:\/\//)) return false;
+        if (sugestaoDeConcordanciaPoucoConfiavel(o, sugestao, m)) return false;
 
         return !dicCache.includes(ol) && !ignoradosTemporarios.includes(ol);
     });
+}
+
+function normalizarParaComparacaoLeve(valor) {
+    return String(valor || '')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLocaleLowerCase('pt-BR')
+        .replace(/[^\p{L}\p{N}\s-]/gu, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
+function sugestaoMudaApenasNumero(original, sugestao) {
+    const o = normalizarParaComparacaoLeve(original);
+    const s = normalizarParaComparacaoLeve(sugestao);
+    if (!o || !s || o === s) return false;
+
+    const pluralizacoes = [
+        `${o}s`,
+        `${o}es`,
+        o.endsWith('m') ? `${o.slice(0, -1)}ns` : '',
+        o.endsWith('l') ? `${o.slice(0, -1)}is` : '',
+        o.endsWith('il') ? `${o.slice(0, -2)}eis` : '',
+        o.endsWith('ao') ? `${o.slice(0, -2)}oes` : ''
+    ].filter(Boolean);
+
+    return pluralizacoes.includes(s);
+}
+
+function sugestaoDeConcordanciaPoucoConfiavel(original, sugestao, match) {
+    if (obterConfiancaMatch(match) !== 'externa') return false;
+    if (!sugestaoMudaApenasNumero(original, sugestao)) return false;
+
+    const textoRegra = [
+        match?.message,
+        match?.rule?.id,
+        match?.rule?.description,
+        match?.rule?.category?.name
+    ].filter(Boolean).join(' ');
+
+    return /\b(plural|concord|agreement|number)\b/i.test(textoRegra);
 }
 
 function aplicarRevisaoLocalImediata(texto, elemento) {
@@ -186,6 +228,10 @@ function aplicarRevisaoLocalImediata(texto, elemento) {
 }
 
 function consultarGramaticaNoBackground(texto, opcoes) {
+    if (typeof smConfig !== 'undefined' && smConfig.languageToolConsent === false) {
+        return Promise.resolve({ matches: [] });
+    }
+
     return new Promise((resolve, reject) => {
         enviarMensagemSegura({
             action: 'checkGrammar',

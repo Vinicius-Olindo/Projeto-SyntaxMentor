@@ -1,5 +1,5 @@
 // =============================================
-// SyntaxMentor - options-utils.js v2.8.0
+// SyntaxMentor - options-utils.js v2.8.1
 // Utilitários compartilhados entre as páginas de configuração
 // =============================================
 

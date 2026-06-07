@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
-    <!-- SyntaxMentor - options.html v2.8.0 -->
+    <!-- SyntaxMentor - options.html v2.8.1 -->
     <head>
         <meta charset="UTF-8">
         <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
@@ -13,7 +13,7 @@
 
         <!-- BARRA LATERAL -->
         <div class="sidebar">
-            <h2 class="logo"><img src="icons/logo.svg" alt="" class="logo-icon"> SyntaxMentor <span style="font-size: 10px; color: #aaa;">v2.8.0</span></h2>
+            <h2 class="logo"><img src="icons/logo.svg" alt="" class="logo-icon"> SyntaxMentor <span style="font-size: 10px; color: #aaa;">v2.8.1</span></h2>
             <ul class="menu">
                 <li class="active"><a href="options.html">Geral</a></li>
                 <li><a href="options-seguranca.html">Segurança</a></li>
@@ -57,6 +57,13 @@
                         <div class="geral-status-value" id="status-dic-badge">0 palavras</div>
                     </div>
                 </div>
+                <div class="geral-status-card">
+                    <div class="geral-status-icon">🖱️</div>
+                    <div class="geral-status-info">
+                        <div class="geral-status-label">Revisão</div>
+                        <div class="geral-status-value" id="status-modo-revisao-badge">Automática</div>
+                    </div>
+                </div>
             </div>
 
             <!-- GRID PRINCIPAL (3 colunas) -->
@@ -91,6 +98,13 @@
                                 <p class="desc">Ativa correções de estilo e gramática avançada.</p>
                             </div>
                             <label class="switch"><input type="checkbox" id="pickyMode"><span class="slider"></span></label>
+                        </div>
+                        <div class="config-item">
+                            <div class="info-text">
+                                <label>Revisar somente quando eu pedir</label>
+                                <p class="desc">Desliga a revisão automática. Use a bolinha ou Alt + S para revisar o campo atual.</p>
+                            </div>
+                            <label class="switch"><input type="checkbox" id="modoManual"><span class="slider"></span></label>
                         </div>
                     </div>
 

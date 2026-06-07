@@ -1,5 +1,5 @@
 /* ============================================
-   SyntaxMentor - security options page styles v2.8.0
+   SyntaxMentor - security options page styles v2.8.1
    ============================================ */
 
 /* Fundo da página segurança */
@@ -99,6 +99,34 @@ body.dark-mode .seguranca-status-card {
 
 body.dark-mode .seguranca-status-icon {
     background: #2a2a2a;
+}
+
+.privacy-disclosure {
+    display: grid;
+    gap: 4px;
+    margin: 14px 0 4px;
+    padding: 12px 14px;
+    color: #365069;
+    background: #f3f8ff;
+    border: 1px solid #d7e8ff;
+    border-radius: 8px;
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+.privacy-disclosure strong {
+    color: #1f3b57;
+    font-size: 13px;
+}
+
+body.dark-mode .privacy-disclosure {
+    color: #c7d2e3;
+    background: #172133;
+    border-color: #273a58;
+}
+
+body.dark-mode .privacy-disclosure strong {
+    color: #e5edf8;
 }
 
 /* ============================================
@@ -301,4 +329,3 @@ body.dark-mode .list-section {
         flex-direction: column;
     }
 }
-

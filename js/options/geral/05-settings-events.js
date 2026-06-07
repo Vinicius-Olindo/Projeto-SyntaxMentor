@@ -12,6 +12,7 @@ function configurarSalvar() {
             smStorageLocalSet({
                 language: elLanguage?.value || 'pt-BR',
                 pickyMode: elPickyMode?.checked ?? true,
+                modoManual: elModoManual?.checked || false,
                 speed: selectedSpeed,
             autoHideBubble: elAutoHideBubble?.checked || false
         }, () => {
@@ -32,6 +33,12 @@ function configurarEventosRealtime() {
     if (elAutoHideBubble) {
         elAutoHideBubble.addEventListener('change', (e) => {
             smStorageLocalSet({ autoHideBubble: e.target.checked });
+        });
+    }
+
+    if (elModoManual) {
+        elModoManual.addEventListener('change', (e) => {
+            smStorageLocalSet({ modoManual: e.target.checked }, atualizarStatusGeral);
         });
     }
 
@@ -137,6 +144,7 @@ function carregarConfiguracoesIniciais() {
     smStorageLocalGet({
         language: 'pt-BR',
         pickyMode: true,
+        modoManual: false,
         darkMode: false,
         autoHideBubble: false,
         speed: '500',
@@ -146,6 +154,7 @@ function carregarConfiguracoesIniciais() {
     }, (res) => {
         if (elLanguage) elLanguage.value = res.language;
         if (elPickyMode) elPickyMode.checked = res.pickyMode;
+        if (elModoManual) elModoManual.checked = !!res.modoManual;
         if (elDarkMode) {
             elDarkMode.checked = res.darkMode;
             document.body.classList.toggle('dark-mode', res.darkMode);
@@ -184,7 +193,11 @@ function configurarStorageListener() {
             document.body.classList.toggle('dark-mode', changes.darkMode.newValue);
         }
 
-        if (changes.language || changes.speed || changes.pickyMode || changes.dicionario_pessoal || changes.blacklist) {
+        if (changes.modoManual && elModoManual) {
+            elModoManual.checked = !!changes.modoManual.newValue;
+        }
+
+        if (changes.language || changes.speed || changes.pickyMode || changes.modoManual || changes.dicionario_pessoal || changes.blacklist) {
             atualizarStatusGeral();
         }
     });

@@ -1,5 +1,5 @@
 // =============================================
-// SyntaxMentor - options-seguranca.js v2.8.0
+// SyntaxMentor - options-seguranca.js v2.8.1
 // Lógica da página de configurações de segurança
 // =============================================
 
@@ -19,6 +19,7 @@ if (document.body.classList.contains('seguranca-page')) {
     const elModoLeituraGlobal = document.getElementById('modoLeituraGlobal');
     const elModoFoco = document.getElementById('modoFoco');
     const elModoAprendizado = document.getElementById('modoAprendizado');
+    const elLanguageToolConsent = document.getElementById('languageToolConsent');
     const modoLeituraInput = document.getElementById('modo-leitura-input');
     const btnAddModoLeitura = document.getElementById('btn-add-modo-leitura');
     const modoLeituraUl = document.getElementById('modo-leitura-list');
@@ -37,10 +38,11 @@ if (document.body.classList.contains('seguranca-page')) {
     function atualizarStatusSeguranca() {
         const statusApiBadge = document.getElementById('status-api-badge');
         const statusModoBadge = document.getElementById('status-modo-badge');
-        if (!statusApiBadge) return;
+        const statusConsentBadge = document.getElementById('status-consent-badge');
+        if (!statusApiBadge && !statusModoBadge && !statusConsentBadge) return;
         
         smStorageSessionGet({ apiKey: '' }, (sess) => {
-        smStorageLocalGet({ modoLeituraGlobal: false }, (res) => {
+        smStorageLocalGet({ modoLeituraGlobal: false, languageToolConsent: true }, (res) => {
         res.apiKey = sess.apiKey || '';
             if (statusApiBadge) {
                 if (res.apiKey && res.apiKey.trim() !== '') {
@@ -59,6 +61,15 @@ if (document.body.classList.contains('seguranca-page')) {
                 } else {
                     statusModoBadge.textContent = 'Normal';
                     statusModoBadge.className = 'seguranca-status-value modo-normal';
+                }
+            }
+            if (statusConsentBadge) {
+                if (res.languageToolConsent === false) {
+                    statusConsentBadge.textContent = 'Local apenas';
+                    statusConsentBadge.className = 'seguranca-status-value api-off';
+                } else {
+                    statusConsentBadge.textContent = 'Permitida';
+                    statusConsentBadge.className = 'seguranca-status-value modo-normal';
                 }
             }
         }); // fecha local.get
@@ -255,6 +266,7 @@ if (document.body.classList.contains('seguranca-page')) {
                 smStorageLocalSet({
                     modoConfirmacao: elModoConfirmacao?.checked || false,
                     modoLeituraGlobal: elModoLeituraGlobal?.checked || false,
+                    languageToolConsent: elLanguageToolConsent?.checked ?? true,
                     modoFoco: elModoFoco?.checked || false,
                     modoAprendizado: elModoAprendizado?.checked || false,
                     modoWhitelist: elModoWhitelist?.checked || false
@@ -280,6 +292,12 @@ if (document.body.classList.contains('seguranca-page')) {
         if (elModoLeituraGlobal) {
             elModoLeituraGlobal.addEventListener('change', (e) => {
                 smStorageLocalSet({ modoLeituraGlobal: e.target.checked }, atualizarStatusSeguranca);
+            });
+        }
+
+        if (elLanguageToolConsent) {
+            elLanguageToolConsent.addEventListener('change', (e) => {
+                smStorageLocalSet({ languageToolConsent: e.target.checked }, atualizarStatusSeguranca);
             });
         }
         
@@ -311,6 +329,7 @@ if (document.body.classList.contains('seguranca-page')) {
         smStorageLocalGet({
             modoConfirmacao: false,
             modoLeituraGlobal: false,
+            languageToolConsent: true,
             modoLeituraSites: [],
             modoWhitelist: false,
             whitelist: [],
@@ -320,6 +339,7 @@ if (document.body.classList.contains('seguranca-page')) {
             if (elApiKey) elApiKey.value = sess.apiKey || '';
             if (elModoConfirmacao) elModoConfirmacao.checked = res.modoConfirmacao || false;
             if (elModoLeituraGlobal) elModoLeituraGlobal.checked = res.modoLeituraGlobal || false;
+            if (elLanguageToolConsent) elLanguageToolConsent.checked = res.languageToolConsent !== false;
             if (elModoFoco) elModoFoco.checked = res.modoFoco || false;
             if (elModoAprendizado) elModoAprendizado.checked = res.modoAprendizado || false;
             if (elModoWhitelist) elModoWhitelist.checked = res.modoWhitelist || false;
@@ -360,6 +380,10 @@ if (document.body.classList.contains('seguranca-page')) {
             if (changes.modoLeituraGlobal && elModoLeituraGlobal) {
                 elModoLeituraGlobal.checked = changes.modoLeituraGlobal.newValue;
             }
+
+            if (changes.languageToolConsent && elLanguageToolConsent) {
+                elLanguageToolConsent.checked = changes.languageToolConsent.newValue !== false;
+            }
             
             if (changes.modoFoco && elModoFoco) {
                 elModoFoco.checked = changes.modoFoco.newValue;
@@ -373,7 +397,7 @@ if (document.body.classList.contains('seguranca-page')) {
                 elModoWhitelist.checked = changes.modoWhitelist.newValue;
             }
             
-            if (changes.apiKey || changes.modoLeituraGlobal) {
+            if (changes.apiKey || changes.modoLeituraGlobal || changes.languageToolConsent) {
                 atualizarStatusSeguranca();
             }
         });

@@ -2,7 +2,7 @@
 // Loaded in manifest.json order.
 
 // =============================================
-// SyntaxMentor - content state module v2.8.0
+// SyntaxMentor - content state module v2.8.1
 // =============================================
 
 // =============================================
@@ -122,6 +122,8 @@ let smConfig = {
     corrigirTudoShortcut: { altKey: true, ctrlKey: false, shiftKey: true, key: 's' },
     autoHideBubble: false,
     modoConfirmacao: false,
+    modoManual: false,
+    languageToolConsent: true,
     modoLeituraGlobal: false,
     modoLeituraSites: [],
     modoWhitelist: false,

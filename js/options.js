@@ -1,5 +1,5 @@
 // =============================================
-// SyntaxMentor - options.js v2.8.0
+// SyntaxMentor - options.js v2.8.1
 // Arquivo principal que carrega os módulos
 // =============================================
 
@@ -17,4 +17,4 @@
 // <script src="js/options/geral/*.js"></script>
 // <script src="js/options.js"></script>
 
-smLog('SyntaxMentor Options v2.8.0 - modulos carregados');
+smLog('SyntaxMentor Options v2.8.1 - modulos carregados');

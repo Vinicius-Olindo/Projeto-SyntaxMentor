@@ -18,4 +18,4 @@ registrarMensagensBackground();
 registrarStorageListenerBackground();
 registrarAtalhosBackground();
 
-smLog('SyntaxMentor Background Service Worker v2.8.0 iniciado.');
+smLog('SyntaxMentor Background Service Worker v2.8.1 iniciado.');

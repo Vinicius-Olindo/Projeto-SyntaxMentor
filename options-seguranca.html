@@ -1,5 +1,5 @@
 <!-- ============================================= -->
-<!-- SyntaxMentor - options-seguranca.html v2.8.0 -->
+<!-- SyntaxMentor - options-seguranca.html v2.8.1 -->
 <!-- ============================================= -->
  
 <!DOCTYPE html>
@@ -16,7 +16,7 @@
 
         <!-- BARRA LATERAL -->
         <div class="sidebar">
-            <h2 class="logo"><img src="icons/logo.svg" alt="" class="logo-icon"> SyntaxMentor <span style="font-size: 10px; color: #aaa;">v2.8.0</span></h2>
+            <h2 class="logo"><img src="icons/logo.svg" alt="" class="logo-icon"> SyntaxMentor <span style="font-size: 10px; color: #aaa;">v2.8.1</span></h2>
             <ul class="menu">
                 <li><a href="options.html">Geral</a></li>
                 <li class="active"><a href="options-seguranca.html">Segurança</a></li>
@@ -46,6 +46,13 @@
                         <div class="seguranca-status-value" id="status-modo-badge">Normal</div>
                     </div>
                 </div>
+                <div class="seguranca-status-card" id="status-consent-card">
+                    <div class="seguranca-status-icon">🌐</div>
+                    <div class="seguranca-status-info">
+                        <div class="seguranca-status-label">Revisão Online</div>
+                        <div class="seguranca-status-value" id="status-consent-badge">Permitida</div>
+                    </div>
+                </div>
             </div>
 
             <!-- 🆕 GRID PRINCIPAL (2 colunas) -->
@@ -61,8 +68,21 @@
                             <span class="card-badge">Opcional</span>
                         </div>
                         <p class="desc">Use sua própria chave da API LanguageTool Cloud quando quiser limites maiores.</p>
+
+                        <div class="privacy-disclosure">
+                            <strong>Transparência de privacidade</strong>
+                            <span>Quando a revisão online está ligada, o texto analisado pode ser enviado ao LanguageTool para receber sugestões gramaticais. Desligue esta opção para usar apenas verificações locais.</span>
+                        </div>
                         
                         <div class="api-form">
+                            <div class="config-item">
+                                <div class="info-text">
+                                    <label>Permitir revisão online com LanguageTool</label>
+                                    <p class="desc">Quando desligado, a extensão não envia texto para api.languagetool.org.</p>
+                                </div>
+                                <label class="switch"><input type="checkbox" id="languageToolConsent"><span class="slider"></span></label>
+                            </div>
+
                             <div class="api-field">
                                 <label>API Key</label>
                                 <div class="api-key-row">

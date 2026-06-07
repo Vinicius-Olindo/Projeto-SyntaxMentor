@@ -160,8 +160,70 @@ function isExtensaoAtiva() {
     }
 }
 
+function normalizarElementoSensivel(el) {
+    if (!el) return null;
+    const candidato = (typeof Node !== 'undefined' && el.nodeType === Node.TEXT_NODE) ? el.parentElement : el;
+    return candidato?.nodeType === 1 ? candidato : null;
+}
+
+function obterTextoAtributosCampo(el) {
+    const candidato = normalizarElementoSensivel(el);
+    if (!candidato) return '';
+
+    const partes = [
+        candidato.getAttribute?.('name'),
+        candidato.getAttribute?.('id'),
+        candidato.getAttribute?.('aria-label'),
+        candidato.getAttribute?.('placeholder'),
+        candidato.getAttribute?.('autocomplete'),
+        candidato.getAttribute?.('inputmode'),
+        candidato.getAttribute?.('data-testid'),
+        candidato.getAttribute?.('data-test'),
+        candidato.getAttribute?.('data-qa')
+    ];
+
+    const labelledBy = candidato.getAttribute?.('aria-labelledby');
+    if (labelledBy) {
+        labelledBy.split(/\s+/).forEach(id => {
+            const label = candidato.ownerDocument?.getElementById?.(id);
+            if (label?.textContent) partes.push(label.textContent);
+        });
+    }
+
+    if (candidato.id) {
+        const cssEscape = typeof CSS !== 'undefined' && typeof CSS.escape === 'function'
+            ? CSS.escape
+            : (valor) => String(valor).replace(/"/g, '\\"');
+        try {
+            const label = candidato.ownerDocument?.querySelector?.(`label[for="${cssEscape(candidato.id)}"]`);
+            if (label?.textContent) partes.push(label.textContent);
+        } catch (e) {}
+    }
+
+    return partes.filter(Boolean).join(' ').toLowerCase();
+}
+
+function isCampoSensivel(el) {
+    const candidato = normalizarElementoSensivel(el);
+    if (!candidato) return false;
+    if (candidato.closest?.('#syntax-mentor-painel, #syntax-mentor-bubble')) return false;
+
+    const tag = candidato.tagName;
+    const tipo = String(candidato.getAttribute?.('type') || '').toLowerCase();
+    if (tag === 'INPUT') {
+        if (['password', 'tel', 'number', 'date', 'datetime-local', 'month', 'week', 'time', 'hidden'].includes(tipo)) return true;
+
+        const autocomplete = String(candidato.getAttribute?.('autocomplete') || '').toLowerCase();
+        if (/cc-|credit-card|one-time-code|current-password|new-password/.test(autocomplete)) return true;
+    }
+
+    const textoAtributos = obterTextoAtributosCampo(candidato);
+    return /\b(senha|password|passcode|token|otp|codigo|c[oó]digo|pin|cpf|cnpj|rg|documento|cart[aã]o|card|credit|cvv|cvc|iban|conta|ag[eê]ncia|banco|pix|chave|secret|api[-_\s]?key)\b/i.test(textoAtributos);
+}
+
 function isElementoEditavel(el) {
     if (!el) return false;
+    if (isCampoSensivel(el)) return false;
     const tag = el.tagName;
     const contentEditable = el.getAttribute?.('contenteditable');
     return tag === 'TEXTAREA' ||
@@ -184,8 +246,8 @@ function elementoEstaNoDocumento(el) {
 
 function normalizarElementoEditavel(el) {
     if (!el) return null;
-    let candidato = el.nodeType === Node.TEXT_NODE ? el.parentElement : el;
-    if (!candidato || candidato.nodeType !== Node.ELEMENT_NODE) return null;
+    let candidato = (typeof Node !== 'undefined' && el.nodeType === Node.TEXT_NODE) ? el.parentElement : el;
+    if (!candidato || candidato.nodeType !== 1) return null;
     if (isElementoEditavel(candidato)) return candidato;
 
     candidato = candidato.closest?.('textarea, input[type="text"], input[type="search"], input[type="url"], input[type="email"], input:not([type]), [contenteditable]:not([contenteditable="false"]), [role="textbox"]');
@@ -359,10 +421,31 @@ function agendarLimpezaAposPossivelEnvio(el = elementoGlobal || ultimoElementoEd
 }
 
 function agendarRevisaoEntradaEditavel(el, inputType = '', opcoes = {}) {
+    if (isCampoSensivel(el)) {
+        limparEstadoRevisaoObsoleta();
+        return false;
+    }
     const alvo = registrarElementoEditavelAtivo(el);
     if (!alvo) return false;
+    if (isCampoSensivel(alvo)) {
+        limparEstadoRevisaoObsoleta(alvo);
+        return false;
+    }
     if (alvo.tagName === 'INPUT' && smConfig.strictMode) return false;
     const forcarRevisao = !!opcoes.forcar;
+    if (smConfig.modoManual && !forcarRevisao) {
+        const textoAtual = obterTextoEditavelAtual(alvo).trim();
+        if (textoUltimaVerificacao && textoAtual !== textoUltimaVerificacao) {
+            limparEstadoRevisaoObsoleta(alvo);
+            elementoGlobal = alvo;
+            ultimoElementoEditavel = alvo;
+            atualizarVisibilidadeBolha();
+            return false;
+        }
+        usuarioDigitando = false;
+        atualizarVisibilidadeBolha();
+        return false;
+    }
     const atraso = Number.isFinite(opcoes.atraso) ? opcoes.atraso : (parseInt(smConfig.speed) || 500);
     const ciclo = iniciarCicloRevisao(alvo, '', inputType || 'input', { limparTimer: true, limparFila: true, abortarConsulta: true });
 
@@ -412,8 +495,18 @@ function inputPareceColagem(e, el) {
 }
 
 function forcarRevisaoTextoAtual(el, inputType = '') {
+    if (isCampoSensivel(el)) {
+        mostrarFeedback('Este campo parece sensivel. Revisao desativada aqui.', 'info');
+        limparEstadoRevisaoObsoleta();
+        return false;
+    }
     const alvo = registrarElementoEditavelAtivo(el);
     if (!alvo) return false;
+    if (isCampoSensivel(alvo)) {
+        mostrarFeedback('Este campo parece sensivel. Revisao desativada aqui.', 'info');
+        limparEstadoRevisaoObsoleta(alvo);
+        return false;
+    }
     if (alvo.tagName === 'INPUT' && smConfig.strictMode) return false;
 
     const ciclo = iniciarCicloRevisao(alvo, '', inputType || 'forcado', { limparTimer: true, limparFila: true, abortarConsulta: true });
@@ -435,6 +528,20 @@ function forcarRevisaoTextoAtual(el, inputType = '') {
     return true;
 }
 
+function revisarCampoAtualManualmente(origem = 'manual') {
+    const alvo = normalizarElementoEditavel(document.activeElement) ||
+        normalizarElementoEditavel(elementoGlobal) ||
+        normalizarElementoEditavel(ultimoElementoEditavel);
+
+    if (!alvo) {
+        mostrarFeedback('Clique em um campo de texto antes de revisar.', 'info');
+        return false;
+    }
+
+    mostrarFeedback('Revisando texto...', 'info');
+    return forcarRevisaoTextoAtual(alvo, origem);
+}
+
 function normalizarTextoColagem(texto) {
     return String(texto || '').replace(/\s+/g, ' ').trim();
 }
@@ -449,8 +556,17 @@ function textoColadoPareceInserido(textoAtual, textoColado) {
 }
 
 function agendarRevisaoAposColagem(el, textoColado = '') {
+    if (isCampoSensivel(el)) {
+        limparEstadoRevisaoObsoleta();
+        return false;
+    }
     const alvo = normalizarElementoEditavel(el) || normalizarElementoEditavel(document.activeElement);
     if (!alvo) return false;
+    if (isCampoSensivel(alvo) || smConfig.modoManual) {
+        registrarElementoEditavelAtivo(alvo);
+        atualizarVisibilidadeBolha();
+        return false;
+    }
 
     const revisaoId = ++smRevisaoColagemId;
     const maxTentativas = 16;

@@ -5,6 +5,7 @@ var smGeralInicializada = false;
 
 var elLanguage = document.getElementById('language');
 var elPickyMode = document.getElementById('pickyMode');
+var elModoManual = document.getElementById('modoManual');
 var elDarkMode = document.getElementById('darkMode');
 var elAutoHideBubble = document.getElementById('autoHideBubble');
 var elSpeedOptions = document.querySelectorAll('input[name="speed"]');

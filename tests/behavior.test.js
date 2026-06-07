@@ -190,6 +190,19 @@ module.exports = async function behaviorTests() {
         true,
         'sugestao leve deve aparecer no modo rigoroso'
     );
+    const pluralExternoPoucoConfiavel = [{
+        rule: { id: 'AGREEMENT_TEST', category: { name: 'Agreement' } },
+        message: 'Possivel problema de concordancia no plural',
+        offset: 17,
+        length: 6,
+        context: { text: 'limpar o arquivo inutil', offset: 17, length: 6 },
+        replacements: [{ value: 'inuteis' }]
+    }];
+    assert.equal(
+        temSugestao(filtroConfianca.montarErrosRevisao('limpar o arquivo inutil', pluralExternoPoucoConfiavel), 'inutil', 'inuteis'),
+        false,
+        'sugestao externa de plural pouco confiavel nao deve gerar loop de correcao'
+    );
 
     const corrections = carregarScript('js/content/06-corrections-stats.js');
     assert.equal(
@@ -223,6 +236,23 @@ module.exports = async function behaviorTests() {
     assert.equal(mensagemEnviada.action, 'checkGrammar', 'consulta gramatical deve usar a acao checkGrammar');
     assert.equal(mensagemEnviada.requestId, 42, 'consulta gramatical deve carregar o identificador da requisicao');
     assert.equal(Object.hasOwn(mensagemEnviada, 'apiKey'), false, 'content nao deve enviar API Key ao background');
+
+    let envioSemConsentimento = false;
+    const grammarSemConsentimento = carregarScript('js/content/05-grammar-highlights.js', {
+        window: {},
+        smConfig: { languageToolConsent: false },
+        enviarMensagemSegura() {
+            envioSemConsentimento = true;
+        }
+    });
+    const respostaLocal = await grammarSemConsentimento.consultarGramaticaNoBackground('Texto privado', {
+        language: 'pt-BR',
+        pickyMode: true,
+        modoVoz: false,
+        requestId: 43
+    });
+    assert.equal(respostaLocal.matches.length, 0, 'sem consentimento deve retornar lista externa vazia');
+    assert.equal(envioSemConsentimento, false, 'sem consentimento nao deve enviar texto ao background');
 
     const background = carregarScripts([
         'js/shared/storage.js',
@@ -264,6 +294,25 @@ module.exports = async function behaviorTests() {
     assert.equal(leitura.isModoLeitura(), false, 'modo leitura por site nao deve casar dominio parecido');
     vm.runInContext("window.location.hostname = 'docs.google.com';", leitura);
     assert.equal(leitura.isModoLeitura(), true, 'modo leitura por site deve aceitar subdominio real');
+
+    const campoSenha = {
+        nodeType: 1,
+        tagName: 'INPUT',
+        type: 'password',
+        isContentEditable: false,
+        getAttribute(nome) { return nome === 'type' ? 'password' : null; },
+        closest() { return null; }
+    };
+    const campoCpf = {
+        nodeType: 1,
+        tagName: 'TEXTAREA',
+        isContentEditable: false,
+        getAttribute(nome) { return nome === 'placeholder' ? 'Digite seu CPF' : null; },
+        closest() { return null; },
+        ownerDocument: {}
+    };
+    assert.equal(leitura.isElementoEditavel(campoSenha), false, 'campo de senha nao deve ser revisado');
+    assert.equal(leitura.isElementoEditavel(campoCpf), false, 'campo com sinal de documento sensivel nao deve ser revisado');
 
     const params = background.montarParametrosLanguageTool({
         text: 'Ola mundo',

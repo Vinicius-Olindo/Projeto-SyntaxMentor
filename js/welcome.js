@@ -6,6 +6,37 @@ document.addEventListener('DOMContentLoaded', () => {
     const painel = document.querySelector('[data-tilt-panel]');
     const botaoPrincipal = document.querySelector('.welcome-primary');
     const marca = document.querySelector('.welcome-brand');
+    const autoReview = document.getElementById('welcome-auto-review');
+    const languageTool = document.getElementById('welcome-language-tool');
+
+    function obterPreferenciasIniciais() {
+        return {
+            modoManual: !(autoReview?.checked ?? true),
+            languageToolConsent: languageTool?.checked ?? true
+        };
+    }
+
+    function salvarPreferenciasIniciais(callback) {
+        const prefs = obterPreferenciasIniciais();
+        if (typeof chrome !== 'undefined' && chrome.storage?.local?.set) {
+            chrome.storage.local.set(prefs, () => callback?.());
+            return;
+        }
+
+        callback?.();
+    }
+
+    function fecharWelcome() {
+        if (typeof chrome !== 'undefined' && chrome.tabs?.getCurrent && chrome.tabs?.remove) {
+            chrome.tabs.getCurrent((tab) => {
+                if (tab?.id) chrome.tabs.remove(tab.id);
+                else window.close();
+            });
+            return;
+        }
+
+        window.close();
+    }
 
     animaveis.forEach((el, index) => {
         el.style.setProperty('--delay', `${index * 85}ms`);
@@ -46,17 +77,19 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    if (botaoPrincipal) {
+        botaoPrincipal.addEventListener('click', (event) => {
+            event.preventDefault();
+            const destino = botaoPrincipal.getAttribute('href') || 'options.html';
+            salvarPreferenciasIniciais(() => {
+                window.location.href = destino;
+            });
+        });
+    }
+
     if (!fechar) return;
 
     fechar.addEventListener('click', () => {
-        if (typeof chrome !== 'undefined' && chrome.tabs?.getCurrent && chrome.tabs?.remove) {
-            chrome.tabs.getCurrent((tab) => {
-                if (tab?.id) chrome.tabs.remove(tab.id);
-                else window.close();
-            });
-            return;
-        }
-
-        window.close();
+        salvarPreferenciasIniciais(fecharWelcome);
     });
 });
