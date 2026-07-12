@@ -1,6 +1,6 @@
 // =============================================
 // SyntaxMentor - options-geral.js v2.8.1
-// Entrada da pagina de configuracoes gerais.
+// Entrada da página de configurações gerais.
 // A implementacao foi dividida em js/options/geral/.
 // =============================================
 

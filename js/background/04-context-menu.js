@@ -48,7 +48,7 @@ function registrarMenuContexto() {
                 if (!dic.includes(palavra)) {
                     dic.push(palavra);
                     smStorageLocalSet({ dicionario_pessoal: dic });
-                    smLog(`Palavra adicionada ao dicionario: ${palavra}`);
+                    smLog(`Palavra adicionada ao dicionário: ${palavra}`);
                 }
             });
         }

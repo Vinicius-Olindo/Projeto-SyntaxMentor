@@ -12,7 +12,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function obterPreferenciasIniciais() {
         return {
             modoManual: !(autoReview?.checked ?? true),
-            languageToolConsent: languageTool?.checked ?? true
+            languageToolConsent: languageTool?.checked ?? false
         };
     }
 

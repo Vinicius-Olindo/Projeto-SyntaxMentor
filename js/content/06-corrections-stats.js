@@ -41,7 +41,80 @@ function obterTextoElementoParaRevisao(el) {
     return el.textContent || el.innerText || '';
 }
 
-function substituirTextoEmContentEditable(el, original, sugestao) {
+function normalizarOcorrenciaCorrecao(ocorrencia) {
+    if (!ocorrencia) return null;
+
+    const offset = Number(ocorrencia.offset);
+    const length = Number(ocorrencia.length);
+
+    if (!Number.isFinite(offset) || offset < 0) return null;
+    if (!Number.isFinite(length) || length <= 0) return null;
+
+    return { offset, length };
+}
+
+function substituirOcorrenciaEmTexto(texto, original, sugestao, ocorrencia) {
+    const alvo = normalizarOcorrenciaCorrecao(ocorrencia);
+    if (!alvo) return null;
+
+    const textoAtual = String(texto || '');
+    const originalAtual = String(original || '');
+
+    if (textoAtual.substr(alvo.offset, alvo.length) !== originalAtual) return null;
+
+    return textoAtual.slice(0, alvo.offset) + sugestao + textoAtual.slice(alvo.offset + alvo.length);
+}
+
+function substituirOcorrenciaEmContentEditable(el, original, sugestao, ocorrencia) {
+    const alvo = normalizarOcorrenciaCorrecao(ocorrencia);
+    if (!alvo || !el?.isContentEditable) return 0;
+
+    const selecao = salvarSelecaoContentEditable(el);
+    const nodes = [];
+    const walker = document.createTreeWalker(
+        el,
+        NodeFilter.SHOW_TEXT,
+        {
+            acceptNode(node) {
+                if (node.parentElement?.closest?.('script, style, #syntax-mentor-painel, #syntax-mentor-bubble')) {
+                    return NodeFilter.FILTER_REJECT;
+                }
+                return NodeFilter.FILTER_ACCEPT;
+            }
+        }
+    );
+
+    while (walker.nextNode()) nodes.push(walker.currentNode);
+
+    let posicaoAcumulada = 0;
+    const mutacaoAnterior = isExtensaoMutando;
+    isExtensaoMutando = true;
+
+    try {
+        for (const node of nodes) {
+            const textoNode = node.textContent || '';
+            const inicioNode = posicaoAcumulada;
+            const fimNode = inicioNode + textoNode.length;
+
+            if (alvo.offset >= inicioNode && alvo.offset + alvo.length <= fimNode) {
+                const offsetLocal = alvo.offset - inicioNode;
+                if (textoNode.substr(offsetLocal, alvo.length) !== original) return 0;
+
+                node.textContent = textoNode.slice(0, offsetLocal) + sugestao + textoNode.slice(offsetLocal + alvo.length);
+                return 1;
+            }
+
+            posicaoAcumulada = fimNode;
+        }
+
+        return 0;
+    } finally {
+        isExtensaoMutando = mutacaoAnterior;
+        restaurarSelecaoContentEditable(el, selecao);
+    }
+}
+
+function substituirTextoEmContentEditable(el, original, sugestao, limite = Infinity) {
     if (!el?.isContentEditable) return 0;
 
     const regex = criarRegexCorrecaoTexto(original);
@@ -70,7 +143,8 @@ function substituirTextoEmContentEditable(el, original, sugestao) {
     try {
         nodes.forEach(node => {
             regex.lastIndex = 0;
-            const novoTexto = node.textContent.replace(regex, () => {
+            const novoTexto = node.textContent.replace(regex, (trechoEncontrado) => {
+                if (total >= limite) return trechoEncontrado;
                 total++;
                 return sugestao;
             });
@@ -143,8 +217,17 @@ function registrarCorrecaoAplicada() {
     if (bubble) { bubble.classList.add('sm-bubble-correction'); setTimeout(() => bubble.classList.remove('sm-bubble-correction'), 300); }
 }
 
-function removerErroGlobal(original) {
-    errosGlobais = errosGlobais.filter(err => { const o = err.context.text.substr(err.context.offset, err.context.length); return o !== original; });
+function removerErroGlobal(original, ocorrencia = null) {
+    const alvo = normalizarOcorrenciaCorrecao(ocorrencia);
+
+    errosGlobais = errosGlobais.filter(err => {
+        const o = err.context.text.substr(err.context.offset, err.context.length);
+
+        if (!alvo) return o !== original;
+
+        return !(o === original && Number(err.context.offset) === alvo.offset && Number(err.context.length) === alvo.length);
+    });
+
     atualizarInterface();
 }
 
@@ -159,37 +242,51 @@ function ignorarTemporariamente(palavra) {
     mostrarFeedback(`"${palavra}" ignorada nesta sessão`, 'info');
 }
 
-function aplicarCorrecao(original, sugestao, el, pularConfirmacao = false) {
+function aplicarCorrecao(original, sugestao, el, pularConfirmacao = false, ocorrencia = null) {
     if (!el || original == null || original === '' || sugestao == null) return;
     const executarCorrecao = () => {
         let totalAplicado = 0;
+        const alvoOcorrencia = normalizarOcorrenciaCorrecao(ocorrencia);
         if (el.tagName === 'TEXTAREA' || el.tagName === 'INPUT') {
             const valorAntigo = el.value;
-            const posicao = encontrarPosicaoPalavra(el.value, original);
-            const regex = criarRegexCorrecaoTexto(original);
-            el.value = el.value.replace(regex, () => {
-                totalAplicado++;
-                return sugestao;
-            });
+            const textoComOcorrencia = substituirOcorrenciaEmTexto(el.value, original, sugestao, ocorrencia);
+            const posicao = alvoOcorrencia?.offset ?? encontrarPosicaoPalavra(el.value, original);
+
+            if (textoComOcorrencia != null) {
+                el.value = textoComOcorrencia;
+                totalAplicado = 1;
+            } else if (!alvoOcorrencia) {
+                const regex = criarRegexCorrecaoTexto(original);
+                el.value = el.value.replace(regex, (trechoEncontrado) => {
+                    if (totalAplicado > 0) return trechoEncontrado;
+                    totalAplicado++;
+                    return sugestao;
+                });
+            }
+
             if (el.value !== valorAntigo) {
                 salvarEstadoParaDesfazer(el, original, sugestao, valorAntigo, el.value);
                 mostrarFeedbackCorrecao(el, posicao, original, sugestao);
                 executarSemProcessarInputInterno(() => dispararEventosNativos(el));
-                requestAnimationFrame(() => {
-                    if (el.value !== valorAntigo) executarSemProcessarInputInterno(() => dispararEventosNativos(el));
-                });
             }
         } else if (el.isContentEditable) {
             if (!isSiteRestrito) limparGrifosElemento(el);
             const htmlAntigo = el.innerHTML;
-            totalAplicado = substituirTextoEmContentEditable(el, original, sugestao);
+            totalAplicado = substituirOcorrenciaEmContentEditable(el, original, sugestao, ocorrencia);
+            if (totalAplicado === 0 && !alvoOcorrencia) {
+                totalAplicado = substituirTextoEmContentEditable(el, original, sugestao, 1);
+            }
             const htmlDepois = el.innerHTML;
             if (totalAplicado > 0 && htmlDepois !== htmlAntigo) {
                 salvarEstadoParaDesfazer(el, original, sugestao, htmlAntigo, htmlDepois);
                 executarSemProcessarInputInterno(() => atualizarElementoComEventos(el));
             }
         }
-        if (totalAplicado === 0) return;
+        if (totalAplicado === 0) {
+            mostrarFeedback('O texto mudou desde a ultima revisao. Revisando novamente...', 'info');
+            agendarReverificacaoAposCorrecao(el);
+            return;
+        }
         historicoCorrecoes.push({ el, original, sugestao, timestamp: Date.now() });
         if (historicoCorrecoes.length > 50) historicoCorrecoes.shift();
         const erroEncontrado = smConfig.modoAprendizado
@@ -198,7 +295,7 @@ function aplicarCorrecao(original, sugestao, el, pularConfirmacao = false) {
                 return o === original;
             })
             : null;
-        removerErroGlobal(original);
+        removerErroGlobal(original, ocorrencia);
         registrarCorrecaoAplicada();
         if (!smCorrigindoEmLote) agendarReverificacaoAposCorrecao(el);
         if (smConfig.modoAprendizado) {
@@ -290,7 +387,7 @@ function confirmarCorrecaoEmLote(correcoes, el = elementoGlobal) {
     dialog.append(
         smCriarElemento('h3', { textContent: SM_TEXTOS.painel.confirmarCorrecoes }),
         smCriarElemento('p', {
-            textContent: `${correcoes.length} correcao(oes)`,
+            textContent: `${correcoes.length} correção(ões)`,
             style: 'font-size:12px;color:#888;'
         }),
         lista,
@@ -373,6 +470,42 @@ function aplicarCorrecoesEmTexto(texto, correcoes) {
     return { novoTexto, aplicadas };
 }
 
+function aplicarCorrecoesPorOcorrenciaEmTexto(texto, correcoes) {
+    let novoTexto = String(texto || '');
+    const aplicadas = [];
+    const semOcorrencia = [];
+
+    const porOcorrencia = (correcoes || [])
+        .map(([original, sugestao, ocorrencia]) => ({
+            original,
+            sugestao,
+            ocorrencia: normalizarOcorrenciaCorrecao(ocorrencia)
+        }))
+        .filter(item => {
+            if (!item.ocorrencia) {
+                semOcorrencia.push([item.original, item.sugestao]);
+                return false;
+            }
+            return true;
+        })
+        .sort((a, b) => b.ocorrencia.offset - a.ocorrencia.offset);
+
+    porOcorrencia.forEach(({ original, sugestao, ocorrencia }) => {
+        const atualizado = substituirOcorrenciaEmTexto(novoTexto, original, sugestao, ocorrencia);
+        if (atualizado == null || atualizado === novoTexto) return;
+        novoTexto = atualizado;
+        aplicadas.push({ original, sugestao, total: 1 });
+    });
+
+    if (semOcorrencia.length > 0) {
+        const resultadoLegado = aplicarCorrecoesEmTexto(novoTexto, agruparCorrecoesPorTexto(semOcorrencia));
+        novoTexto = resultadoLegado.novoTexto;
+        aplicadas.push(...resultadoLegado.aplicadas);
+    }
+
+    return { novoTexto, aplicadas };
+}
+
 function registrarCorrecoesEmLote(aplicadas, el) {
     aplicadas.forEach(({ original, sugestao, total }) => {
         historicoCorrecoes.push({ el, original, sugestao, total, timestamp: Date.now() });
@@ -400,27 +533,37 @@ function executarCorrecoesEmLote(correcoes, el = elementoGlobal) {
     try {
         if (alvo.tagName === 'TEXTAREA' || alvo.tagName === 'INPUT') {
             const valorAntigo = alvo.value || '';
-            const resultado = aplicarCorrecoesEmTexto(valorAntigo, correcoesValidas);
+            const resultado = aplicarCorrecoesPorOcorrenciaEmTexto(valorAntigo, correcoesValidas);
             aplicadas = resultado.aplicadas;
 
             if (resultado.novoTexto !== valorAntigo) {
-                salvarEstadoParaDesfazer(alvo, 'correcao em lote', 'correcoes aplicadas', valorAntigo, resultado.novoTexto);
+                salvarEstadoParaDesfazer(alvo, 'correção em lote', 'correções aplicadas', valorAntigo, resultado.novoTexto);
                 alvo.value = resultado.novoTexto;
                 executarSemProcessarInputInterno(() => dispararEventosNativos(alvo));
-                requestAnimationFrame(() => executarSemProcessarInputInterno(() => dispararEventosNativos(alvo)));
             }
         } else if (alvo.isContentEditable) {
             if (!isSiteRestrito) limparGrifosElemento(alvo);
             const htmlAntigo = alvo.innerHTML;
 
-            correcoesValidas.forEach(([original, sugestao]) => {
+            const correcoesComOcorrencia = correcoesValidas
+                .filter(([, , ocorrencia]) => normalizarOcorrenciaCorrecao(ocorrencia))
+                .sort((a, b) => Number(b[2].offset) - Number(a[2].offset));
+            const correcoesSemOcorrencia = correcoesValidas
+                .filter(([, , ocorrencia]) => !normalizarOcorrenciaCorrecao(ocorrencia));
+
+            correcoesComOcorrencia.forEach(([original, sugestao, ocorrencia]) => {
+                const total = substituirOcorrenciaEmContentEditable(alvo, original, sugestao, ocorrencia);
+                if (total > 0) aplicadas.push({ original, sugestao, total });
+            });
+
+            agruparCorrecoesPorTexto(correcoesSemOcorrencia).forEach(([original, sugestao]) => {
                 const total = substituirTextoEmContentEditable(alvo, original, sugestao);
                 if (total > 0) aplicadas.push({ original, sugestao, total });
             });
 
             const htmlDepois = alvo.innerHTML;
             if (htmlDepois !== htmlAntigo) {
-                salvarEstadoParaDesfazer(alvo, 'correcao em lote', 'correcoes aplicadas', htmlAntigo, htmlDepois);
+                salvarEstadoParaDesfazer(alvo, 'correção em lote', 'correções aplicadas', htmlAntigo, htmlDepois);
                 executarSemProcessarInputInterno(() => atualizarElementoComEventos(alvo));
             }
         }
@@ -430,7 +573,7 @@ function executarCorrecoesEmLote(correcoes, el = elementoGlobal) {
     }
 
     if (aplicadas.length === 0) {
-        mostrarFeedback('Nenhuma correcao foi aplicada.', 'info');
+        mostrarFeedback('Nenhuma correção foi aplicada.', 'info');
         return;
     }
 
@@ -441,18 +584,43 @@ function executarCorrecoesEmLote(correcoes, el = elementoGlobal) {
     atualizarInterface();
     atualizarVisibilidadeBolha();
     registrarCorrecaoAplicada();
-    mostrarFeedbackInteligente(`${aplicadas.length} correcao${aplicadas.length > 1 ? 'es' : ''} aplicada${aplicadas.length > 1 ? 's' : ''}. Revisando novamente...`, 'success');
+
+    const totalOcorrenciasAplicadas = aplicadas.reduce((total, item) => total + (item.total || 0), 0);
+    mostrarFeedbackInteligente(`${totalOcorrenciasAplicadas} correcao${totalOcorrenciasAplicadas > 1 ? 'es' : ''} aplicada${totalOcorrenciasAplicadas > 1 ? 's' : ''}. Revisando novamente...`, 'success');
     agendarReverificacaoAposCorrecao(alvo);
 }
 
 function extrairCorrecoesDosErros(erros = errosGlobais) {
-    const unicos = {};
-    erros.forEach(err => {
+    const ocorrencias = [];
+    const chaves = new Set();
+
+    erros.forEach((err, index) => {
         const o = err.context.text.substr(err.context.offset, err.context.length);
         const s = err.replacements[0]?.value;
-        if (o.trim() && s != null && s !== o && !Object.hasOwn(unicos, o)) unicos[o] = s;
+        const offset = Number(err.context.offset);
+        const length = Number(err.context.length);
+
+        if (!o.trim() || s == null || s === o) return;
+
+        const chave = `${offset}:${length}:${o}:${s}`;
+        if (chaves.has(chave)) return;
+
+        chaves.add(chave);
+        ocorrencias.push([o, s, { offset, length, index, chave }]);
     });
-    return Object.entries(unicos);
+
+    return ocorrencias;
+}
+
+function agruparCorrecoesPorTexto(correcoes) {
+    const unicas = new Map();
+
+    (correcoes || []).forEach(([original, sugestao]) => {
+        const chave = `${original}\u0000${sugestao}`;
+        if (!unicas.has(chave)) unicas.set(chave, [original, sugestao]);
+    });
+
+    return Array.from(unicas.values());
 }
 
 function corrigirTudo() {

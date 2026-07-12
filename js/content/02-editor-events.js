@@ -107,6 +107,18 @@ function mostrarFeedbackInteligente(msg, tipo) { mostrarFeedback(msg, tipo); }
 // EVENTOS E DISPAROS
 // =============================================
 
+function criarEventoInputCorrecao() {
+    try {
+        return new InputEvent('input', {
+            bubbles: true,
+            inputType: 'insertReplacementText',
+            data: null
+        });
+    } catch (e) {
+        return new Event('input', { bubbles: true });
+    }
+}
+
 function dispararEventosNativos(elemento) {
     if (!elemento) return;
     const start = elemento.selectionStart;
@@ -118,32 +130,14 @@ function dispararEventosNativos(elemento) {
         try { nativeSetter.call(elemento, valor); } catch(e) { elemento.value = valor; }
     }
     try { elemento.setSelectionRange(start, end); } catch(e) {}
-    const eventos = [
-        new Event('input', { bubbles: true }),
-        new Event('change', { bubbles: true }),
-        new InputEvent('input', { bubbles: true, inputType: 'insertText', data: valor }),
-        new CompositionEvent('compositionend', { bubbles: true, data: valor }),
-        new FocusEvent('blur', { bubbles: true }),
-        new FocusEvent('focus', { bubbles: true })
-    ];
-    eventos.forEach(evt => { try { elemento.dispatchEvent(evt); } catch(e) {} });
-    if (elemento._valueTracker) { try { elemento._valueTracker.setValue(valor); } catch(e) {} }
+    try { elemento.dispatchEvent(criarEventoInputCorrecao()); } catch(e) {}
 }
 
 function atualizarElementoComEventos(elemento) {
     if (!elemento) return;
     if (elemento.isContentEditable || elemento.getAttribute?.('contenteditable') === 'true') {
         const selecao = salvarSelecaoContentEditable(elemento);
-        const eventos = [
-            new Event('input', { bubbles: true }),
-            new Event('change', { bubbles: true }),
-            new InputEvent('beforeinput', { bubbles: true, inputType: 'insertText' }),
-            new InputEvent('input', { bubbles: true, inputType: 'insertText' }),
-            new CompositionEvent('compositionend', { bubbles: true }),
-            new FocusEvent('blur', { bubbles: true }),
-            new FocusEvent('focus', { bubbles: true })
-        ];
-        eventos.forEach(evt => { try { elemento.dispatchEvent(evt); } catch(e) {} });
+        try { elemento.dispatchEvent(criarEventoInputCorrecao()); } catch(e) {}
         restaurarSelecaoContentEditable(elemento, selecao);
         return;
     }

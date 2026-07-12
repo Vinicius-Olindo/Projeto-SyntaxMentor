@@ -54,6 +54,13 @@ let smRevisaoColagemId = 0;
 let smRevisaoCicloId = 0;
 let smCicloRevisaoAtual = null;
 
+const SM_MAX_AUTOMATIC_REVIEW_CHARS = 5000;
+const SM_MAX_MANUAL_REVIEW_CHARS = 12000;
+const SM_GRAMMAR_CACHE_LIMIT = 50;
+let smGrammarCache = new Map();
+let smLanguageToolPausedUntil = 0;
+
+
 let historicoDesfazer = [];
 const MAX_HISTORICO_DESFAZER = 20;
 
@@ -79,6 +86,15 @@ function listaTemDominio(host, lista) {
     return (lista || []).some(d => hostCorrespondeDominio(host, d));
 }
 
+function calcularSiteDesativado(host, config = {}) {
+    if (listaTemDominio(host, config.userBlacklistOverrides)) return true;
+    if (listaTemDominio(host, config.userWhitelistOverrides)) return false;
+    if (config.modoWhitelist) return !listaTemDominio(host, config.whitelist);
+
+    const desativadoGlobal = config.globalDisabled ?? config.disabled ?? false;
+    return !!desativadoGlobal || listaTemDominio(host, config.blacklist);
+}
+
 const sitesSemGrifos = ['mail.google.com', 'linkedin.com', 'docs.google.com', 'notion.so', 'twitter.com', 'x.com'];
 const isSiteRestrito = sitesSemGrifos.some(d => hostCorrespondeDominio(window.location.hostname, d));
 
@@ -94,6 +110,8 @@ let timeoutFoco = null;
 let iframeObserver = null;
 let shadowDomObserver = null;
 let processedIframes = new WeakSet();
+let iframeConnections = new Map();
+let iframeLoadHandlers = new Map();
 
 let badgeDebounceTimeout = null;
 let ultimoTotalEnviado = null;
@@ -117,13 +135,14 @@ let smConfig = {
     blacklist: [],
     strictMode: false,
     disabled: false,
+    globalDisabled: false,
     toggleShortcut: { altKey: true, ctrlKey: false, shiftKey: false, key: 's' },
     ignoreShortcut: { altKey: true, ctrlKey: false, shiftKey: false, key: 'i' },
     corrigirTudoShortcut: { altKey: true, ctrlKey: false, shiftKey: true, key: 's' },
     autoHideBubble: false,
     modoConfirmacao: false,
     modoManual: false,
-    languageToolConsent: true,
+    languageToolConsent: false,
     modoLeituraGlobal: false,
     modoLeituraSites: [],
     modoWhitelist: false,

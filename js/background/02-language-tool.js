@@ -1,5 +1,18 @@
 // SyntaxMentor background module: LanguageTool API and language detection.
 
+let smLanguageToolCooldownUntil = 0;
+let smLanguageToolBackoffMs = SM_LANGUAGETOOL_INITIAL_BACKOFF_MS;
+
+function registrarBackoffLanguageTool() {
+    smLanguageToolCooldownUntil = Date.now() + smLanguageToolBackoffMs;
+    smLanguageToolBackoffMs = Math.min(smLanguageToolBackoffMs * 2, SM_LANGUAGETOOL_MAX_BACKOFF_MS);
+}
+
+function resetarBackoffLanguageTool() {
+    smLanguageToolBackoffMs = SM_LANGUAGETOOL_INITIAL_BACKOFF_MS;
+    smLanguageToolCooldownUntil = 0;
+}
+
 function montarParametrosLanguageTool(request) {
     const params = {
         text: request.text,
@@ -32,13 +45,24 @@ function montarHeadersLanguageTool(apiKey) {
 
 function normalizarErroLanguageTool(err) {
     if (err.name === 'AbortError') return 'Timeout: O servidor demorou muito para responder';
-    if (err.message.includes('Failed to fetch')) return 'Erro de conexao: Verifique sua internet';
-    if (err.message.includes('HTTP Error 401')) return 'API Key invalida - Verifique suas configuracoes';
-    if (err.message.includes('HTTP Error 429')) return 'Muitas requisicoes - Aguarde um momento';
+    if (err.message.includes('Failed to fetch')) return 'Erro de conexão: verifique sua internet';
+    if (err.message.includes('HTTP Error 401')) return 'API Key inválida - verifique suas configurações';
+    if (err.message.includes('HTTP Error 429')) return 'Muitas requisições - aguarde alguns segundos antes de tentar novamente';
+    if (err.message.includes('Texto acima do limite')) return err.message;
     return err.message;
 }
 
 function consultarLanguageTool(request, apiKey) {
+    const texto = String(request?.text || '');
+
+    if (texto.length > SM_LANGUAGETOOL_MAX_CHARS) {
+        return Promise.reject(new Error(`Texto acima do limite de ${SM_LANGUAGETOOL_MAX_CHARS} caracteres para revisão online`));
+    }
+
+    if (Date.now() < smLanguageToolCooldownUntil) {
+        return Promise.reject(new Error('HTTP Error 429'));
+    }
+
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 15000);
 
@@ -50,7 +74,15 @@ function consultarLanguageTool(request, apiKey) {
     })
         .then(response => {
             clearTimeout(timeoutId);
+
+            if (response.status === 429) {
+                registrarBackoffLanguageTool();
+                throw new Error('HTTP Error 429');
+            }
+
             if (!response.ok) throw new Error(`HTTP Error ${response.status}`);
+
+            resetarBackoffLanguageTool();
             return response.json();
         })
         .catch(err => {
@@ -60,18 +92,39 @@ function consultarLanguageTool(request, apiKey) {
 }
 
 function responderCheckGrammar(request, sendResponse) {
-    obterApiKeySessao((apiKey) => {
-        consultarLanguageTool(request, apiKey)
-            .then(data => {
-                sendResponse({ success: true, data, requestId: request.requestId });
-            })
-            .catch(err => {
-                sendResponse({
-                    success: false,
-                    error: normalizarErroLanguageTool(err),
-                    requestId: request.requestId
-                });
+    smStorageLocalGet({ languageToolConsent: false }, (preferencias, erroStorage) => {
+        if (erroStorage) {
+            sendResponse({
+                success: false,
+                error: 'Nao foi possivel confirmar a permissao de revisao online',
+                requestId: request.requestId
             });
+            return;
+        }
+
+        if (preferencias.languageToolConsent !== true) {
+            sendResponse({
+                success: true,
+                data: { matches: [] },
+                requestId: request.requestId,
+                onlineReviewDisabled: true
+            });
+            return;
+        }
+
+        obterApiKeySessao((apiKey) => {
+            consultarLanguageTool(request, apiKey)
+                .then(data => {
+                    sendResponse({ success: true, data, requestId: request.requestId });
+                })
+                .catch(err => {
+                    sendResponse({
+                        success: false,
+                        error: normalizarErroLanguageTool(err),
+                        requestId: request.requestId
+                    });
+                });
+        });
     });
     return true;
 }

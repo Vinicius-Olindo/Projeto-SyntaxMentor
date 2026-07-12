@@ -1,17 +1,23 @@
 # SyntaxMentor
 
-SyntaxMentor e uma extensao para Chrome focada em revisao ortografica e gramatical em campos de texto da web. Ela acompanha a digitacao, consulta o LanguageTool e apresenta sugestoes em uma interface leve, com configuracoes por idioma, site e modo de uso.
+SyntaxMentor é uma extensão para Chrome focada em revisão ortográfica e gramatical em campos de texto da web. Ela acompanha a digitação, usa regras locais e, quando o usuário autoriza, consulta o LanguageTool para apresentar sugestões em uma interface leve, com configurações por idioma, site e modo de uso.
 
 ## Principais recursos
 
-- Revisao ortografica e gramatical via LanguageTool.
-- Painel lateral com sugestoes, acoes de corrigir, ignorar e adicionar ao dicionario.
-- Correcao em lote e desfazer ultima correcao.
-- Dicionario pessoal para nomes, termos tecnicos e palavras recorrentes.
-- Blacklist, whitelist e controles por dominio.
-- Modos de confirmacao, leitura, foco e aprendizado.
-- Pagina de boas-vindas aberta automaticamente na instalacao.
-- Configuracoes de idioma, velocidade, tema e chave de API em armazenamento seguro de sessao.
+- Revisão ortográfica e gramatical com regras locais e integração opcional com o LanguageTool.
+- Painel lateral com sugestões, ações de corrigir, ignorar e adicionar ao dicionário.
+- Correção em lote e desfazer última correção.
+- Dicionário pessoal para nomes, termos técnicos e palavras recorrentes.
+- Blacklist, whitelist e controles por domínio.
+- Modos de confirmação, leitura, foco, aprendizado e revisão manual.
+- Página de boas-vindas aberta automaticamente na instalação.
+- Configurações de idioma, velocidade, tema e chave de API em armazenamento seguro de sessão.
+
+## Privacidade por padrão
+
+A revisão online fica desativada por padrão. O usuário precisa autorizar explicitamente o envio de texto ao LanguageTool. Sem essa autorização, o SyntaxMentor usa somente a revisão local disponível na extensão.
+
+Textos muito grandes não são enviados automaticamente para revisão online. Isso reduz exposição de dados, melhora a performance e evita uso excessivo da API.
 
 ## Estrutura do projeto
 
@@ -43,52 +49,61 @@ SyntaxMentor/
 |   `-- welcome.js
 |-- icons/
 |-- docs/
+|-- scripts/
+|-- store-assets/
 `-- tests/
 ```
 
-## Permissoes
+## Permissões
 
-- `storage`: salva configuracoes, dicionario pessoal e listas de sites.
-- `activeTab`: permite comunicacao com a aba ativa.
-- `contextMenus`: adiciona acoes rapidas ao menu de contexto.
-- `https://api.languagetool.org/*`: permite consultar o motor de revisao.
+- `storage`: salva configurações, dicionário pessoal e listas de sites.
+- `activeTab`: permite comunicação com a aba ativa.
+- `contextMenus`: adiciona ações rápidas ao menu de contexto.
+- `https://api.languagetool.org/*`: permite consultar o motor externo de revisão somente quando a revisão online estiver autorizada.
 
 ## Desenvolvimento
 
 Requisitos:
 
 - Node.js instalado.
-- Chrome ou navegador compativel com extensoes Manifest V3.
+- Chrome ou navegador compatível com extensões Manifest V3.
 
-Executar validacoes:
+Executar validações:
 
 ```bash
 npm test
 ```
 
-A suite verifica sintaxe, referencias de arquivos, manifesto e pontos criticos dos scripts de conteudo, background e configuracoes.
+Gerar ZIP de publicação:
+
+```bash
+npm run build:zip
+```
+
+A suíte verifica sintaxe, referências de arquivos, manifesto e pontos críticos dos scripts de conteúdo, background e configurações.
 
 ## Como testar no Chrome
 
 1. Abra `chrome://extensions`.
 2. Ative o modo de desenvolvedor.
-3. Clique em `Carregar sem compactacao`.
+3. Clique em `Carregar sem compactação`.
 4. Selecione a pasta do projeto.
-5. Recarregue a extensao apos alteracoes em scripts, CSS ou manifesto.
+5. Recarregue a extensão após alterações em scripts, CSS ou manifesto.
 
-## Seguranca e privacidade
+## Segurança e privacidade
 
-- Politica publica de privacidade: [privacy.html](privacy.html).
-- O content script nao chama diretamente o LanguageTool; a consulta passa pelo background.
-- A chave de API e mantida em `chrome.storage.session`.
-- Scripts nao sao expostos em `web_accessible_resources`.
-- Conteudos dinamicos da interface sao renderizados por APIs de DOM, evitando HTML injetado.
-- URLs externas exibidas na interface passam por validacao antes de renderizar links.
+- Política pública de privacidade: [privacy.html](privacy.html).
+- O content script não chama diretamente o LanguageTool; a consulta passa pelo background.
+- A chave de API é mantida em `chrome.storage.session`.
+- Scripts não são expostos em `web_accessible_resources`.
+- Conteúdos dinâmicos da interface são renderizados por APIs de DOM, evitando HTML injetado.
+- URLs externas exibidas na interface passam por validação antes de renderizar links.
+- A extensão evita revisar campos sensíveis, como senha, cartão, CPF, CNPJ, tokens e chaves de API.
 
-## Versao
+## Versão
 
-Versao atual: `2.8.1`
+Versão atual: `2.8.2`
 
-## Licenca
+## Licença
 
-Distribuido sob a licenca MIT. Consulte [LICENSE](LICENSE) para mais detalhes.
+Distribuído sob a licença MIT. Consulte [LICENSE](LICENSE) para mais detalhes.

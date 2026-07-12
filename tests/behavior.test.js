@@ -173,6 +173,17 @@ module.exports = async function behaviorTests() {
     ]);
     assert.equal(repetidosDistantes.length, 2, 'deduplicacao deve preservar ocorrencias em trechos diferentes');
 
+    const repetidosLocais = pageReview.verificarOrtografiaPtBrLocal('Ola Ola extensao extensao nao nao');
+    const ocorrenciasLocais = repetidosLocais.filter(item => ['Ola', 'extensao', 'nao'].includes(
+        item.context.text.substr(item.context.offset, item.context.length)
+    ));
+    assert.equal(ocorrenciasLocais.length, 6, 'revisao local deve mostrar cada ocorrencia repetida do mesmo erro');
+    assert.equal(
+        new Set(ocorrenciasLocais.map(item => `${item.context.offset}:${item.context.length}`)).size,
+        6,
+        'ocorrencias repetidas devem manter offsets diferentes'
+    );
+
     const filtroConfianca = carregarScripts(['js/content/03-page-review.js', 'js/content/05-grammar-highlights.js'], {
         window: {},
         smConfig: { language: 'pt-BR', pickyMode: false },

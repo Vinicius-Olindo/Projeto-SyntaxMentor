@@ -45,6 +45,10 @@ function limparTodosObservadores() {
     isCleaningUp = true;
     
     smLog('Limpando observers ativos...');
+
+    if (typeof removerConexoesIframes === 'function') {
+        removerConexoesIframes();
+    }
     
     // Desconectar observers de shadow DOM
     shadowObservers.forEach((observer, shadowRoot) => {

@@ -1,0 +1,3 @@
+Prompt: "Refatore esse CSS deixando mais organizado, reutilizável e fácil de manter. Evite repetição e mantenha a aparência visual atual."
+
+O que faz: Limpa o código repetido e bagunçado mantendo o visual exatamente igual.

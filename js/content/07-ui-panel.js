@@ -385,7 +385,7 @@ function criarResumoErrosPainel(totalErros) {
 function criarCardErroPainel(erro, idx) {
     const card = smCriarElemento('div', {
         className: 'erro-card',
-        dataset: { errorIdx: idx, errorOffset: erro.offset }
+        dataset: { errorIdx: idx, errorOffset: erro.offset, errorLength: erro.length }
     });
 
     card.appendChild(smCriarElemento('div', { className: 'palavra-group' }, [
@@ -407,17 +407,17 @@ function criarCardErroPainel(erro, idx) {
         smCriarElemento('button', {
             className: 'btn-fix-mini',
             textContent: 'Corrigir',
-            dataset: { o: erro.original, s: erro.sugestao }
+            dataset: { o: erro.original, s: erro.sugestao, offset: erro.offset, length: erro.length }
         }),
         smCriarElemento('button', {
             className: 'btn-ignorar-sessao',
             textContent: 'Ignorar',
-            dataset: { o: erro.original }
+            dataset: { o: erro.original, offset: erro.offset, length: erro.length }
         }),
         smCriarElemento('button', {
             className: 'btn-ignorar',
             textContent: '+ Dic',
-            dataset: { o: erro.original }
+            dataset: { o: erro.original, offset: erro.offset, length: erro.length }
         })
     ]));
 
@@ -609,18 +609,25 @@ function exibirPainel() {
         
         const marks = document.querySelectorAll('mark.sm-highlight');
         marks.forEach(m => m.style.outline = '');
+
+        let ocorrenciaAtual = 0;
+        const indiceOcorrencia = errosValidos
+            .filter(item => item.original === palavra && item.offset <= erro.offset)
+            .length - 1;
+
         marks.forEach(m => {
-            if (m.textContent === palavra) {
+            if (m.textContent !== palavra) return;
+            if (ocorrenciaAtual === indiceOcorrencia) {
                 m.style.outline = '2px solid #f97316';
                 m.scrollIntoView({ behavior: 'smooth', block: 'center' });
             }
+            ocorrenciaAtual++;
         });
         
         document.querySelectorAll('.erro-card').forEach(card => {
-            const btn = card.querySelector('.btn-fix-mini');
-            if (btn) {
-                card.classList.toggle('active', btn.dataset.o === palavra);
-            }
+            const mesmoOffset = Number(card.dataset.errorOffset) === Number(erro.offset);
+            const mesmoLength = Number(card.dataset.errorLength) === Number(erro.length);
+            card.classList.toggle('active', mesmoOffset && mesmoLength);
         });
     }
 
@@ -643,7 +650,10 @@ function exibirPainel() {
         botoesFix.forEach(b => {
             if (b) {
                 b.onclick = () => {
-                    aplicarCorrecao(b.dataset.o, b.dataset.s, elementoGlobal);
+                    aplicarCorrecao(b.dataset.o, b.dataset.s, elementoGlobal, false, {
+                        offset: Number(b.dataset.offset),
+                        length: Number(b.dataset.length)
+                    });
                 };
             }
         });

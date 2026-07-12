@@ -1,0 +1,3 @@
+Prompt: "Encontre possíveis causas para bug no CSS/JS e explique o problema antes de sugerir a solução."
+
+O que faz: Te ensina a raiz do erro em vez de só cuspir a resposta pronta.

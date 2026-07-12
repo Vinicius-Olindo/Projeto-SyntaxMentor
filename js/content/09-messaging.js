@@ -99,16 +99,18 @@ if (typeof chrome !== 'undefined' && chrome.runtime && isContextoPermitido()) {
             const erros = errosGlobais.slice(0, 10).map(e => ({
                 original: e.context.text.substr(e.context.offset, e.context.length),
                 sugestao: e.replacements?.[0]?.value || '',
-                message: e.message || ''
+                message: e.message || '',
+                offset: e.context.offset,
+                length: e.context.length
             })).filter(e => e.original && e.sugestao && e.original !== e.sugestao);
             responder({ erros, total: erros.length });
             return true;
         }
         
         if (request.action === 'aplicarCorrecaoPopup') {
-            const { original, sugestao } = request;
+            const { original, sugestao, ocorrencia } = request;
             if (elementoGlobal && original && sugestao) {
-                aplicarCorrecao(original, sugestao, elementoGlobal, true);
+                aplicarCorrecao(original, sugestao, elementoGlobal, true, ocorrencia);
             }
             responder({ success: true });
             return true;

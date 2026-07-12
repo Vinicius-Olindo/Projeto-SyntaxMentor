@@ -530,12 +530,12 @@ document.addEventListener('DOMContentLoaded', () => {
             const aplicar = criarElemento('button', {
                 className: 'sm-btn-aplicar',
                 textContent: 'Aplicar',
-                dataset: { original: erro.original, sugestao: erro.sugestao },
+                dataset: { original: erro.original, sugestao: erro.sugestao, offset: erro.offset, length: erro.length },
                 style: 'flex-shrink:0;font-size:11px;padding:3px 8px;border-radius:4px;border:0.5px solid #6f42c1;background:transparent;color:#6f42c1;cursor:pointer;font-weight:500'
             });
             const item = criarElemento('div', {
                 className: 'sm-erro-item',
-                dataset: { original: erro.original, sugestao: erro.sugestao },
+                dataset: { original: erro.original, sugestao: erro.sugestao, offset: erro.offset, length: erro.length },
                 style: 'display:flex;align-items:center;justify-content:space-between;padding:6px 14px;gap:8px;cursor:pointer;border-top:0.5px solid rgba(0,0,0,.06)'
             }, [textos, aplicar]);
 
@@ -544,7 +544,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 chrome.tabs.sendMessage(tab.id, {
                     action: 'aplicarCorrecaoPopup',
                     original: aplicar.dataset.original,
-                    sugestao: aplicar.dataset.sugestao
+                    sugestao: aplicar.dataset.sugestao,
+                    ocorrencia: {
+                        offset: Number(aplicar.dataset.offset),
+                        length: Number(aplicar.dataset.length)
+                    }
                 }, () => {
                     item.style.opacity = '0.4';
                     aplicar.textContent = 'ok';

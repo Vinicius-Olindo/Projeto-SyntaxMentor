@@ -45,7 +45,8 @@ async function verificarTexto(texto, elemento, opcoes = {}) {
             language: smConfig.language,
             pickyMode: smConfig.pickyMode,
             modoVoz: !!elemento._smModoVoz,
-            requestId
+            requestId,
+            origem: opcoes.origem
         });
 
         if (signal.aborted || requestId !== ultimaConsultaGrammarId || !cicloRevisaoAindaAtual(cicloId, elemento)) {
@@ -227,26 +228,103 @@ function aplicarRevisaoLocalImediata(texto, elemento) {
     return true;
 }
 
-function consultarGramaticaNoBackground(texto, opcoes) {
+function origemPermiteRevisaoOnlineLonga(origem = '') {
+    return /manual|forcado|selecao|pagina|atalho/i.test(String(origem || ''));
+}
+
+function criarChaveCacheGramatica(texto, opcoes = {}) {
+    const base = [
+        opcoes.language || '',
+        opcoes.pickyMode ? 'picky' : 'normal',
+        opcoes.modoVoz ? 'voz' : 'texto',
+        texto
+    ].join('|');
+
+    let hash = 0;
+    for (let i = 0; i < base.length; i += 1) {
+        hash = ((hash << 5) - hash + base.charCodeAt(i)) | 0;
+    }
+
+    return String(hash);
+}
+
+function obterCacheGramaticaSeguro() {
+    if (typeof smGrammarCache !== 'undefined' && smGrammarCache instanceof Map) return smGrammarCache;
+    if (!consultarGramaticaNoBackground._cache) consultarGramaticaNoBackground._cache = new Map();
+    return consultarGramaticaNoBackground._cache;
+}
+
+function obterLimiteCacheGramatica() {
+    return typeof SM_GRAMMAR_CACHE_LIMIT !== 'undefined' ? SM_GRAMMAR_CACHE_LIMIT : 50;
+}
+
+function obterPausaLanguageToolAte() {
+    return typeof smLanguageToolPausedUntil !== 'undefined' ? smLanguageToolPausedUntil : (consultarGramaticaNoBackground._pausedUntil || 0);
+}
+
+function definirPausaLanguageToolAte(valor) {
+    if (typeof smLanguageToolPausedUntil !== 'undefined') {
+        smLanguageToolPausedUntil = valor;
+        return;
+    }
+    consultarGramaticaNoBackground._pausedUntil = valor;
+}
+
+function salvarCacheGramatica(chave, data) {
+    if (!chave || !data) return;
+    const cache = obterCacheGramaticaSeguro();
+    if (cache.size >= obterLimiteCacheGramatica()) {
+        const primeiraChave = cache.keys().next().value;
+        if (primeiraChave) cache.delete(primeiraChave);
+    }
+    cache.set(chave, data);
+}
+
+function consultarGramaticaNoBackground(texto, opcoes = {}) {
+    const textoSeguro = String(texto || '');
+
     if (typeof smConfig !== 'undefined' && smConfig.languageToolConsent === false) {
         return Promise.resolve({ matches: [] });
     }
 
+    const limite = origemPermiteRevisaoOnlineLonga(opcoes.origem)
+        ? (typeof SM_MAX_MANUAL_REVIEW_CHARS !== 'undefined' ? SM_MAX_MANUAL_REVIEW_CHARS : 12000)
+        : (typeof SM_MAX_AUTOMATIC_REVIEW_CHARS !== 'undefined' ? SM_MAX_AUTOMATIC_REVIEW_CHARS : 5000);
+
+    if (textoSeguro.length > limite) {
+        mostrarFeedback(`Texto com ${textoSeguro.length} caracteres. Use revisão manual para enviar textos grandes.`, 'info');
+        return Promise.resolve({ matches: [] });
+    }
+
+    if (Date.now() < obterPausaLanguageToolAte()) {
+        return Promise.resolve({ matches: [] });
+    }
+
+    const cacheKey = criarChaveCacheGramatica(textoSeguro, opcoes);
+    const cached = obterCacheGramaticaSeguro().get(cacheKey);
+    if (cached) return Promise.resolve(cached);
+
     return new Promise((resolve, reject) => {
         enviarMensagemSegura({
             action: 'checkGrammar',
-            text: texto,
+            text: textoSeguro,
             language: opcoes.language,
             pickyMode: opcoes.pickyMode,
             modoVoz: opcoes.modoVoz,
             requestId: opcoes.requestId
         }, (response) => {
             if (!response || !response.success) {
-                reject(new Error(response?.error || 'Erro de conexao com o servidor'));
+                const erro = response?.error || 'Erro de conexão com o servidor';
+                if (/429|Muitas requisições/i.test(erro)) {
+                    definirPausaLanguageToolAte(Date.now() + 10000);
+                }
+                reject(new Error(erro));
                 return;
             }
 
-            resolve(response.data || { matches: [] });
+            const data = response.data || { matches: [] };
+            salvarCacheGramatica(cacheKey, data);
+            resolve(data);
         });
     });
 }

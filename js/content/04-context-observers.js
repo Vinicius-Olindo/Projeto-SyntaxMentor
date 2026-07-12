@@ -113,28 +113,64 @@ function observarShadowDOM() {
     registrarObserver(shadowDomObserver, 'shadowDOM');
 }
 
-function tentarInjetarEmIframe(iframe) {
-    if (!iframe || processedIframes.has(iframe)) return;
+function desconectarDocumentoIframe(iframe) {
+    const conexao = iframeConnections.get(iframe);
+    if (!conexao) return;
+
+    try {
+        conexao.document.removeEventListener('input', shadowInputHandler, true);
+        conexao.document.removeEventListener('paste', shadowPasteHandler, true);
+        conexao.document.removeEventListener('beforeinput', shadowBeforeInputHandler, true);
+        conexao.observer?.disconnect();
+    } catch (e) {}
+
+    iframeConnections.delete(iframe);
+}
+
+function conectarDocumentoIframe(iframe) {
     try {
         const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
-        if (iframeDoc && iframeDoc.body) {
-            processedIframes.add(iframe);
-            observarElemento(iframeDoc.body);
-            const iframeMutationObserver = new MutationObserver(() => observarElemento(iframeDoc.body));
-            iframeMutationObserver.observe(iframeDoc, { childList: true, subtree: true });
-            registrarObserver(iframeMutationObserver, 'iframe');
-        } else {
-            iframe.addEventListener('load', () => {
-                try {
-                    const loadedDoc = iframe.contentDocument || iframe.contentWindow?.document;
-                    if (loadedDoc && loadedDoc.body) {
-                        processedIframes.add(iframe);
-                        observarElemento(loadedDoc.body);
-                    }
-                } catch(e) {}
-            }, { once: true });
-        }
-    } catch(e) {}
+        if (!iframeDoc?.body) return;
+
+        const conexaoAtual = iframeConnections.get(iframe);
+        if (conexaoAtual?.document === iframeDoc) return;
+        desconectarDocumentoIframe(iframe);
+
+        iframeDoc.addEventListener('input', shadowInputHandler, true);
+        iframeDoc.addEventListener('paste', shadowPasteHandler, true);
+        iframeDoc.addEventListener('beforeinput', shadowBeforeInputHandler, true);
+        observarElemento(iframeDoc.body);
+
+        const iframeMutationObserver = new MutationObserver(() => observarElemento(iframeDoc.body));
+        iframeMutationObserver.observe(iframeDoc.body, { childList: true, subtree: true });
+        registrarObserver(iframeMutationObserver, 'iframe');
+        iframeConnections.set(iframe, {
+            document: iframeDoc,
+            observer: iframeMutationObserver
+        });
+    } catch (e) {}
+}
+
+function removerConexoesIframes() {
+    Array.from(iframeConnections.keys()).forEach(desconectarDocumentoIframe);
+    iframeLoadHandlers.forEach((handler, iframe) => {
+        try { iframe.removeEventListener('load', handler); } catch (e) {}
+    });
+    iframeLoadHandlers.clear();
+    processedIframes = new WeakSet();
+}
+
+function tentarInjetarEmIframe(iframe) {
+    if (!iframe) return;
+
+    if (!processedIframes.has(iframe)) {
+        const onLoad = () => conectarDocumentoIframe(iframe);
+        iframe.addEventListener('load', onLoad);
+        iframeLoadHandlers.set(iframe, onLoad);
+        processedIframes.add(iframe);
+    }
+
+    conectarDocumentoIframe(iframe);
 }
 
 function observarIframes() {
@@ -276,6 +312,7 @@ function mostrarSugestaoIdioma(titulo, mensagem, novoIdioma) {
 function atualizarEstadoExtensao(ativar) {
     smConfig.disabled = !ativar;
     if (!ativar) {
+        limparTodosObservadores();
         if (elementoGlobal && elementoGlobal.isContentEditable && !isSiteRestrito) {
             limparGrifosElemento(elementoGlobal);
         }
@@ -286,6 +323,8 @@ function atualizarEstadoExtensao(ativar) {
         if (bubble) bubble.style.display = 'none';
         mostrarFeedback(`⛔ SyntaxMentor desativado neste site`, 'info');
     } else {
+        observarShadowDOM();
+        observarIframes();
         const bubble = document.getElementById('syntax-mentor-bubble');
         if (bubble) bubble.style.display = 'flex';
         const campoAtivo = document.activeElement;

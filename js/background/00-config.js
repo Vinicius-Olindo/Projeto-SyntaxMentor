@@ -7,6 +7,9 @@ const smWarn = (...args) => { if (SM_DEBUG) console.warn('[SM]', ...args); };
 const smError = (...args) => { if (SM_DEBUG) console.error('[SM]', ...args); };
 
 const SM_LANGUAGETOOL_API_URL = 'https://api.languagetool.org/v2/check';
+const SM_LANGUAGETOOL_MAX_CHARS = 12000;
+const SM_LANGUAGETOOL_INITIAL_BACKOFF_MS = 5000;
+const SM_LANGUAGETOOL_MAX_BACKOFF_MS = 60000;
 
 function normalizarDominio(valor) {
     return String(valor || '')

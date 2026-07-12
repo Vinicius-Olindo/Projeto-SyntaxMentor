@@ -105,7 +105,7 @@ function configurarEventosDicionario() {
             }
 
             if (currentDictionary.includes(word)) {
-                mostrarNotificacao('Esta palavra ja existe no dicionario', 'info');
+                mostrarNotificacao('Esta palavra já existe no dicionário', 'info');
                 dictionaryInput.value = '';
                 return;
             }
@@ -124,11 +124,11 @@ function configurarEventosDicionario() {
     if (btnClearDictionary) {
         btnClearDictionary.addEventListener('click', () => {
             if (currentDictionary.length === 0) {
-                mostrarNotificacao('O dicionario ja esta vazio.', 'info');
+                mostrarNotificacao('O dicionário já está vazio.', 'info');
                 return;
             }
 
-            smConfirmOptions(`Remover todas as ${currentDictionary.length} palavras do dicionario?`, () => {
+            smConfirmOptions(`Remover todas as ${currentDictionary.length} palavras do dicionário?`, () => {
                 currentDictionary = [];
                 salvarListaStorage(currentDictionary, 'dicionario_pessoal', () => {
                     renderizarDicionario();

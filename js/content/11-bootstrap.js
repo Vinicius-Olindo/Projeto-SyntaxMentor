@@ -113,7 +113,7 @@ function carregarSmConfig(callback) {
             language: 'pt-BR', pickyMode: true, speed: 500, darkMode: false,
             blacklist: [], strictMode: false,
             disabled: false, autoHideBubble: false, modoConfirmacao: false,
-            modoManual: false, languageToolConsent: true,
+            modoManual: false, languageToolConsent: false,
             modoLeituraGlobal: false, modoLeituraSites: [], modoWhitelist: false,
             whitelist: [], modoFoco: false, modoAprendizado: false,
             userBlacklistOverrides: [], userWhitelistOverrides: [], dicionario_pessoal: [],
@@ -125,13 +125,11 @@ function carregarSmConfig(callback) {
             desativarShortcut: { altKey: true, ctrlKey: false, shiftKey: true, key: 'd' }
         }, (res) => {
             Object.assign(smConfig, res);
+            smConfig.globalDisabled = !!res.disabled;
             dicCache = (res.dicionario_pessoal || []).map(w => w.toLowerCase());
             
             const host = window.location.hostname;
-            if (listaTemDominio(host, res.userBlacklistOverrides)) smConfig.disabled = true;
-            else if (listaTemDominio(host, res.userWhitelistOverrides)) smConfig.disabled = false;
-            else if (res.modoWhitelist) smConfig.disabled = !listaTemDominio(host, res.whitelist);
-            else smConfig.disabled = !!res.disabled || listaTemDominio(host, res.blacklist);
+            smConfig.disabled = calcularSiteDesativado(host, smConfig);
             
             if (callback) callback();
         });
@@ -165,7 +163,7 @@ window.addEventListener('visibilitychange', () => {
         return;
     }
 
-    if (document.visibilityState === 'visible' && isExtensaoAtiva() && document.body) {
+    if (document.visibilityState === 'visible' && isExtensaoAtiva() && document.body && !smConfig.disabled) {
         observarShadowDOM();
         observarIframes();
     }
@@ -189,19 +187,29 @@ function iniciar() {
     }
     
     carregarSmConfig(() => {
-        observarShadowDOM();
-        observarIframes();
+        if (!smConfig.disabled) {
+            observarShadowDOM();
+            observarIframes();
+        }
         
         chrome.storage.onChanged.addListener((changes, namespace) => {
             if (namespace !== 'local') return;
-            const campos = ['language','pickyMode','speed','darkMode','blacklist','strictMode','disabled','autoHideBubble','modoConfirmacao','modoManual','languageToolConsent','modoLeituraGlobal','modoLeituraSites','modoWhitelist','whitelist','modoFoco','modoAprendizado','userBlacklistOverrides','userWhitelistOverrides','smBubblePosition','toggleShortcut','ignoreShortcut','corrigirTudoShortcut','ativarShortcut','desativarShortcut'];
+            const estavaDesativada = smConfig.disabled;
+            const campos = ['language','pickyMode','speed','darkMode','blacklist','strictMode','autoHideBubble','modoConfirmacao','modoManual','languageToolConsent','modoLeituraGlobal','modoLeituraSites','modoWhitelist','whitelist','modoFoco','modoAprendizado','userBlacklistOverrides','userWhitelistOverrides','smBubblePosition','toggleShortcut','ignoreShortcut','corrigirTudoShortcut','ativarShortcut','desativarShortcut'];
             campos.forEach(k => { if (changes[k] !== undefined) smConfig[k] = changes[k].newValue; });
+            if (changes.disabled !== undefined) smConfig.globalDisabled = !!changes.disabled.newValue;
             if (changes.dicionario_pessoal !== undefined) dicCache = (changes.dicionario_pessoal.newValue || []).map(w => w.toLowerCase());
             const host = window.location.hostname;
-            if (listaTemDominio(host, smConfig.userBlacklistOverrides)) smConfig.disabled = true;
-            else if (listaTemDominio(host, smConfig.userWhitelistOverrides)) smConfig.disabled = false;
-            else if (smConfig.modoWhitelist) smConfig.disabled = !listaTemDominio(host, smConfig.whitelist);
-            else smConfig.disabled = !!smConfig.disabled || listaTemDominio(host, smConfig.blacklist);
+            smConfig.disabled = calcularSiteDesativado(host, smConfig);
+
+            if (!estavaDesativada && smConfig.disabled) {
+                limparTodosObservadores();
+                limparEstadoRevisaoObsoleta();
+            } else if (estavaDesativada && !smConfig.disabled) {
+                observarShadowDOM();
+                observarIframes();
+                atualizarInterface();
+            }
         });
     });
 }

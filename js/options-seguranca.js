@@ -42,7 +42,7 @@ if (document.body.classList.contains('seguranca-page')) {
         if (!statusApiBadge && !statusModoBadge && !statusConsentBadge) return;
         
         smStorageSessionGet({ apiKey: '' }, (sess) => {
-        smStorageLocalGet({ modoLeituraGlobal: false, languageToolConsent: true }, (res) => {
+        smStorageLocalGet({ modoLeituraGlobal: false, languageToolConsent: false }, (res) => {
         res.apiKey = sess.apiKey || '';
             if (statusApiBadge) {
                 if (res.apiKey && res.apiKey.trim() !== '') {
@@ -266,7 +266,7 @@ if (document.body.classList.contains('seguranca-page')) {
                 smStorageLocalSet({
                     modoConfirmacao: elModoConfirmacao?.checked || false,
                     modoLeituraGlobal: elModoLeituraGlobal?.checked || false,
-                    languageToolConsent: elLanguageToolConsent?.checked ?? true,
+                    languageToolConsent: elLanguageToolConsent?.checked ?? false,
                     modoFoco: elModoFoco?.checked || false,
                     modoAprendizado: elModoAprendizado?.checked || false,
                     modoWhitelist: elModoWhitelist?.checked || false
@@ -329,7 +329,7 @@ if (document.body.classList.contains('seguranca-page')) {
         smStorageLocalGet({
             modoConfirmacao: false,
             modoLeituraGlobal: false,
-            languageToolConsent: true,
+            languageToolConsent: false,
             modoLeituraSites: [],
             modoWhitelist: false,
             whitelist: [],
@@ -339,7 +339,7 @@ if (document.body.classList.contains('seguranca-page')) {
             if (elApiKey) elApiKey.value = sess.apiKey || '';
             if (elModoConfirmacao) elModoConfirmacao.checked = res.modoConfirmacao || false;
             if (elModoLeituraGlobal) elModoLeituraGlobal.checked = res.modoLeituraGlobal || false;
-            if (elLanguageToolConsent) elLanguageToolConsent.checked = res.languageToolConsent !== false;
+            if (elLanguageToolConsent) elLanguageToolConsent.checked = !!res.languageToolConsent;
             if (elModoFoco) elModoFoco.checked = res.modoFoco || false;
             if (elModoAprendizado) elModoAprendizado.checked = res.modoAprendizado || false;
             if (elModoWhitelist) elModoWhitelist.checked = res.modoWhitelist || false;
@@ -382,7 +382,7 @@ if (document.body.classList.contains('seguranca-page')) {
             }
 
             if (changes.languageToolConsent && elLanguageToolConsent) {
-                elLanguageToolConsent.checked = changes.languageToolConsent.newValue !== false;
+                elLanguageToolConsent.checked = !!changes.languageToolConsent.newValue;
             }
             
             if (changes.modoFoco && elModoFoco) {

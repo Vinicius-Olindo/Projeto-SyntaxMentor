@@ -1,0 +1,6 @@
+dist
+node_modules
+*.zip
+store-assets/chrome-web-store
+assets/*.png
+icons/*.png

@@ -31,7 +31,7 @@ module.exports = function contentTests() {
     assert.match(content, /function renderizarPainelRevisaoPagina/, 'painel de revisao de pagina deve ter renderizacao isolada');
     assert.doesNotMatch(content, /painel\.innerHTML|tooltip\.innerHTML|toast\.innerHTML|dialog\.innerHTML|historicoContent\.innerHTML/, 'paineis e overlays dinamicos nao devem ser montados com innerHTML');
     assert.match(content, /function substituirTextoEmContentEditable/, 'correcao em contentEditable deve trocar texto por nos de texto');
-    assert.match(content, /const erroEncontrado = smConfig\.modoAprendizado[\s\S]*removerErroGlobal\(original\)/, 'modo aprendizado deve guardar erro antes de remove-lo');
+    assert.match(content, /const erroEncontrado = smConfig\.modoAprendizado[\s\S]*removerErroGlobal\(original(?:,\s*ocorrencia)?\)/, 'modo aprendizado deve guardar erro antes de remove-lo');
     assert.match(content, /formato: obterFormatoDesfazer/, 'desfazer deve guardar o formato do estado salvo');
     assert.match(content, /salvarEstadoParaDesfazer\(el, original, sugestao, htmlAntigo, htmlDepois\)/, 'desfazer em contentEditable deve salvar HTML antes e depois');
     assert.strictEqual((content.match(/function corrigirTudo\(/g) || []).length, 1, 'content deve manter apenas uma implementacao de corrigirTudo');

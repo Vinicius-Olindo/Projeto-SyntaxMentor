@@ -1,0 +1,3 @@
+Prompt: "Adicione Security Headers na aplicação para evitar ataques de injeção e roubo de dados."
+
+O que faz: Impede que coloquem sua aplicação dentro de uma página falsa para roubar dados.

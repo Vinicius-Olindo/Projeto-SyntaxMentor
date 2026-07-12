@@ -1,10 +1,17 @@
-﻿{
+{
   "name": "syntaxmentor",
-  "version": "2.8.1",
+  "version": "2.8.3",
   "description": "Extensão de correção ortográfica para Chrome",
   "scripts": {
     "test": "node tests/run-tests.js",
     "test:watch": "node tests/run-tests.js --watch",
-    "test:coverage": "node tests/run-tests.js --coverage"
+    "test:coverage": "node tests/run-tests.js --coverage",
+    "build:zip": "node scripts/build-zip.js",
+    "lint": "eslint .",
+    "format": "prettier --write ."
+  },
+  "devDependencies": {
+    "eslint": "^9.0.0",
+    "prettier": "^3.0.0"
   }
 }

@@ -159,8 +159,8 @@ function criarSandbox(candidatos = []) {
 }
 
 function prepararErros(sandbox, erros) {
-    sandbox.errosParaTeste = erros.map(([original, sugestao]) => ({
-        context: { text: original, offset: 0, length: original.length },
+    sandbox.errosParaTeste = erros.map(([original, sugestao, offset = 0, texto = original]) => ({
+        context: { text: texto, offset, length: original.length },
         replacements: [{ value: sugestao }]
     }));
     vm.runInContext('errosGlobais = errosParaTeste;', sandbox);
@@ -180,6 +180,21 @@ module.exports = function corrigirTudoTests() {
     prepararErros(sandbox, [['Ola', 'Ol\u00e1']]);
     sandbox.corrigirTudo();
     assert.equal(input.value, 'Ol\u00e1', 'corrigir tudo deve aplicar em input');
+
+    const repetidos = criarCampoValor('TEXTAREA', 'Ola Ola extensao extensao nao nao');
+    sandbox = criarSandbox([repetidos]);
+    sandbox.document.activeElement = repetidos;
+    prepararErros(sandbox, [
+        ['Ola', 'Ol\u00e1', 0, repetidos.value],
+        ['Ola', 'Ol\u00e1', 4, repetidos.value],
+        ['extensao', 'extens\u00e3o', 8, repetidos.value],
+        ['extensao', 'extens\u00e3o', 17, repetidos.value],
+        ['nao', 'n\u00e3o', 26, repetidos.value],
+        ['nao', 'n\u00e3o', 30, repetidos.value]
+    ]);
+    assert.equal(sandbox.extrairCorrecoesDosErros().length, 6, 'corrigir tudo deve preservar todas as ocorrencias repetidas antes de aplicar');
+    sandbox.corrigirTudo();
+    assert.equal(repetidos.value, 'Ol\u00e1 Ol\u00e1 extens\u00e3o extens\u00e3o n\u00e3o n\u00e3o', 'corrigir tudo deve aplicar em todas as ocorrencias repetidas');
 
     const contentEditable = criarContentEditable('Ola com progamas aberto');
     sandbox = criarSandbox([contentEditable]);
